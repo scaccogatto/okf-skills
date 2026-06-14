@@ -16,15 +16,19 @@ Run the deterministic conformance checker against the target bundle. Default to
 the project's `.okf/` directory when no path is given.
 
 ```bash
-uv run "${CLAUDE_PLUGIN_ROOT}/scripts/okf_validate.py" $ARGUMENTS
+uv run "${CLAUDE_SKILL_DIR}/scripts/okf_validate.py" $ARGUMENTS
 ```
 
 If `uv` is unavailable, fall back to:
 
 ```bash
 python3 -m pip install --quiet pyyaml && \
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/okf_validate.py" $ARGUMENTS
+python3 "${CLAUDE_SKILL_DIR}/scripts/okf_validate.py" $ARGUMENTS
 ```
+
+`${CLAUDE_SKILL_DIR}` resolves whether this skill runs as part of the `okf`
+plugin or is installed standalone (e.g. via `npx skills add`), so the checker is
+always found alongside the skill.
 
 Interpret the result:
 

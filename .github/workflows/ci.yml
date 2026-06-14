@@ -25,13 +25,13 @@ jobs:
           PY
 
       - name: Validate example bundle (strict)
-        run: uv run scripts/okf_validate.py examples/sample-bundle --strict
+        run: uv run skills/validate/scripts/okf_validate.py examples/sample-bundle --strict
 
       - name: Self-test — a non-conformant bundle must fail
         run: |
           tmp="$(mktemp -d)"
           printf 'no frontmatter\n' > "$tmp/bad.md"
-          if uv run scripts/okf_validate.py "$tmp"; then
+          if uv run skills/validate/scripts/okf_validate.py "$tmp"; then
             echo "validator failed to reject a non-conformant bundle" >&2
             exit 1
           fi

@@ -36,25 +36,36 @@ plugin makes keeping that home accurate a normal part of how Claude works.
 |-----------|--------------|
 | `/okf:okf` skill | Produce / maintain / consume bundles, applying the spec and templates. Auto-triggers when a repo has an OKF bundle. |
 | `/okf:validate` skill | Deterministic §9 conformance check (not an eyeball pass). |
-| `scripts/okf_validate.py` | Standalone, zero-config validator (`uv run`, PyYAML via PEP 723). |
+| `skills/validate/scripts/okf_validate.py` | Standalone, zero-config validator (`uv run`, PyYAML via PEP 723). |
 | `skills/okf/reference/SPEC.md` | The OKF v0.1 spec, vendored verbatim — the source of truth. |
 | `templates/CLAUDE-okf.md` | Snippet that turns on automatic consume/maintain in your project. |
 | `examples/sample-bundle/` | A tiny conformant bundle (code + docs + decisions). |
 
 ## Install
 
-From this repo as a one-plugin marketplace:
+**As a Claude Code plugin** (one-plugin marketplace):
 
 ```shell
 /plugin marketplace add scaccogatto/okf
 /plugin install okf@scaccogatto
 ```
 
-Local development (no marketplace):
+**As agent skills via [skills.sh](https://skills.sh)** (Claude Code, Cursor, Codex, and 20+ agents):
+
+```shell
+npx skills add scaccogatto/okf            # installs the okf + validate skills
+```
+
+**Local development** (no marketplace):
 
 ```shell
 claude --plugin-dir /path/to/okf
 ```
+
+Both layouts coexist in this single repo: `.claude-plugin/` makes it a plugin
+marketplace; `skills/<name>/SKILL.md` makes it skills.sh-discoverable. The
+validator lives inside the `validate` skill and is referenced via
+`${CLAUDE_SKILL_DIR}`, so it works identically in either install path.
 
 Requires [`uv`](https://docs.astral.sh/uv/) for the validator (or `python3` + `pyyaml`).
 
@@ -71,7 +82,7 @@ Requires [`uv`](https://docs.astral.sh/uv/) for the validator (or `python3` + `p
 ```shell
 /okf:validate .okf --strict
 # or directly:
-uv run scripts/okf_validate.py .okf --strict
+uv run skills/validate/scripts/okf_validate.py .okf --strict
 ```
 
 **Turn on automatic upkeep (soft mode).** This plugin ships *no hooks* by design.
@@ -117,8 +128,7 @@ timestamp: 2026-06-14T10:00:00Z
 okf/
 ├── .claude-plugin/{plugin.json, marketplace.json}
 ├── skills/okf/{SKILL.md, reference/SPEC.md, templates/}
-├── skills/validate/SKILL.md
-├── scripts/okf_validate.py
+├── skills/validate/{SKILL.md, scripts/okf_validate.py}
 ├── examples/sample-bundle/
 ├── templates/CLAUDE-okf.md
 └── .github/workflows/ci.yml

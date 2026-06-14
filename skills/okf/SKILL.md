@@ -89,11 +89,13 @@ location. Commit it alongside the code it describes — knowledge as code.
 
 ## Validation (do this before declaring done)
 
-Run the deterministic checker — never eyeball conformance:
+Never eyeball conformance — run the deterministic checker. Invoke the companion
+**`validate`** skill (`/okf:validate <bundle-dir> --strict`), which ships the
+checker. If that skill is not installed, run it directly:
 
 ```bash
-uv run "${CLAUDE_PLUGIN_ROOT}/scripts/okf_validate.py" <bundle-dir> --strict
+uv run "${CLAUDE_SKILL_DIR}/../validate/scripts/okf_validate.py" <bundle-dir> --strict
 ```
 
-Or invoke the bundled `/okf:validate` skill. Resolve every `ERROR` (hard §9
-failures). Warnings are soft; fix them when cheap, but they never block.
+Resolve every `ERROR` (hard §9 failures). Warnings are soft; fix them when cheap,
+but they never block.
