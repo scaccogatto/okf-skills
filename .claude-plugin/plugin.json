@@ -1,7 +1,7 @@
 {
   "name": "okf",
   "displayName": "Open Knowledge Format",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Author, maintain, validate, and visualize Open Knowledge Format (OKF) bundles — portable markdown knowledge for humans and agents.",
   "author": {
     "name": "Marco Boffo",

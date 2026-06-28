@@ -27,6 +27,9 @@ jobs:
       - name: Validate example bundle (strict)
         run: uv run skills/validate/scripts/okf_validate.py examples/sample-bundle --strict
 
+      - name: Validate this repo's own .okf bundle (strict, dogfooding)
+        run: uv run skills/validate/scripts/okf_validate.py .okf --strict
+
       - name: Self-test — a non-conformant bundle must fail
         run: |
           tmp="$(mktemp -d)"

@@ -54,6 +54,11 @@ diffable, portable home — versioned next to the code it describes. It is
 Use `CLAUDE.md` for *how to behave*, auto-memory for *what the agent picked up*,
 and an OKF bundle for *what the team knows* — shared, structured, and shippable.
 
+> 🪞 **This repo documents itself in OKF.** The architecture, skills, and decisions
+> behind okf-skills live in [`.okf/`](.okf/) — explore them as a
+> [**live self-graph**](https://scaccogatto.github.io/okf-skills/self.html). CI
+> validates that bundle on every push (dogfooding the conformance checker).
+
 ## What's inside
 
 | Component | What it does |

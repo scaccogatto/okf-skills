@@ -1,0 +1,111 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OKF — okf-skills · documented in its own format</title>
+<meta property="og:title" content="OKF — okf-skills · documented in its own format">
+<meta property="og:description" content="9 concepts · interactive Open Knowledge Format knowledge graph">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:image" content="https://scaccogatto.github.io/okf-skills/assets/og.png">
+<meta name="twitter:image" content="https://scaccogatto.github.io/okf-skills/assets/og.png">
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
+<style>
+ :root{--bg:#0e0f13;--panel:#16181f;--line:#262a35;--fg:#e6e8ee;--mut:#9aa3b2;--accent:#8ab4ff}
+ *{box-sizing:border-box} html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
+   font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+ #app{display:grid;grid-template-columns:1fr 400px;height:100vh}
+ #cy{width:100%;height:100%}
+ #side{border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:18px}
+ header{position:absolute;top:0;left:0;padding:14px 18px;z-index:5;pointer-events:none}
+ h1{font-size:15px;margin:0;font-weight:650} .sub{color:var(--mut);font-size:12px;margin-top:2px}
+ #bar{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:5;display:flex;gap:8px}
+ #bar input,#bar select{background:var(--panel);border:1px solid var(--line);color:var(--fg);
+   border-radius:8px;padding:8px 10px;outline:none;font-size:13px}
+ #search{width:min(300px,32vw)}
+ #legend{position:absolute;bottom:14px;left:18px;z-index:5;display:flex;flex-wrap:wrap;gap:6px;max-width:60vw}
+ .chip{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
+   border-radius:20px;padding:3px 10px;font-size:12px;color:var(--mut);cursor:pointer;user-select:none}
+ .chip.off{opacity:.4} .dot{width:10px;height:10px;border-radius:50%}
+ #side h2{font-size:17px;margin:.2em 0} .type{display:inline-block;border-radius:6px;padding:2px 8px;
+   font-size:11px;font-weight:600;color:#0e0f13} .desc{color:var(--mut);margin:8px 0 12px}
+ .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+ .tag{background:#1d2230;border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-size:11px;color:var(--mut)}
+ .rel{margin:10px 0} .rel h4{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+ .rel a{display:block;color:var(--accent);cursor:pointer;font-size:13px;padding:1px 0;text-decoration:none}
+ .rel a:hover{text-decoration:underline}
+ .body{border-top:1px solid var(--line);padding-top:12px;margin-top:12px} .body table{border-collapse:collapse;display:block;overflow:auto}
+ .body td,.body th{border:1px solid var(--line);padding:4px 8px} .body code{background:#1d2230;padding:1px 5px;border-radius:4px}
+ .body pre{background:#1d2230;padding:10px;border-radius:8px;overflow:auto} .body img{max-width:100%}
+ .empty{color:var(--mut)} a{color:var(--accent)}
+ .src{pointer-events:auto;color:var(--accent);margin-left:10px;text-decoration:none} .src:hover{text-decoration:underline}
+</style></head><body>
+<div id="app"><div id="cy"></div><div id="side"><p class="empty">Click a concept to inspect it.</p></div></div>
+<header><h1>okf-skills · documented in its own format</h1><div class="sub">9 concepts · 25 links · OKF v0.1 <a class="src" href="https://github.com/scaccogatto/okf-skills" target="_blank" rel="noopener">source ↗</a></div></header>
+<div id="bar">
+ <input id="search" placeholder="search concepts…">
+ <select id="type"><option value="">all types</option></select>
+ <select id="layout">
+  <option value="cose">force</option><option value="concentric">concentric</option>
+  <option value="breadthfirst">breadth-first</option><option value="circle">circle</option><option value="grid">grid</option>
+ </select>
+</div>
+<div id="legend"></div>
+<script>
+const NODES=[{"id": "components/validator", "type": "Tool", "title": "okf_validate.py", "description": "Zero-config Python conformance checker (PEP 723 / uv, PyYAML).", "tags": ["python", "validator", "uv"], "group": "components", "sz": 27, "body": "# Overview\n\nThe deterministic engine behind the [validate skill](/skills/validate.md). A\nsingle self-describing script (dependencies declared inline via PEP 723) that\nparses every non-reserved `.md` file and enforces the one hard rule of the\n[OKF v0.1 spec](/reference/okf-spec.md): parseable YAML frontmatter with a\nnon-empty `type`.\n\n# Output\n\n| Signal | Meaning |\n|--------|---------|\n| `ERROR` | Hard \u00a79 failure \u2014 bundle is non-conformant. |\n| `warn`  | Soft guidance (missing recommended field, broken link). |\n\nExit code is non-zero on any error (or any warning with `--strict`). `--json`\nemits machine-readable output for CI."}, {"id": "components/visualizer", "type": "Tool", "title": "okf_visualize.py", "description": "Standalone bundle\u2192viz.html renderer (Cytoscape + marked via CDN).", "tags": ["python", "visualization", "cytoscape"], "group": "components", "sz": 27, "body": "# Overview\n\nThe engine behind the [visualize skill](/skills/visualize.md). Parses a bundle\ninto nodes (concepts, coloured by `type`, sized by body length) and edges\n(markdown links), then emits one self-contained HTML file \u2014 no backend, nothing\nleaves the page.\n\n# Flags\n\n| Flag | Effect |\n|------|--------|\n| `--title` / `--link` | Name the graph; show a back-link to source. |\n| `--layout` | Initial layout (`cose`, `breadthfirst`, `circle`, \u2026). |\n| `--og-image` | Emit Open Graph / Twitter Card meta for rich link previews. |\n\nAlso supports `?layout=` / `?select=` URL params and deep-linkable concepts\n(`viz.html#services/auth-api`)."}, {"id": "decisions/dual-distribution", "type": "Decision", "title": "Dual distribution \u2014 plugin + skills.sh", "description": "Ship the same repo as a Claude Code plugin and as skills.sh-installable skills.", "tags": ["adr", "distribution"], "group": "decisions", "sz": 27, "body": "# Context\n\nOKF tooling is only useful where the agent already works. Claude Code users want a\nplugin; the broader agent ecosystem (Cursor, Codex, 20+ agents) installs via\nskills.sh.\n\n# Decision\n\nOne repo, both layouts: `.claude-plugin/` makes it a plugin marketplace;\n`skills/<name>/SKILL.md` makes it skills.sh-discoverable. The\n[okf](/skills/okf.md), [validate](/skills/validate.md), and\n[visualize](/skills/visualize.md) skills are identical in either path.\n\n# Consequences\n\n* Maximum reach from a single source of truth.\n* Scripts must resolve their own path in both layouts \u2014 see the\n  [self-contained-skills decision](/decisions/self-contained-skills.md)."}, {"id": "decisions/no-hooks", "type": "Decision", "title": "Ship no hooks \u2014 soft-mode upkeep", "description": "Keep automatic consume/maintain opt-in via a CLAUDE.md snippet, not enforced hooks.", "tags": ["adr", "ux", "trust"], "group": "decisions", "sz": 26, "body": "# Context\n\nAutomatic upkeep is valuable, but always-on hooks that observe arbitrary sessions\nare intrusive and fail third-party marketplace safety review.\n\n# Decision\n\nShip **zero hooks**. Adoption is opt-in: paste `templates/CLAUDE-okf.md` into a\nproject's `CLAUDE.md` to have Claude consult `.okf/` before tasks and write\nknowledge back after changes (the [okf skill](/skills/okf.md)'s maintain mode).\n\n# Consequences\n\n* No surprise behaviour; trivially passes marketplace safety gates.\n* Upkeep depends on the snippet being present \u2014 documented in the README."}, {"id": "decisions/self-contained-skills", "type": "Decision", "title": "Self-contained skills via CLAUDE_SKILL_DIR", "description": "Each skill bundles its own script and references it through ${CLAUDE_SKILL_DIR}.", "tags": ["adr", "packaging"], "group": "decisions", "sz": 27, "body": "# Context\n\nThe [dual-distribution decision](/decisions/dual-distribution.md) means a script's\nlocation differs between the plugin layout and a standalone skills.sh install.\n\n# Decision\n\nEach skill ships its script inside its own directory and invokes it via\n`${CLAUDE_SKILL_DIR}`, which the runtime resolves in both layouts. The\n[validator](/components/validator.md) and [visualizer](/components/visualizer.md)\nare therefore always found alongside their skill.\n\n# Consequences\n\n* The [validate](/skills/validate.md) and [visualize](/skills/visualize.md) skills\n  work identically as a plugin or a standalone skill.\n* No absolute paths, no post-install configuration."}, {"id": "reference/okf-spec", "type": "Reference", "title": "OKF v0.1 specification", "description": "The Open Knowledge Format spec, vendored verbatim \u2014 the source of truth.", "tags": ["spec", "reference", "apache-2.0"], "group": "reference", "sz": 27, "body": "# Overview\n\nThe canonical OKF v0.1 specification by the Google Cloud Data Cloud team\n(Apache-2.0), vendored verbatim at `skills/okf/reference/SPEC.md` (upstream\n`ee67a5c`). Every rule the [okf skill](/skills/okf.md) and\n[validator](/components/validator.md) apply traces here.\n\n# The one hard rule (\u00a79)\n\nA bundle is conformant iff every non-reserved `.md` file has parseable YAML\nfrontmatter and a non-empty `type`. Everything else is soft guidance; consumers\nMUST tolerate missing optional fields, unknown types, and broken links.\n\n# Citations\n\n[1] [Open Knowledge Format reference repository](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf)"}, {"id": "skills/okf", "type": "Skill", "title": "okf skill", "description": "Produce, maintain, and consume OKF bundles, driven by the verbatim v0.1 spec.", "tags": ["skill", "produce", "maintain", "consume"], "group": "skills", "sz": 28, "body": "# Overview\n\nThe authoring skill. It teaches Claude to derive concepts from code, docs, and\nhuman decisions; write conformant frontmatter; and cross-link concepts into a\ngraph \u2014 always against the [vendored OKF v0.1 spec](/reference/okf-spec.md), not\nmemory of it.\n\n# Modes\n\n| Mode | What it does |\n|------|--------------|\n| `produce` | Create or extend a bundle from a source (code / docs / manual). |\n| `maintain` | Keep a bundle in sync with reality after a change. |\n| `consume` | Read a bundle as context, following links from `index.md`. |\n\n# Relationships\n\nValidates its output with the [validate skill](/skills/validate.md) and can render\nit with the [visualize skill](/skills/visualize.md). Its dual delivery is set by\nthe [dual-distribution decision](/decisions/dual-distribution.md); automatic upkeep\nis governed by the [no-hooks decision](/decisions/no-hooks.md)."}, {"id": "skills/validate", "type": "Skill", "title": "validate skill", "description": "Deterministic \u00a79 conformance check for an OKF bundle \u2014 not an eyeball pass.", "tags": ["skill", "validation", "ci"], "group": "skills", "sz": 26, "body": "# Overview\n\nRuns the [validator script](/components/validator.md) against a bundle and\ninterprets the result: **ERROR** = a hard \u00a79 failure (no parseable frontmatter, or\na missing/empty `type`); **warn** = soft guidance the spec tolerates.\n\n# Usage\n\n```bash\nuv run \"${CLAUDE_SKILL_DIR}/scripts/okf_validate.py\" <bundle-dir> --strict\n```\n\n`${CLAUDE_SKILL_DIR}` resolves whether this runs as a plugin or a standalone\nskills.sh skill \u2014 see the [self-contained-skills decision](/decisions/self-contained-skills.md).\nThe [okf skill](/skills/okf.md) calls this before declaring work done."}, {"id": "skills/visualize", "type": "Skill", "title": "visualize skill", "description": "Render an OKF bundle as a single self-contained, interactive HTML graph.", "tags": ["skill", "visualization", "graph"], "group": "skills", "sz": 27, "body": "# Overview\n\nWraps the [visualizer script](/components/visualizer.md) to turn a bundle into a\nself-contained `viz.html` \u2014 concepts as nodes, markdown links as edges, a\nwiki-style detail panel with \"Links to / Cited by\" backlinks, layout switching,\nfilter, search, deep-linkable concepts, and shareable rich link previews.\n\n# Usage\n\n```bash\nuv run \"${CLAUDE_SKILL_DIR}/scripts/okf_visualize.py\" <bundle-dir> \\\n  -o viz.html --title \"My project\" --layout breadthfirst\n```\n\nThe page you may be reading this in was produced by this skill. It follows the\n[self-contained-skills decision](/decisions/self-contained-skills.md) so the\nscript is found in either install path."}], EDGES=[{"source": "components/validator", "target": "skills/validate"}, {"source": "components/validator", "target": "reference/okf-spec"}, {"source": "components/visualizer", "target": "skills/visualize"}, {"source": "decisions/dual-distribution", "target": "skills/okf"}, {"source": "decisions/dual-distribution", "target": "skills/validate"}, {"source": "decisions/dual-distribution", "target": "skills/visualize"}, {"source": "decisions/dual-distribution", "target": "decisions/self-contained-skills"}, {"source": "decisions/no-hooks", "target": "skills/okf"}, {"source": "decisions/self-contained-skills", "target": "decisions/dual-distribution"}, {"source": "decisions/self-contained-skills", "target": "components/validator"}, {"source": "decisions/self-contained-skills", "target": "components/visualizer"}, {"source": "decisions/self-contained-skills", "target": "skills/validate"}, {"source": "decisions/self-contained-skills", "target": "skills/visualize"}, {"source": "reference/okf-spec", "target": "skills/okf"}, {"source": "reference/okf-spec", "target": "components/validator"}, {"source": "skills/okf", "target": "reference/okf-spec"}, {"source": "skills/okf", "target": "skills/validate"}, {"source": "skills/okf", "target": "skills/visualize"}, {"source": "skills/okf", "target": "decisions/dual-distribution"}, {"source": "skills/okf", "target": "decisions/no-hooks"}, {"source": "skills/validate", "target": "components/validator"}, {"source": "skills/validate", "target": "decisions/self-contained-skills"}, {"source": "skills/validate", "target": "skills/okf"}, {"source": "skills/visualize", "target": "components/visualizer"}, {"source": "skills/visualize", "target": "decisions/self-contained-skills"}];
+const PALETTE=["#6E56CF","#D97757","#22C55E","#3B82F6","#EAB308","#EC4899","#14B8A6","#F97316","#A855F7","#0EA5E9","#84CC16","#EF4444","#64748B"];
+const byId=Object.fromEntries(NODES.map(n=>[n.id,n]));
+const outL={}, inL={};
+NODES.forEach(n=>{outL[n.id]=[];inL[n.id]=[];});
+EDGES.forEach(e=>{outL[e.source].push(e.target);inL[e.target].push(e.source);});
+const types=[...new Set(NODES.map(n=>n.type))].sort();
+const color=Object.fromEntries(types.map((t,i)=>[t,PALETTE[i%PALETTE.length]]));
+const off=new Set();
+const cy=cytoscape({container:document.getElementById('cy'),minZoom:.2,maxZoom:1.6,wheelSensitivity:.2,
+ elements:[...NODES.map(n=>({data:{...n,c:color[n.type]}})),...EDGES.map(e=>({data:e}))],
+ style:[
+  {selector:'node',style:{'background-color':'data(c)','label':'data(title)','color':'#e6e8ee',
+   'font-size':10,'text-wrap':'wrap','text-max-width':120,'text-valign':'bottom','text-margin-y':4,
+   'text-outline-width':2,'text-outline-color':'#0e0f13','min-zoomed-font-size':6,
+   'width':'data(sz)','height':'data(sz)'}},
+  {selector:'edge',style:{'width':1.2,'line-color':'#3a4150','target-arrow-color':'#3a4150',
+   'target-arrow-shape':'triangle','arrow-scale':.8,'curve-style':'bezier','opacity':.7}},
+  {selector:'.dim',style:{'opacity':.10}},{selector:'.hl',style:{'border-width':3,'border-color':'#fff'}}
+ ],
+ layout:{name:'breadthfirst',animate:false,nodeRepulsion:9000,idealEdgeLength:90,padding:40}});
+const side=document.getElementById('side');
+const esc=s=>(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function relList(title,arr){if(!arr.length)return'';
+ return `<div class="rel"><h4>${title}</h4>${arr.map(id=>`<a data-go="${esc(id)}">${esc((byId[id]||{}).title||id)}</a>`).join('')}</div>`;}
+function show(id){const n=byId[id];if(!n)return;const c=color[n.type];
+ side.innerHTML=`<span class="type" style="background:${c}">${esc(n.type)}</span>
+ <h2>${esc(n.title)}</h2><div class="desc">${esc(n.description)||'<span class=empty>no description</span>'}</div>
+ <div class="tags">${(n.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+ ${relList('Links to',outL[id])}${relList('Cited by',inL[id])}
+ <div class="body">${n.body?marked.parse(n.body):'<span class=empty>empty body</span>'}</div>`;
+ side.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));}
+function select(id){const ele=cy.getElementById(id);if(!ele.length)return;show(id);
+ cy.elements().removeClass('hl').addClass('dim');const nb=ele.closedNeighborhood();nb.removeClass('dim');ele.addClass('hl');
+ cy.animate({center:{eles:ele},duration:250});
+ try{if(decodeURIComponent((location.hash||'').slice(1))!==id)location.hash=encodeURIComponent(id);}catch(e){}}
+cy.on('tap','node',e=>select(e.target.id()));
+cy.on('tap',e=>{if(e.target===cy)cy.elements().removeClass('dim hl');});
+function applyFilter(){const q=document.getElementById('search').value.toLowerCase();const ty=document.getElementById('type').value;
+ cy.nodes().forEach(n=>{const d=n.data();
+  const m=(!q||(d.title+' '+d.type+' '+d.description+' '+(d.tags||[]).join(' ')).toLowerCase().includes(q))
+        &&(!ty||d.type===ty)&&!off.has(d.type);
+  n.style('display',m?'element':'none');});}
+document.getElementById('search').oninput=applyFilter;
+document.getElementById('type').oninput=applyFilter;
+const tysel=document.getElementById('type');types.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;tysel.appendChild(o);});
+document.getElementById('layout').onchange=e=>{cy.layout({name:e.target.value,animate:true,padding:40,
+ nodeRepulsion:9000,idealEdgeLength:90}).run();};
+document.getElementById('legend').innerHTML=types.map(t=>`<span class="chip" data-t="${esc(t)}"><span class="dot" style="background:${color[t]}"></span>${esc(t)} (${NODES.filter(n=>n.type===t).length})</span>`).join('');
+document.querySelectorAll('#legend .chip').forEach(ch=>ch.onclick=()=>{const t=ch.getAttribute('data-t');
+ if(off.has(t)){off.delete(t);ch.classList.remove('off');}else{off.add(t);ch.classList.add('off');}applyFilter();});
+document.getElementById('layout').value='breadthfirst';
+const Q=new URLSearchParams(location.search),QL=Q.get('layout'),QS=Q.get('select');
+if(QL&&[...document.querySelectorAll('#layout option')].some(o=>o.value===QL)){document.getElementById('layout').value=QL;cy.layout({name:QL,animate:false,padding:40,nodeRepulsion:9000,idealEdgeLength:90}).run();}
+function fromHash(){try{const h=decodeURIComponent((location.hash||'').slice(1));if(h&&byId[h])select(h);}catch(e){}}
+addEventListener('hashchange',fromHash);
+if(QS&&byId[QS])select(QS);else fromHash();
+</script></body></html>

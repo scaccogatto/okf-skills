@@ -4,6 +4,15 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.3.3] — 2026-06-28
+
+### Added
+- **Dogfooding:** the repo now documents itself in OKF at [`.okf/`](.okf/) — 9
+  cross-linked concepts (skills, components, the vendored spec, and architectural
+  decisions), rendered as a second live demo (`docs/self.html`).
+- CI validates the repo's own `.okf/` bundle (strict) on every push, alongside the
+  example bundle.
+
 ## [0.3.2] — 2026-06-28
 
 ### Added
