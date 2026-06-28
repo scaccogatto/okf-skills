@@ -4,6 +4,13 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.3.2] — 2026-06-28
+
+### Added
+- `visualize`: `--og-image` flag emits Open Graph + Twitter Card meta, so a shared
+  `viz.html` (e.g. the live demo) renders a rich preview card instead of a bare
+  link. The hosted demo now advertises the project's social card.
+
 ## [0.3.1] — 2026-06-28
 
 ### Added

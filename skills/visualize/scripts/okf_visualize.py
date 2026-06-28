@@ -92,6 +92,11 @@ def build(bundle: Path):
 HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>OKF — __NAME__</title>
+<meta property="og:title" content="__OGTITLE__">
+<meta property="og:description" content="__OGDESC__">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+__OGIMAGE__
 <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
 <style>
@@ -197,11 +202,17 @@ if(QS&&byId[QS])select(QS);else fromHash();
 
 
 def render(bundle: Path, out: Path, title: str | None = None, link: str | None = None,
-           layout: str = "cose"):
+           layout: str = "cose", og_image: str | None = None):
     nodes, edges = build(bundle)
     name = title or f"{bundle.resolve().parent.name}/{bundle.name}"
     src = f' <a class="src" href="{link}" target="_blank" rel="noopener">source ↗</a>' if link else ""
+    aesc = lambda s: (s or "").replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+    og_title = aesc(f"OKF — {name}")
+    og_desc = aesc(f"{len(nodes)} concepts · interactive Open Knowledge Format knowledge graph")
+    og_img = (f'<meta property="og:image" content="{aesc(og_image)}">\n'
+              f'<meta name="twitter:image" content="{aesc(og_image)}">') if og_image else ""
     html = (HTML.replace("__NAME__", name).replace("__LINK__", src).replace("__LAYOUT__", layout)
+            .replace("__OGTITLE__", og_title).replace("__OGDESC__", og_desc).replace("__OGIMAGE__", og_img)
             .replace("__N__", str(len(nodes))).replace("__E__", str(len(edges)))
             .replace("__NODES__", json.dumps(nodes, default=str)).replace("__EDGES__", json.dumps(edges, default=str)))
     out.write_text(html, encoding="utf-8")
@@ -217,12 +228,15 @@ def main() -> int:
     ap.add_argument("--layout", default="cose",
                     choices=["cose", "concentric", "breadthfirst", "circle", "grid"],
                     help="initial graph layout (default: cose)")
+    ap.add_argument("--og-image", default=None,
+                    help="absolute URL for the social-preview image (og:image / twitter:image)")
     args = ap.parse_args()
     if not args.bundle.is_dir():
         print(f"error: {args.bundle} is not a directory", file=sys.stderr)
         return 2
     out = args.out or (args.bundle / "viz.html")
-    n, e = render(args.bundle, out, title=args.title, link=args.link, layout=args.layout)
+    n, e = render(args.bundle, out, title=args.title, link=args.link, layout=args.layout,
+                  og_image=args.og_image)
     print(f"rendered {n} concepts, {e} links -> {out}")
     return 0
 
