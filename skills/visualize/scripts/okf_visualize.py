@@ -29,6 +29,26 @@ FENCE = re.compile(r"^(```|~~~)")
 LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 
 
+def json_for_script(obj) -> str:
+    """JSON-encode ``obj`` for safe embedding inside an inline ``<script>``.
+
+    ``json.dumps`` produces valid JSON but does not escape ``</``. When a concept
+    body contains a literal ``</script>`` (common in docs that show HTML/JS
+    snippets), the browser's HTML tokenizer closes the inline ``<script>`` at
+    that point — truncating the embedded ``NODES``/``EDGES`` data and breaking the
+    whole page. Escaping ``</`` -> ``<\\/`` is valid JSON/JS yet invisible to the
+    tokenizer. ``<!--`` and the U+2028/U+2029 separators (illegal in JS string
+    literals) are neutralized for the same reason.
+    """
+    return (
+        json.dumps(obj, default=str)
+        .replace("</", "<\\/")
+        .replace("<!--", "<\\!--")
+        .replace(" ", "\\u2028")
+        .replace(" ", "\\u2029")
+    )
+
+
 def split_frontmatter(text: str):
     if not text.startswith("---"):
         return {}, text
@@ -214,7 +234,7 @@ def render(bundle: Path, out: Path, title: str | None = None, link: str | None =
     html = (HTML.replace("__NAME__", name).replace("__LINK__", src).replace("__LAYOUT__", layout)
             .replace("__OGTITLE__", og_title).replace("__OGDESC__", og_desc).replace("__OGIMAGE__", og_img)
             .replace("__N__", str(len(nodes))).replace("__E__", str(len(edges)))
-            .replace("__NODES__", json.dumps(nodes, default=str)).replace("__EDGES__", json.dumps(edges, default=str)))
+            .replace("__NODES__", json_for_script(nodes)).replace("__EDGES__", json_for_script(edges)))
     out.write_text(html, encoding="utf-8")
     return len(nodes), len(edges)
 

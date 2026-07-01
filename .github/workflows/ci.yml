@@ -39,3 +39,32 @@ jobs:
             exit 1
           fi
           echo "ok: non-conformant bundle correctly rejected"
+
+      - name: Self-test — visualizer escapes </script> in concept bodies
+        run: |
+          # Repro: a concept whose body shows an HTML/JS snippet containing a
+          # literal </script>. Without escaping, the browser's HTML tokenizer
+          # closes the inline <script> early, truncating the embedded NODES/EDGES
+          # data and breaking the whole page.
+          tmp="$(mktemp -d)"
+          cat > "$tmp/snippet.md" <<'MD'
+          ---
+          type: Reference
+          title: Snippet with a script tag
+          ---
+          Example markup a doc might contain:
+
+          ```html
+          <script src="app.js"></script>REPRO_MARKER
+          ```
+          MD
+          uv run skills/visualize/scripts/okf_visualize.py "$tmp" -o "$tmp/viz.html"
+          if grep -qF '</script>REPRO_MARKER' "$tmp/viz.html"; then
+            echo "raw </script> from a concept body leaked into the inline data script" >&2
+            exit 1
+          fi
+          grep -qF '<\/script>REPRO_MARKER' "$tmp/viz.html" || {
+            echo "expected the embedded </script> to be escaped as <\\/script>" >&2
+            exit 1
+          }
+          echo "ok: </script> inside concept bodies is safely escaped"
