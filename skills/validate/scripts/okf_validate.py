@@ -173,7 +173,25 @@ def validate(bundle: Path) -> Report:
     return report
 
 
+def _force_utf8_stdio() -> None:
+    """Ensure stdout/stderr can emit the ✓/✗/— glyphs this tool prints.
+
+    Windows consoles default to cp1252, which raises UnicodeEncodeError on those
+    characters and crashes an otherwise-successful run. Reconfiguring to UTF-8
+    (Python ≥3.7) fixes it; `errors="replace"` is a belt-and-suspenders fallback
+    for any stream that still cannot encode a glyph.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
 def main() -> int:
+    _force_utf8_stdio()
     ap = argparse.ArgumentParser(description="Validate an OKF v0.1 bundle.")
     ap.add_argument("bundle", type=Path, help="path to the bundle directory")
     ap.add_argument("--strict", action="store_true", help="treat warnings as errors")

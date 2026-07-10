@@ -238,7 +238,20 @@ def render(bundle: Path, out: Path, title: str | None = None, link: str | None =
     return len(nodes), len(edges)
 
 
+def _force_utf8_stdio() -> None:
+    """Reconfigure stdout/stderr to UTF-8 so status lines never crash on a
+    cp1252 (default Windows) console. `errors="replace"` is a fallback."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
 def main() -> int:
+    _force_utf8_stdio()
     ap = argparse.ArgumentParser(description="Render an OKF bundle as a self-contained HTML graph.")
     ap.add_argument("bundle", type=Path)
     ap.add_argument("-o", "--out", type=Path, default=None)
