@@ -75,3 +75,39 @@ jobs:
             exit 1
           }
           echo "ok: script-breaking sequences in concept bodies are neutralized"
+
+      - name: Self-test — scale guardrails (auto linear layout, --max-nodes cap)
+        run: |
+          # Force (cose) layout freezes the page on large bundles (~32 s at 2k
+          # concepts, measured in Chrome), so above AUTO_COSE_MAX the default
+          # must fall back to a linear layout, and --max-nodes must refuse
+          # oversized bundles. Assertions are on outcomes: the note on stderr,
+          # the layout baked into the page, and the cap's non-zero exit.
+          tmp="$(mktemp -d)"
+          python3 - "$tmp" <<'PY'
+          import pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          for i in range(1200):
+              (root / f"c{i:04d}.md").write_text(
+                  f"---\ntype: Reference\ntitle: c{i}\n---\n\nSee [next](c{(i + 1) % 1200:04d}.md).\n",
+                  encoding="utf-8")
+          PY
+          uv run skills/visualize/scripts/okf_visualize.py "$tmp" -o "$tmp/viz.html" 2>"$tmp/err.txt"
+          grep -q "using the linear 'concentric' layout" "$tmp/err.txt" || {
+            echo "large bundle did not report the auto layout fallback" >&2
+            exit 1
+          }
+          grep -qF "layout:{name:'concentric'" "$tmp/viz.html" || {
+            echo "large bundle did not bake the linear fallback layout into the page" >&2
+            exit 1
+          }
+          uv run skills/visualize/scripts/okf_visualize.py "$tmp" -o "$tmp/viz2.html" --layout cose
+          grep -qF "layout:{name:'cose'" "$tmp/viz2.html" || {
+            echo "explicit --layout cose was not honored" >&2
+            exit 1
+          }
+          if uv run skills/visualize/scripts/okf_visualize.py "$tmp" -o "$tmp/viz3.html" --max-nodes 1000; then
+            echo "--max-nodes failed to refuse an oversized bundle" >&2
+            exit 1
+          fi
+          echo "ok: scale guardrails behave"
