@@ -4,6 +4,25 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [Unreleased]
+
+### Fixed
+- `visualize`: large bundles no longer freeze the browser. The default force
+  (cose) layout — measured at ~32 s of blocked main thread for a ~2k-concept
+  bundle, and extrapolating to hours at 20k+ — now applies only up to 1,000
+  concepts; larger bundles default to the linear `concentric` layout (explicit
+  `--layout cose` still wins, and the in-page layout picker asks before running
+  force on a large graph).
+- `visualize`: search/filter passes are wrapped in `cy.batch()` and the search
+  box is debounced (150 ms) — previously every keystroke ran an unbatched
+  style-write pass over all nodes (~1.8 s per keystroke at 23k concepts).
+
+### Added
+- `visualize`: warns above 5,000 concepts (slow page, unreadable hairball) and
+  suggests rendering a subtree; new `--max-nodes N` refuses oversized bundles
+  outright, for CI use.
+- Decision record: [scale guardrails](.okf/decisions/scale-guardrails.md).
+
 ## [0.3.4] — 2026-07-06
 
 ### Fixed

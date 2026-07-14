@@ -28,3 +28,4 @@ described as an OKF bundle — the toolkit eating its own dog food. Render it wi
 * [Dual distribution — plugin + skills.sh](decisions/dual-distribution.md)
 * [Ship no hooks — soft-mode upkeep](decisions/no-hooks.md)
 * [Self-contained skills via CLAUDE_SKILL_DIR](decisions/self-contained-skills.md)
+* [Scale guardrails in the visualizer](decisions/scale-guardrails.md)

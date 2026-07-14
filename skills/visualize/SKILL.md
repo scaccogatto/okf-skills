@@ -28,5 +28,8 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/okf_visualize.py" $ARGUMENTS
 ```
 
 The output defaults to `<bundle>/viz.html`. Pass `-o <path>` to write elsewhere.
+Bundles above 1,000 concepts default to the linear `concentric` layout (the
+force layout freezes the page at that size — `--layout cose` overrides), and
+`--max-nodes N` refuses oversized bundles, e.g. for CI.
 Open it in any browser; `${CLAUDE_SKILL_DIR}` resolves whether this runs as part
 of the `okf` plugin or as a standalone skills.sh skill.
