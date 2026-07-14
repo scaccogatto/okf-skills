@@ -12,6 +12,10 @@ panel with its rendered markdown, outgoing links, and "Cited by" backlinks.
 Features: force/concentric/breadth-first/circle/grid layouts, per-type filter,
 free-text search, neighbour highlight, clickable cross-links and backlinks.
 
+The default layout is force (cose) up to AUTO_COSE_MAX concepts, then the linear
+concentric layout — force-directed cost grows roughly quadratically with node
+count and freezes the page on large bundles. An explicit --layout always wins.
+
 Run:  uv run okf_visualize.py <bundle-dir> [-o viz.html]
 """
 from __future__ import annotations
@@ -25,6 +29,14 @@ from pathlib import Path
 import yaml
 
 RESERVED = {"index.md", "log.md"}
+# Force (cose) layout froze the page for ~32 s at ~2k concepts (measured in
+# Chrome); the linear layouts load the same bundle in under 2 s. Past this size
+# the default switches to concentric, and the in-page layout picker asks before
+# running force. An explicit --layout (or ?layout=) still wins.
+AUTO_COSE_MAX = 1000
+# Above this the page is slow on any layout (23k concepts measured: ~27 s load,
+# ~650 MB heap) and reads as a hairball — warn and suggest rendering a subtree.
+SCALE_WARN = 5000
 FENCE = re.compile(r"^(```|~~~)")
 LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 
@@ -195,21 +207,24 @@ function select(id){const ele=cy.getElementById(id);if(!ele.length)return;show(i
 cy.on('tap','node',e=>select(e.target.id()));
 cy.on('tap',e=>{if(e.target===cy)cy.elements().removeClass('dim hl');});
 function applyFilter(){const q=document.getElementById('search').value.toLowerCase();const ty=document.getElementById('type').value;
- cy.nodes().forEach(n=>{const d=n.data();
+ cy.batch(()=>cy.nodes().forEach(n=>{const d=n.data();
   const m=(!q||(d.title+' '+d.type+' '+d.description+' '+(d.tags||[]).join(' ')).toLowerCase().includes(q))
         &&(!ty||d.type===ty)&&!off.has(d.type);
-  n.style('display',m?'element':'none');});}
-document.getElementById('search').oninput=applyFilter;
+  n.style('display',m?'element':'none');}));}
+let debounce;
+document.getElementById('search').oninput=()=>{clearTimeout(debounce);debounce=setTimeout(applyFilter,150);};
 document.getElementById('type').oninput=applyFilter;
 const tysel=document.getElementById('type');types.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;tysel.appendChild(o);});
-document.getElementById('layout').onchange=e=>{cy.layout({name:e.target.value,animate:true,padding:40,
- nodeRepulsion:9000,idealEdgeLength:90}).run();};
+let curLayout='__LAYOUT__';
+document.getElementById('layout').onchange=e=>{const v=e.target.value;
+ if(v==='cose'&&NODES.length>__COSEMAX__&&!confirm(`force layout on ${NODES.length} concepts can freeze this tab — run anyway?`)){e.target.value=curLayout;return;}
+ curLayout=v;cy.layout({name:v,animate:true,padding:40,nodeRepulsion:9000,idealEdgeLength:90}).run();};
 document.getElementById('legend').innerHTML=types.map(t=>`<span class="chip" data-t="${esc(t)}"><span class="dot" style="background:${color[t]}"></span>${esc(t)} (${NODES.filter(n=>n.type===t).length})</span>`).join('');
 document.querySelectorAll('#legend .chip').forEach(ch=>ch.onclick=()=>{const t=ch.getAttribute('data-t');
  if(off.has(t)){off.delete(t);ch.classList.remove('off');}else{off.add(t);ch.classList.add('off');}applyFilter();});
 document.getElementById('layout').value='__LAYOUT__';
 const Q=new URLSearchParams(location.search),QL=Q.get('layout'),QS=Q.get('select');
-if(QL&&[...document.querySelectorAll('#layout option')].some(o=>o.value===QL)){document.getElementById('layout').value=QL;cy.layout({name:QL,animate:false,padding:40,nodeRepulsion:9000,idealEdgeLength:90}).run();}
+if(QL&&[...document.querySelectorAll('#layout option')].some(o=>o.value===QL)){document.getElementById('layout').value=QL;curLayout=QL;cy.layout({name:QL,animate:false,padding:40,nodeRepulsion:9000,idealEdgeLength:90}).run();}
 function fromHash(){try{const h=decodeURIComponent((location.hash||'').slice(1));if(h&&byId[h])select(h);}catch(e){}}
 addEventListener('hashchange',fromHash);
 if(QS&&byId[QS])select(QS);else fromHash();
@@ -217,8 +232,21 @@ if(QS&&byId[QS])select(QS);else fromHash();
 
 
 def render(bundle: Path, out: Path, title: str | None = None, link: str | None = None,
-           layout: str = "cose", og_image: str | None = None):
+           layout: str | None = None, og_image: str | None = None,
+           max_nodes: int | None = None):
     nodes, edges = build(bundle)
+    if max_nodes is not None and len(nodes) > max_nodes:
+        sys.exit(f"error: {len(nodes)} concepts exceeds --max-nodes {max_nodes}")
+    if layout is None:
+        layout = "cose" if len(nodes) <= AUTO_COSE_MAX else "concentric"
+        if layout != "cose":
+            print(f"note: {len(nodes)} concepts > {AUTO_COSE_MAX} — using the linear 'concentric' "
+                  "layout (force freezes the page at this size; pass --layout cose to override)",
+                  file=sys.stderr)
+    if len(nodes) > SCALE_WARN:
+        print(f"warning: {len(nodes)} concepts — the page will load slowly and read as a hairball; "
+              f"consider rendering a subtree, e.g. okf_visualize.py {bundle}/<subdir>",
+              file=sys.stderr)
     name = title or f"{bundle.resolve().parent.name}/{bundle.name}"
     src = f' <a class="src" href="{link}" target="_blank" rel="noopener">source ↗</a>' if link else ""
     aesc = lambda s: (s or "").replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
@@ -227,6 +255,7 @@ def render(bundle: Path, out: Path, title: str | None = None, link: str | None =
     og_img = (f'<meta property="og:image" content="{aesc(og_image)}">\n'
               f'<meta name="twitter:image" content="{aesc(og_image)}">') if og_image else ""
     subs = {"__NAME__": name, "__LINK__": src, "__LAYOUT__": layout,
+            "__COSEMAX__": str(AUTO_COSE_MAX),
             "__OGTITLE__": og_title, "__OGDESC__": og_desc, "__OGIMAGE__": og_img,
             "__N__": str(len(nodes)), "__E__": str(len(edges)),
             "__NODES__": json_for_script(nodes), "__EDGES__": json_for_script(edges)}
@@ -244,9 +273,12 @@ def main() -> int:
     ap.add_argument("-o", "--out", type=Path, default=None)
     ap.add_argument("-t", "--title", default=None, help="graph title (default: parent/bundle dir name)")
     ap.add_argument("-l", "--link", default=None, help="optional source URL shown in the header")
-    ap.add_argument("--layout", default="cose",
+    ap.add_argument("--layout", default=None,
                     choices=["cose", "concentric", "breadthfirst", "circle", "grid"],
-                    help="initial graph layout (default: cose)")
+                    help=f"initial graph layout (default: cose, or concentric above {AUTO_COSE_MAX} "
+                         "concepts — force layout freezes the page on large bundles)")
+    ap.add_argument("--max-nodes", type=int, default=None,
+                    help="refuse to render bundles with more concepts than this (useful in CI)")
     ap.add_argument("--og-image", default=None,
                     help="absolute URL for the social-preview image (og:image / twitter:image)")
     args = ap.parse_args()
@@ -255,7 +287,7 @@ def main() -> int:
         return 2
     out = args.out or (args.bundle / "viz.html")
     n, e = render(args.bundle, out, title=args.title, link=args.link, layout=args.layout,
-                  og_image=args.og_image)
+                  og_image=args.og_image, max_nodes=args.max_nodes)
     print(f"rendered {n} concepts, {e} links -> {out}")
     return 0
 
