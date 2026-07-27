@@ -6,10 +6,18 @@
   and attestation families, the [visualizer](/components/visualizer.md) renders
   them and draws `sources` edges, and [`okf_init.py`](/components/okf_init.md)
   scaffolds v0.2 frontmatter.
-* **Decision**: Recorded [target v0.2, keep reading v0.1](/decisions/okf-v02-dual-read.md).
+* **Decision**: Recorded [target v0.2, migrate v0.1 rather than tolerate
+  it](/decisions/okf-v02-dual-read.md) — the legacy read branches buy warning
+  wording, not compatibility, so the upgrade path is `--migrate`, not tolerance.
+* **Update**: [`okf_validate.py`](/components/validator.md) gained `--migrate`
+  (textual v0.1→v0.2 rewrite, idempotent) and `--max-warnings N` between the
+  permissive default and `--strict`.
 * **Migration**: This bundle moved to v0.2 — `timestamp` became
   `generated: {by, at}`, `# Citations` became `sources`, every concept gained
   `status`.
+* **Trim**: Dropped the sample bundle's `Attested Computation` demo and the
+  executor/attester it pointed at — a demo of a spec feature the toolkit
+  implements nowhere.
 
 ## 2026-07-17
 * **Update**: Added `okf_init.py` — scaffolds a conformant starter bundle

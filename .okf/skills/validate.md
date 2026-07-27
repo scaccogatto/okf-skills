@@ -19,7 +19,13 @@ v0.1 `timestamp` or `# Citations` section still awaiting migration.
 
 ```bash
 uv run "${CLAUDE_SKILL_DIR}/scripts/okf_validate.py" <bundle-dir> --strict
+uv run "${CLAUDE_SKILL_DIR}/scripts/okf_validate.py" <bundle-dir> --migrate --strict
 ```
+
+`--migrate` is the one non-read-only mode: it rewrites a v0.1 bundle to v0.2 in
+place (see the [validator](/components/validator.md)), so the skill announces
+what it will touch first. `--max-warnings N` sits between the permissive default
+and `--strict`.
 
 `${CLAUDE_SKILL_DIR}` resolves whether this runs as a plugin or a standalone
 skills.sh skill — see the [self-contained-skills decision](/decisions/self-contained-skills.md).

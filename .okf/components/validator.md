@@ -1,7 +1,7 @@
 ---
 type: Tool
 title: okf_validate.py
-description: Zero-config Python conformance checker (PEP 723 / uv, PyYAML).
+description: Zero-config Python conformance checker and v0.1→v0.2 migrator (PEP 723 / uv, PyYAML).
 resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/validate/scripts/okf_validate.py
 tags: [python, validator, uv]
 status: stable
@@ -27,6 +27,17 @@ has a `resource`; every `[^label]` footnote names a `sources[].id`; an
 `# Citations` warn with their v0.2 replacement, per the
 [dual-read decision](/decisions/okf-v02-dual-read.md).
 
+# Migration (`--migrate`)
+
+The only mode that writes. Rewrites v0.1 constructs in place — `timestamp` to
+`generated: { by: process:okf-migrate, at }`, a `# Citations` list up into
+`sources`, `okf_version` to 0.2 — then validates. The rewrite is **textual**: a
+PyYAML round-trip would flatten comments, key order and quoting across the whole
+bundle. Each branch is guarded on the v0.2 key already existing, so a
+half-migrated bundle converges instead of growing a duplicate key. See the
+[migration decision](/decisions/okf-v02-dual-read.md) for what is deliberately
+not recovered.
+
 # Output
 
 | Signal | Meaning |
@@ -34,5 +45,6 @@ has a `resource`; every `[^label]` footnote names a `sources[].id`; an
 | `ERROR` | Hard §11 failure — bundle is non-conformant. |
 | `warn`  | Soft guidance (missing recommended field, broken link, legacy v0.1 field). |
 
-Exit code is non-zero on any error (or any warning with `--strict`). `--json`
-emits machine-readable output for CI.
+Exit code is non-zero on any error, or when warnings exceed the gate: `--strict`
+allows none, `--max-warnings N` allows N, the default allows any. `--json` emits
+machine-readable output for CI.

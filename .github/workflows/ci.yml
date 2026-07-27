@@ -43,12 +43,12 @@ jobs:
           fi
           echo "ok: non-conformant bundle correctly rejected"
 
-      - name: Self-test — a v0.1 bundle still validates (dual read)
+      - name: Self-test — a v0.1 bundle reads, fails --strict, and --migrate clears it
         run: |
-          # v0.2 supersedes `timestamp` and the body `# Citations` list, but a
-          # v0.1 bundle must stay consumable (§13.1): both are warnings naming
-          # their replacement, never errors. Assertions are on outcomes — the
-          # default run passes, --strict fails, and the warnings say what to fix.
+          # The upgrade path end to end. A v0.1 bundle stays conformant (§11 does
+          # not mention `timestamp` or `# Citations`), --strict refuses it as the
+          # migration nudge, and --migrate must turn that refusal into a clean
+          # pass — otherwise the nudge is a wall.
           tmp="$(mktemp -d)"
           printf -- '---\nokf_version: "0.1"\n---\n# Legacy\n\n* [c](c.md)\n' > "$tmp/index.md"
           cat > "$tmp/c.md" <<'MD'
@@ -73,15 +73,36 @@ jobs:
             echo "a v0.1 bundle must still be reported conformant" >&2
             exit 1
           }
-          grep -q 'generated' "$tmp/out.json" && grep -q 'sources' "$tmp/out.json" || {
-            echo "legacy warnings must name their v0.2 replacements" >&2
-            exit 1
-          }
           if uv run skills/validate/scripts/okf_validate.py "$tmp" --strict; then
             echo "--strict must fail an unmigrated v0.1 bundle" >&2
             exit 1
           fi
-          echo "ok: v0.1 bundles read, warn, and fail only under --strict"
+          uv run skills/validate/scripts/okf_validate.py "$tmp" --migrate --strict || {
+            echo "--migrate must leave the bundle strict-clean" >&2
+            exit 1
+          }
+          uv run skills/validate/scripts/okf_validate.py "$tmp" --migrate --json \
+            | grep -q '"migrated": \[\]' || {
+            echo "--migrate must be idempotent — a second run changed files" >&2
+            exit 1
+          }
+          echo "ok: v0.1 reads, --strict refuses, --migrate clears it, twice is a no-op"
+
+      - name: Self-test — --max-warnings gates between the default and --strict
+        run: |
+          # A bundle with exactly one warning: the default passes, --strict fails,
+          # and --max-warnings picks the line between them.
+          tmp="$(mktemp -d)"
+          printf -- '---\ntype: Reference\ntitle: t\ndescription: d\ntags: [x]\n---\nbody\n' > "$tmp/c.md"
+          uv run skills/validate/scripts/okf_validate.py "$tmp" --max-warnings 1 || {
+            echo "--max-warnings 1 must tolerate one warning" >&2
+            exit 1
+          }
+          if uv run skills/validate/scripts/okf_validate.py "$tmp" --max-warnings 0; then
+            echo "--max-warnings 0 must refuse one warning" >&2
+            exit 1
+          fi
+          echo "ok: --max-warnings gates as documented"
 
       - name: Self-test — okf_init.py scaffold passes strict validation clean
         run: |

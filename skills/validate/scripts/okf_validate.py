@@ -17,9 +17,12 @@ errors — the spec requires consumers to tolerate them (§6.1).
 
 v0.1 bundles still validate: the two superseded constructs (`timestamp`, a body
 `# Citations` list) are read and reported as warnings pointing at their v0.2
-replacements (`generated.at`, `sources`), never as errors (§13.1).
+replacements (`generated.at`, `sources`), never as errors (§13.1). `--migrate`
+performs that rewrite in place, textually, so `--strict` has a door and not just
+a wall.
 
-Run:  uv run scripts/okf_validate.py <bundle-dir> [--strict] [--json]
+Run:  uv run scripts/okf_validate.py <bundle-dir>
+        [--strict | --max-warnings N] [--migrate] [--json]
 """
 from __future__ import annotations
 
@@ -46,6 +49,17 @@ CITATIONS = re.compile(r"^#{1,6}[ \t]+Citations[ \t]*$", re.M)
 # a footnote *reference* in the body; the definition line `[^id]: …` matches too,
 # which is harmless — both carry the same label, the join key into `sources`.
 FOOTNOTE = re.compile(r"\[\^([^\]\s]+)\]")
+
+# --migrate only. `timestamp` is a top-level key (§4.1), so anchor at column 0 —
+# an indented one belongs to something else and must not be hoisted.
+TIMESTAMP = re.compile(r"^timestamp:[ \t]*(.+?)[ \t]*$", re.M)
+HEADING = re.compile(r"^#{1,6}[ \t]", re.M)
+MD_LINK = re.compile(r"\[([^\]]+)\]\((\S+?)\)")
+OKF_VERSION_LINE = re.compile(r"^(okf_version:[ \t]*)[\"']?0\.1[\"']?[ \t]*$", re.M)
+# True, and it keeps the concept correctly `unverified` under §5.3: who wrote the
+# content before `generated` existed is not recoverable, and inventing a `human:`
+# actor would fake a review that never happened.
+MIGRATE_ACTOR = "process:okf-migrate"
 
 
 @dataclass
@@ -272,6 +286,78 @@ def check_links(bundle: Path, md_files: list[Path], report: Report) -> None:
                 report.warn(rel, f"cross-link target not found: `{target}` (tolerated under §6.1)")
 
 
+def citations_to_sources(raw: str, body: str) -> tuple[str, str]:
+    """Hoist a v0.1 `# Citations` list into the `sources` family (§5.1, §13.1)."""
+    heading = CITATIONS.search(body)
+    if heading is None:
+        return raw, body
+    rest = body[heading.end():]
+    nxt = HEADING.search(rest)
+    section, tail = (rest[:nxt.start()], rest[nxt.start():]) if nxt else (rest, "")
+    entries = MD_LINK.findall(section)
+    if not entries:
+        return raw, body  # nothing extractable — leave it and keep warning
+    # json.dumps gives a correctly escaped YAML double-quoted scalar for free.
+    block = "sources:\n" + "".join(
+        f"  - resource: {json.dumps(url)}\n    title: {json.dumps(title)}\n"
+        for title, url in entries)
+    kept = body[:heading.start()].rstrip("\n")
+    return raw + block, kept + ("\n\n" + tail if tail else "\n")
+
+
+def migrate_text(text: str, is_root_index: bool) -> str | None:
+    """Rewrite one file's v0.1 constructs to v0.2. None when nothing changes.
+
+    Textual on purpose: dumping the frontmatter back through PyYAML would flatten
+    comments, key order and quoting across every file in the bundle. Each branch
+    is guarded on the v0.2 key already being present, so a half-migrated bundle
+    converges instead of growing a duplicate key that PyYAML then refuses to load.
+    """
+    raw, body = split_frontmatter(text)
+    if raw is None:
+        return None
+    if is_root_index:
+        new_raw = OKF_VERSION_LINE.sub(rf'\g<1>"{OKF_VERSION}"', raw, count=1)
+        return None if new_raw == raw else f"---\n{new_raw}---\n{body}"
+    try:
+        meta = yaml.safe_load(raw)
+    except yaml.YAMLError:
+        return None
+    if not isinstance(meta, dict):
+        return None
+    new_raw, new_body = raw, body
+    if "generated" not in meta:
+        new_raw = TIMESTAMP.sub(
+            lambda m: f"generated:\n  by: {MIGRATE_ACTOR}\n  at: {m.group(1)}",
+            new_raw, count=1)
+    if "sources" not in meta:
+        new_raw, new_body = citations_to_sources(new_raw, new_body)
+    if (new_raw, new_body) == (raw, body):
+        return None
+    return f"---\n{new_raw}---\n{new_body}"
+
+
+def migrate(bundle: Path) -> list[str]:
+    """Migrate a bundle in place. Returns the relative paths actually rewritten."""
+    changed = []
+    for path in sorted(p for p in bundle.rglob("*.md") if p.is_file()):
+        rel = path.relative_to(bundle).as_posix()
+        if path.name == "log.md":
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        is_root_index = path.name == "index.md" and path.parent == bundle
+        if path.name == "index.md" and not is_root_index:
+            continue
+        new = migrate_text(text.lstrip("﻿"), is_root_index)
+        if new is not None and new != text:
+            path.write_text(new, encoding="utf-8")
+            changed.append(rel)
+    return changed
+
+
 def validate(bundle: Path) -> Report:
     report = Report()
     md_files = sorted(p for p in bundle.rglob("*.md") if p.is_file())
@@ -310,6 +396,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=f"Validate an OKF v{OKF_VERSION} bundle.")
     ap.add_argument("bundle", type=Path, help="path to the bundle directory")
     ap.add_argument("--strict", action="store_true", help="treat warnings as errors")
+    ap.add_argument("--max-warnings", type=int, default=None, metavar="N",
+                    help="fail if warnings exceed N (--strict is the N=0 case)")
+    ap.add_argument("--migrate", action="store_true",
+                    help="rewrite v0.1 constructs to v0.2 in place, then validate")
     ap.add_argument("--json", action="store_true", help="emit a JSON report")
     args = ap.parse_args()
 
@@ -317,9 +407,12 @@ def main() -> int:
         print(f"error: {args.bundle} is not a directory", file=sys.stderr)
         return 2
 
+    migrated = migrate(args.bundle) if args.migrate else []
+
     r = validate(args.bundle)
     conformant = not r.errors
-    failed = bool(r.errors) or (args.strict and bool(r.warnings))
+    max_warn = 0 if args.strict else args.max_warnings
+    failed = bool(r.errors) or (max_warn is not None and len(r.warnings) > max_warn)
 
     if args.json:
         print(json.dumps({
@@ -329,8 +422,19 @@ def main() -> int:
             "counts": {"concepts": r.concepts, "indexes": r.indexes, "logs": r.logs},
             "errors": r.errors,
             "warnings": r.warnings,
+            "migrated": migrated,
         }, indent=2))
         return 0 if not failed else 1
+
+    if args.migrate:
+        for rel in migrated:
+            print(f"  \033[36m→ migrated\033[0m  {rel}")
+        print(f"  migrated {len(migrated)} file(s) to v{OKF_VERSION}"
+              + (f", `generated.by` recorded as `{MIGRATE_ACTOR}`" if migrated else ""))
+        if migrated:
+            print("  note: per-claim attribution (the `[^id]` footnotes of §5.1) is not"
+                  " recoverable from a v0.1 `# Citations` list — sources moved up, but"
+                  " which claim cited which was never encoded.")
 
     print(f"OKF v{OKF_VERSION} conformance — {args.bundle}")
     print(f"  concepts: {r.concepts}   index.md: {r.indexes}   log.md: {r.logs}")

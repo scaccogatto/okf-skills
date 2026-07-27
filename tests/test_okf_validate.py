@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills" / "validate" / "scripts"))
 from okf_validate import (  # noqa: E402
     Report, check_concept, check_index, check_links, check_log,
-    collect_link_targets, split_frontmatter, validate,
+    collect_link_targets, migrate, split_frontmatter, validate,
 )
 
 FULL_META = ('---\ntype: Reference\ntitle: t\ndescription: d\ntags: [x]\n'
@@ -269,6 +269,65 @@ class TestValidateEndToEnd(TmpBundle):
         r = validate(self.bundle)
         self.assertEqual((r.errors, r.warnings), ([], []))
         self.assertEqual((r.concepts, r.indexes, r.logs), (1, 1, 1))
+
+
+LEGACY_CONCEPT = (
+    "---\n"
+    "type: Service\n"
+    "title: Auth API        # inline comment\n"
+    "description: Issues JWTs.\n"
+    "tags: [auth]\n"
+    'timestamp: "2026-01-01T00:00:00Z"\n'
+    "resource: https://github.com/acme/auth\n"
+    "---\n"
+    "\n# Overview\n\nIssues tokens.\n"
+    "\n# Citations\n\n[1] [Auth README](https://github.com/acme/auth#readme)\n"
+    "\n# Endpoints\n\n`POST /token`\n"
+)
+
+
+class TestMigrate(TmpBundle):
+    def legacy(self) -> str:
+        self.write("index.md", '---\nokf_version: "0.1"\n---\n# Root\n\n* [c](c.md)\n')
+        self.write("c.md", LEGACY_CONCEPT)
+        migrate(self.bundle)
+        return (self.bundle / "c.md").read_text(encoding="utf-8")
+
+    def test_timestamp_becomes_generated_without_disturbing_the_rest(self):
+        out = self.legacy()
+        self.assertIn("generated:\n  by: process:okf-migrate\n"
+                      '  at: "2026-01-01T00:00:00Z"\n', out)
+        self.assertNotIn("timestamp:", out)
+        # a YAML round-trip would have dropped the comment and reordered the keys
+        self.assertIn("# inline comment", out)
+        self.assertLess(out.index("title:"), out.index("generated:"))
+        self.assertLess(out.index("generated:"), out.index("resource:"))
+
+    def test_citations_become_sources_and_the_section_goes(self):
+        out = self.legacy()
+        self.assertIn('  - resource: "https://github.com/acme/auth#readme"\n'
+                      '    title: "Auth README"\n', out)
+        self.assertNotIn("# Citations", out)
+        self.assertIn("# Endpoints", out)  # the section after it survives
+
+    def test_root_index_version_is_bumped(self):
+        self.legacy()
+        self.assertIn('okf_version: "0.2"',
+                      (self.bundle / "index.md").read_text(encoding="utf-8"))
+
+    def test_a_migrated_bundle_validates_strict_clean(self):
+        self.legacy()
+        self.assertEqual(validate(self.bundle).warnings, [])
+
+    def test_idempotent(self):
+        self.legacy()
+        before = (self.bundle / "c.md").read_text(encoding="utf-8")
+        self.assertEqual(migrate(self.bundle), [])
+        self.assertEqual((self.bundle / "c.md").read_text(encoding="utf-8"), before)
+
+    def test_a_v02_concept_is_left_alone(self):
+        self.write("c.md", FULL_META)
+        self.assertEqual(migrate(self.bundle), [])
 
 
 if __name__ == "__main__":
