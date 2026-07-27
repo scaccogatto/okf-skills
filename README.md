@@ -120,6 +120,8 @@ Requires [`uv`](https://docs.astral.sh/uv/) for the scripts (or `python3` + `pyy
 /okf:validate .okf --strict
 # or directly:
 uv run skills/validate/scripts/okf_validate.py .okf --strict
+# a bundle with warnings you have not got to yet, still gated in CI:
+uv run skills/validate/scripts/okf_validate.py .okf --max-warnings 5
 ```
 
 **Visualize** the knowledge graph — a self-contained `viz.html` that opens in any
@@ -152,8 +154,7 @@ paste [`templates/CLAUDE-okf.md`](templates/CLAUDE-okf.md) into your project's
 ├── datasets/orders-db.md
 ├── decisions/use-okf.md
 ├── runbooks/payment-failures.md
-├── metrics/checkout-conversion.md
-└── computations/checkout-conversion.md   # Attested Computation (v0.2)
+└── metrics/checkout-conversion.md
 ```
 
 Each concept needs only one thing to be conformant: YAML frontmatter with a
@@ -202,11 +203,22 @@ Two v0.1 constructs are superseded: `timestamp` → `generated.at`, and the body
 `# Citations` list → `sources` (with per-claim attribution via markdown
 footnotes keyed to a source's `id`).
 
-**Upgrading from v0.1?** Nothing breaks. The validator and visualizer read both
-— a legacy `timestamp` is used as `generated.at` — and report the two superseded
-constructs as *warnings* naming their replacement, never errors. Everything that
-writes emits v0.2. Ask Claude to "migrate this bundle to OKF v0.2" and the `okf`
-skill does the rewrite; `--strict` tells you when you're done.
+**Upgrading from v0.1?** One command:
+
+```shell
+uv run skills/validate/scripts/okf_validate.py .okf --migrate --strict
+```
+
+Nothing breaks in the meantime. The validator and visualizer read both — a legacy
+`timestamp` is used as `generated.at` — and report the two superseded constructs
+as *warnings* naming their replacement, never errors. `--strict` does refuse an
+unmigrated bundle: that is the nudge, and `--migrate` is the door. The rewrite is
+textual (your comments, key order and quoting survive) and idempotent.
+
+Two things it will not invent: `generated.by` for content written before the
+field existed — it records `process:okf-migrate`, leaving the concept correctly
+*unverified* rather than faking a human review — and per-claim `[^id]`
+attribution, which v0.1 never encoded.
 
 ## Repository layout
 
@@ -219,6 +231,7 @@ okf-skills/
 ├── examples/sample-bundle/      # the live-demo bundle
 ├── docs/                        # GitHub Pages: the live interactive demo
 ├── templates/CLAUDE-okf.md
+├── Makefile                     # make docs / test / validate — CI runs the same
 └── .github/workflows/ci.yml
 ```
 
