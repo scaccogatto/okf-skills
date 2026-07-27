@@ -196,7 +196,11 @@ __OGIMAGE__
  :root{--bg:#0e0f13;--panel:#16181f;--line:#262a35;--fg:#e6e8ee;--mut:#9aa3b2;--accent:#8ab4ff}
  *{box-sizing:border-box} html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
    font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
- #app{display:grid;grid-template-columns:1fr 400px;height:100vh}
+ /* The row must be stated. Left implicit it sizes to `auto`, i.e. to the tallest
+    item — a long concept body then stretched #side past the viewport and the page
+    grew its own scrollbar on top of the panel's, which in turn forced a spurious
+    horizontal one. Pinning the row to 100% keeps the panel scrolling inside. */
+ #app{display:grid;grid-template-columns:1fr 400px;grid-template-rows:100%;height:100vh}
  #cy{width:100%;height:100%}
  #side{border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:18px}
  header{position:absolute;top:0;left:0;padding:14px 18px;z-index:5;pointer-events:none}

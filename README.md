@@ -15,7 +15,7 @@ knowledge bundles — markdown your team and your agents both read.**
 
 [![okf — explore an OKF bundle as an interactive graph](docs/assets/demo.gif)](https://scaccogatto.github.io/okf-skills/)
 
-*Click any node → rendered markdown, typed metadata, and "Links to / Cited by" backlinks. No backend, nothing leaves the page.*
+*Click any node → rendered markdown, the derived trust tier and staleness, provenance with its credibility signals, and "Links to / Cited by" backlinks. The last hop follows a `sources` entry — derivation is a real edge. No backend, nothing leaves the page.*
 
 ```shell
 /plugin install okf@scaccogatto
