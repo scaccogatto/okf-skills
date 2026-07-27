@@ -4,7 +4,14 @@ title: Payments API
 description: Captures charges and refunds via the upstream payment processor.
 resource: https://github.com/acme/storefront/tree/main/services/payments
 tags: [payments, money, platform]
-timestamp: "2026-06-16T11:05:00Z"
+status: stable
+generated: { by: doc_agent/1.0, at: "2026-06-16T11:05:00Z" }
+sources:
+  - id: payments-readme
+    resource: https://github.com/acme/storefront/tree/main/services/payments
+    title: Payments service README
+    author: team:payments
+    last_modified: 2026-06-16
 ---
 
 # Overview
@@ -28,7 +35,9 @@ rest of the platform it follows the
 
 Every `POST /charges` requires an `Idempotency-Key` header (the order id). Retries
 with the same key return the original result rather than double-charging — the
-single most important invariant in the service.
+single most important invariant in the service.[^payments-readme]
+
+[^payments-readme]: Payments service README
 
 # Operations
 

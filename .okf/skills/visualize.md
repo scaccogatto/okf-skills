@@ -4,14 +4,16 @@ title: visualize skill
 description: Render an OKF bundle as a single self-contained, interactive HTML graph.
 resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/visualize/SKILL.md
 tags: [skill, visualization, graph]
-timestamp: "2026-06-28T00:00:00Z"
+status: stable
+generated: { by: human:scaccogatto, at: "2026-06-28T00:00:00Z" }
 ---
 
 # Overview
 
 Wraps the [visualizer script](/components/visualizer.md) to turn a bundle into a
-self-contained `viz.html` — concepts as nodes, markdown links as edges, a
-wiki-style detail panel with "Links to / Cited by" backlinks, layout switching,
+self-contained `viz.html` — concepts as nodes, markdown links and bundle-internal
+`sources` as edges, a wiki-style detail panel showing v0.2 trust, lifecycle, and
+provenance metadata alongside "Links to / Cited by" backlinks, layout switching,
 filter, search, deep-linkable concepts, and shareable rich link previews.
 
 # Usage

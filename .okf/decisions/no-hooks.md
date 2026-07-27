@@ -3,7 +3,8 @@ type: Decision
 title: Ship no hooks — soft-mode upkeep
 description: Keep automatic consume/maintain opt-in via a CLAUDE.md snippet, not enforced hooks.
 tags: [adr, ux, trust]
-timestamp: "2026-06-28T00:00:00Z"
+status: stable
+generated: { by: human:scaccogatto, at: "2026-06-28T00:00:00Z" }
 ---
 
 # Context

@@ -3,7 +3,9 @@ type: Decision
 title: Event-driven service communication
 description: Services publish domain events instead of calling each other's side effects directly.
 tags: [adr, architecture, events]
-timestamp: "2026-06-15T16:40:00Z"
+status: stable
+generated: { by: human:sam, at: "2026-06-15T16:40:00Z" }
+verified: { by: human:dana, at: "2026-06-16T08:15:00Z" }
 ---
 
 # Context

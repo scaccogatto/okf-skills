@@ -3,7 +3,7 @@
 # requires-python = ">=3.11"
 # dependencies = ["pyyaml>=6"]
 # ///
-"""Scaffold a conformant starter Open Knowledge Format (OKF) v0.1 bundle.
+"""Scaffold a conformant starter Open Knowledge Format (OKF) v0.2 bundle.
 
 Creates a root `index.md` (frontmatter carries only `okf_version`), a `log.md`
 with a creation entry under today's ISO date heading, and one starter concept
@@ -22,7 +22,10 @@ from pathlib import Path
 
 import yaml
 
+OKF_VERSION = "0.2"
 STARTER_CONCEPT = "getting-started.md"
+# Actor convention (§7): an automated process, not an agent with a version.
+ACTOR = "process:okf_init"
 
 
 def humanize(name: str) -> str:
@@ -35,7 +38,7 @@ def frontmatter(meta: dict) -> str:
 
 
 def build_index(title: str) -> str:
-    meta = frontmatter({"okf_version": "0.1"})
+    meta = frontmatter({"okf_version": OKF_VERSION})
     return (
         f"{meta}\n"
         f"# {title}\n\n"
@@ -58,7 +61,8 @@ def build_concept(title: str, now_iso: str) -> str:
         "title": f"Getting started — {title}",
         "description": f"Starting point for the {title} OKF bundle.",
         "tags": ["getting-started"],
-        "timestamp": now_iso,
+        "status": "stable",
+        "generated": {"by": ACTOR, "at": now_iso},
     })
     return (
         f"{meta}\n"
@@ -71,7 +75,7 @@ def build_concept(title: str, now_iso: str) -> str:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Scaffold a starter OKF v0.1 bundle.")
+    ap = argparse.ArgumentParser(description=f"Scaffold a starter OKF v{OKF_VERSION} bundle.")
     ap.add_argument("target", type=Path, help="directory to create the bundle in")
     ap.add_argument("--title", default=None, help="bundle title (default: humanized target dir name)")
     ap.add_argument("--force", action="store_true", help="scaffold even if the target already has .md files")

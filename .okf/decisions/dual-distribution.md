@@ -3,7 +3,8 @@ type: Decision
 title: Dual distribution — plugin + skills.sh
 description: Ship the same repo as a Claude Code plugin and as skills.sh-installable skills.
 tags: [adr, distribution]
-timestamp: "2026-06-28T00:00:00Z"
+status: stable
+generated: { by: human:scaccogatto, at: "2026-06-28T00:00:00Z" }
 ---
 
 # Context

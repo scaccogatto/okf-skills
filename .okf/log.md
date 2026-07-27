@@ -1,5 +1,16 @@
 # Update Log
 
+## 2026-07-27
+* **Update**: Moved the toolkit to [OKF v0.2](/reference/okf-spec.md) — the
+  [validator](/components/validator.md) checks the trust, lifecycle, provenance
+  and attestation families, the [visualizer](/components/visualizer.md) renders
+  them and draws `sources` edges, and [`okf_init.py`](/components/okf_init.md)
+  scaffolds v0.2 frontmatter.
+* **Decision**: Recorded [target v0.2, keep reading v0.1](/decisions/okf-v02-dual-read.md).
+* **Migration**: This bundle moved to v0.2 — `timestamp` became
+  `generated: {by, at}`, `# Citations` became `sources`, every concept gained
+  `status`.
+
 ## 2026-07-17
 * **Update**: Added `okf_init.py` — scaffolds a conformant starter bundle
   (`index.md`, `log.md`, a full-frontmatter starter concept). Documented in

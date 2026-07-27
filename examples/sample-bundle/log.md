@@ -1,5 +1,13 @@
 # Update Log
 
+## 2026-07-27
+* **Migration**: Moved the bundle to OKF v0.2 — `timestamp` became
+  `generated: {by, at}`, `# Citations` lists became `sources` frontmatter with
+  footnote attribution, and every concept gained `status`.
+* **Attestation**: Added the
+  [checkout conversion computation](/computations/checkout-conversion.md) and the
+  [references](/references/index.md) it executes and attests through.
+
 ## 2026-06-18
 * **Operations**: Added the [Payment failures runbook](/runbooks/payment-failures.md)
   and the [Checkout conversion](/metrics/checkout-conversion.md) metric.

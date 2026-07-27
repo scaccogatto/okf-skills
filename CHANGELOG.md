@@ -4,6 +4,43 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.5.0] — 2026-07-27
+
+### Changed
+- **The toolkit now targets OKF v0.2.** `skills/okf/reference/SPEC.md` is
+  re-vendored verbatim from upstream `3fcbb9f`, and the `okf`, `validate`, and
+  `visualize` skills apply its rules. Conformance is unchanged in substance
+  (parseable frontmatter with a non-empty `type`) but has moved from §9 to §11;
+  validator messages cite v0.2 section numbers throughout.
+- `okf_init.py` scaffolds v0.2 frontmatter — `okf_version: "0.2"` in the root
+  index, `status` and `generated: {by, at}` (actor `process:okf_init`) on the
+  starter concept.
+- `examples/sample-bundle` and this repo's own `.okf` bundle are migrated to
+  v0.2; the two GitHub Pages demos are regenerated from them.
+
+### Added
+- `validate`: checks for the new families, all soft — `generated.by` present,
+  every `verified` entry has an actor (a bare mapping counts as a one-element
+  list, §5.2), `status` is one of draft/stable/deprecated, `stale_after` and
+  `sources[].last_modified` are absolute `YYYY-MM-DD` dates, every `sources`
+  entry has a `resource`, every `[^label]` footnote names a `sources[].id`, and
+  an `Attested Computation` declares a `runtime`.
+- `visualize`: the detail panel renders `status`, `generated`, `verified`,
+  `stale_after`, and a Sources list with each source's credibility signals; a
+  `sources` entry pointing at another concept in the bundle also becomes a graph
+  edge.
+- `examples/sample-bundle` gained an `Attested Computation` concept plus the
+  `references/` executor and attester it points at — the v0.2 attestation story,
+  end to end, in the live demo.
+
+### Compatibility
+- **v0.1 bundles still validate and render.** The two superseded constructs are
+  read, not rejected: a legacy `timestamp` is used as `generated.at`, and a body
+  `# Citations` list is recognized. Both are reported as warnings naming their
+  v0.2 replacement (§13.1) — so `--strict` fails a v0.1 bundle by design, as the
+  migration nudge. No migration script ships; the `okf` skill performs the
+  rewrite and the warnings point at every file that needs it.
+
 ## [0.4.0] — 2026-07-17
 
 ### Added

@@ -43,6 +43,46 @@ jobs:
           fi
           echo "ok: non-conformant bundle correctly rejected"
 
+      - name: Self-test — a v0.1 bundle still validates (dual read)
+        run: |
+          # v0.2 supersedes `timestamp` and the body `# Citations` list, but a
+          # v0.1 bundle must stay consumable (§13.1): both are warnings naming
+          # their replacement, never errors. Assertions are on outcomes — the
+          # default run passes, --strict fails, and the warnings say what to fix.
+          tmp="$(mktemp -d)"
+          printf -- '---\nokf_version: "0.1"\n---\n# Legacy\n\n* [c](c.md)\n' > "$tmp/index.md"
+          cat > "$tmp/c.md" <<'MD'
+          ---
+          type: Reference
+          title: Legacy concept
+          description: Authored against OKF v0.1.
+          tags: [legacy]
+          timestamp: "2026-01-01T00:00:00Z"
+          ---
+          A claim backed by a source.
+
+          # Citations
+
+          [1] [Source](https://example.com)
+          MD
+          uv run skills/validate/scripts/okf_validate.py "$tmp" --json > "$tmp/out.json" || {
+            echo "a v0.1 bundle must not fail the default (non-strict) run" >&2
+            exit 1
+          }
+          grep -q '"conformant": true' "$tmp/out.json" || {
+            echo "a v0.1 bundle must still be reported conformant" >&2
+            exit 1
+          }
+          grep -q 'generated' "$tmp/out.json" && grep -q 'sources' "$tmp/out.json" || {
+            echo "legacy warnings must name their v0.2 replacements" >&2
+            exit 1
+          }
+          if uv run skills/validate/scripts/okf_validate.py "$tmp" --strict; then
+            echo "--strict must fail an unmigrated v0.1 bundle" >&2
+            exit 1
+          fi
+          echo "ok: v0.1 bundles read, warn, and fail only under --strict"
+
       - name: Self-test — okf_init.py scaffold passes strict validation clean
         run: |
           # The scaffold is meant to be exemplary: every recommended frontmatter

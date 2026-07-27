@@ -3,17 +3,21 @@
 # requires-python = ">=3.11"
 # dependencies = ["pyyaml>=6"]
 # ///
-"""Deterministic conformance checker for Open Knowledge Format (OKF) v0.1.
+"""Deterministic conformance checker for Open Knowledge Format (OKF) v0.2.
 
-Implements the §9 conformance rules verbatim:
+Implements the §11 conformance rules verbatim:
   1. Every non-reserved `.md` file contains a parseable YAML frontmatter block.
   2. Every frontmatter block contains a non-empty `type` field.
-  3. Reserved filenames (`index.md`, `log.md`) follow §6 / §7 when present.
+  3. Reserved filenames (`index.md`, `log.md`) follow §8 / §9 when present.
 
 Rules 1 and 2 are hard errors (a bundle that fails them is non-conformant).
 Everything else the spec marks as soft guidance: reported as warnings, never
 fatal unless `--strict` is given. In particular broken cross-links are NOT
-errors — the spec requires consumers to tolerate them (§5.3).
+errors — the spec requires consumers to tolerate them (§6.1).
+
+v0.1 bundles still validate: the two superseded constructs (`timestamp`, a body
+`# Citations` list) are read and reported as warnings pointing at their v0.2
+replacements (`generated.at`, `sources`), never as errors (§13.1).
 
 Run:  uv run scripts/okf_validate.py <bundle-dir> [--strict] [--json]
 """
@@ -28,14 +32,20 @@ from pathlib import Path
 
 import yaml
 
+OKF_VERSION = "0.2"
 RESERVED = {"index.md", "log.md"}
 # `resource` is intentionally excluded: the spec (§4.1) states it is absent for
 # concepts describing abstract ideas, so flagging it produces false noise.
-RECOMMENDED = ("title", "description", "tags", "timestamp")
+RECOMMENDED = ("title", "description", "tags")
+STATUS_VALUES = {"draft", "stable", "deprecated"}
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 FENCE = re.compile(r"^(```|~~~)")
 # markdown link target capture: [text](target) — ignores images ![...]
 LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
+CITATIONS = re.compile(r"^#{1,6}[ \t]+Citations[ \t]*$", re.M)
+# a footnote *reference* in the body; the definition line `[^id]: …` matches too,
+# which is harmless — both carry the same label, the join key into `sources`.
+FOOTNOTE = re.compile(r"\[\^([^\]\s]+)\]")
 
 
 @dataclass
@@ -85,24 +95,100 @@ def check_concept(path: Path, rel: str, report: Report) -> None:
     text = _read_text(path, rel, report)
     if text is None:
         return
-    raw, _ = split_frontmatter(text)
+    raw, body = split_frontmatter(text)
     if raw is None:
-        report.err(rel, "§9.1 no parseable YAML frontmatter block")
+        report.err(rel, "§11.1 no parseable YAML frontmatter block")
         return
     try:
         meta = yaml.safe_load(raw)
     except yaml.YAMLError as exc:
-        report.err(rel, f"§9.1 frontmatter is not valid YAML: {exc}".replace("\n", " "))
+        report.err(rel, f"§11.1 frontmatter is not valid YAML: {exc}".replace("\n", " "))
         return
     if not isinstance(meta, dict):
-        report.err(rel, "§9.1 frontmatter must be a YAML mapping")
+        report.err(rel, "§11.1 frontmatter must be a YAML mapping")
         return
     type_val = meta.get("type")
     if not (isinstance(type_val, str) and type_val.strip()):
-        report.err(rel, "§9.2 missing or empty required `type` field")
+        report.err(rel, "§11.2 missing or empty required `type` field")
     for key in RECOMMENDED:
         if key not in meta:
             report.warn(rel, f"recommended field `{key}` is absent (§4.1)")
+    check_trust(meta, rel, report)
+    check_lifecycle(meta, rel, report)
+    check_sources(meta, body, rel, report)
+    if isinstance(type_val, str) and type_val.strip() == "Attested Computation" \
+            and not str(meta.get("runtime", "")).strip():
+        report.warn(rel, "§10.2 an Attested Computation concept requires `runtime`")
+
+
+def check_trust(meta: dict, rel: str, report: Report) -> None:
+    """§5.2 — `generated` / `verified`, with the v0.1 `timestamp` fallback."""
+    gen = meta.get("generated")
+    if gen is None:
+        if "timestamp" in meta:
+            report.warn(rel, "legacy v0.1 `timestamp`: v0.2 records the last content "
+                             "change as `generated: {by, at}` (§13.1)")
+        else:
+            report.warn(rel, "recommended field `generated` is absent (§5.2)")
+    elif not isinstance(gen, dict):
+        report.warn(rel, "§5.2 `generated` must be a mapping with `by` and `at`")
+    elif not str(gen.get("by", "")).strip():
+        report.warn(rel, "§5.2 `generated.by` is required within `generated`")
+
+    ver = meta.get("verified")
+    if ver is None:
+        return
+    # A bare mapping is one verification event — consumers MUST treat it as a
+    # one-element list (§5.2), so normalize before checking the entries.
+    entries = [ver] if isinstance(ver, dict) else ver
+    if not isinstance(entries, list):
+        report.warn(rel, "§5.2 `verified` must be a `{by, at}` mapping or a list of them")
+        return
+    for entry in entries:
+        if not (isinstance(entry, dict) and str(entry.get("by", "")).strip()):
+            report.warn(rel, "§5.2 every `verified` entry needs a `by` actor")
+
+
+def check_lifecycle(meta: dict, rel: str, report: Report) -> None:
+    """§5.4 / §5.5 — `status` and `stale_after`."""
+    status = meta.get("status")
+    if status is not None and status not in STATUS_VALUES:
+        report.warn(rel, f"§5.4 unknown `status` `{status}` (expected "
+                         f"{'|'.join(sorted(STATUS_VALUES))})")
+    stale = meta.get("stale_after")
+    # PyYAML resolves an unquoted `2026-09-23` to a date object; str() round-trips
+    # it back to the ISO form, so both spellings check identically.
+    if stale is not None and not ISO_DATE.match(str(stale)):
+        report.warn(rel, f"§5.5 `stale_after` `{stale}` is not an absolute YYYY-MM-DD date")
+
+
+def check_sources(meta: dict, body: str, rel: str, report: Report) -> None:
+    """§5.1 — the `sources` provenance family and its footnote join keys."""
+    if CITATIONS.search(body):
+        report.warn(rel, "legacy v0.1 `# Citations` body list: v0.2 records provenance "
+                         "in the `sources` frontmatter (§13.1)")
+    srcs = meta.get("sources")
+    if srcs is None:
+        return
+    if not isinstance(srcs, list):
+        report.warn(rel, "§5.1 `sources` must be a list of entries")
+        return
+    ids = set()
+    for i, src in enumerate(srcs):
+        if not isinstance(src, dict):
+            report.warn(rel, f"§5.1 `sources[{i}]` must be a mapping")
+            continue
+        if not str(src.get("resource", "")).strip():
+            report.warn(rel, f"§5.1 `sources[{i}]` is missing the required `resource`")
+        if "id" in src:
+            ids.add(str(src["id"]))
+        last_mod = src.get("last_modified")
+        if last_mod is not None and not ISO_DATE.match(str(last_mod)):
+            report.warn(rel, f"§5.1 `sources[{i}].last_modified` `{last_mod}` is not YYYY-MM-DD")
+    # Attribution joins on the label, not on position (§5.1) — a footnote whose
+    # label names no source silently attributes a claim to nothing.
+    for label in sorted(set(FOOTNOTE.findall(body)) - ids):
+        report.warn(rel, f"§5.1 footnote `[^{label}]` matches no `sources[].id`")
 
 
 def check_index(path: Path, rel: str, is_root: bool, report: Report) -> None:
@@ -113,16 +199,20 @@ def check_index(path: Path, rel: str, is_root: bool, report: Report) -> None:
     raw, _ = split_frontmatter(text)
     if raw is not None:
         if not is_root:
-            report.warn(rel, "§6 index.md should contain no frontmatter")
+            report.warn(rel, "§8 index.md should contain no frontmatter")
         else:
             try:
                 meta = yaml.safe_load(raw) or {}
             except yaml.YAMLError:
-                report.warn(rel, "§11 root index.md frontmatter is not valid YAML")
+                report.warn(rel, "§12 root index.md frontmatter is not valid YAML")
                 meta = {}
             extra = set(meta) - {"okf_version"}
             if extra:
-                report.warn(rel, f"§11 root index.md frontmatter may only carry `okf_version` (found {sorted(extra)})")
+                report.warn(rel, f"§12 root index.md frontmatter may only carry `okf_version` (found {sorted(extra)})")
+            declared = meta.get("okf_version")
+            if declared is not None and str(declared) != OKF_VERSION:
+                report.warn(rel, f"§12 bundle declares `okf_version: \"{declared}\"`; "
+                                 f"checked against v{OKF_VERSION}")
 
 
 def check_log(path: Path, rel: str, report: Report) -> None:
@@ -132,12 +222,12 @@ def check_log(path: Path, rel: str, report: Report) -> None:
         return
     raw, _ = split_frontmatter(text)
     if raw is not None:
-        report.warn(rel, "§7 log.md should contain no frontmatter")
+        report.warn(rel, "§9 log.md should contain no frontmatter")
     for line in text.splitlines():
         if line.startswith("## "):
             heading = line[3:].strip()
             if not ISO_DATE.match(heading):
-                report.warn(rel, f"§7 date heading `{heading}` is not ISO 8601 YYYY-MM-DD")
+                report.warn(rel, f"§9 date heading `{heading}` is not ISO 8601 YYYY-MM-DD")
 
 
 def collect_link_targets(path: Path) -> list[str]:
@@ -161,7 +251,7 @@ def collect_link_targets(path: Path) -> list[str]:
 
 
 def check_links(bundle: Path, md_files: list[Path], report: Report) -> None:
-    """Broken bundle-internal links are warnings only (§5.3)."""
+    """Broken bundle-internal links are warnings only (§6.1)."""
     existing = {p.relative_to(bundle).as_posix() for p in md_files}
     for path in md_files:
         rel = path.relative_to(bundle).as_posix()
@@ -179,7 +269,7 @@ def check_links(bundle: Path, md_files: list[Path], report: Report) -> None:
                 resolved = (path.parent / t).resolve().relative_to(bundle.resolve()).as_posix() \
                     if (path.parent / t).resolve().is_relative_to(bundle.resolve()) else t
             if resolved not in existing:
-                report.warn(rel, f"cross-link target not found: `{target}` (tolerated under §5.3)")
+                report.warn(rel, f"cross-link target not found: `{target}` (tolerated under §6.1)")
 
 
 def validate(bundle: Path) -> Report:
@@ -217,7 +307,7 @@ def _force_utf8_stdio() -> None:
 
 def main() -> int:
     _force_utf8_stdio()
-    ap = argparse.ArgumentParser(description="Validate an OKF v0.1 bundle.")
+    ap = argparse.ArgumentParser(description=f"Validate an OKF v{OKF_VERSION} bundle.")
     ap.add_argument("bundle", type=Path, help="path to the bundle directory")
     ap.add_argument("--strict", action="store_true", help="treat warnings as errors")
     ap.add_argument("--json", action="store_true", help="emit a JSON report")
@@ -242,7 +332,7 @@ def main() -> int:
         }, indent=2))
         return 0 if not failed else 1
 
-    print(f"OKF v0.1 conformance — {args.bundle}")
+    print(f"OKF v{OKF_VERSION} conformance — {args.bundle}")
     print(f"  concepts: {r.concepts}   index.md: {r.indexes}   log.md: {r.logs}")
     for e in r.errors:
         print(f"  \033[31m✗ ERROR\033[0m  {e}")

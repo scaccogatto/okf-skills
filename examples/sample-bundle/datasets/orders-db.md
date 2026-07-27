@@ -4,7 +4,14 @@ title: Orders database
 description: Postgres schema of record for orders, line items, and charge attempts.
 resource: https://github.com/acme/storefront/tree/main/db/migrations
 tags: [postgres, schema, data]
-timestamp: "2026-06-17T08:00:00Z"
+status: stable
+generated: { by: process:schema-export, at: "2026-06-17T08:00:00Z" }
+sources:
+  - id: migrations
+    resource: https://github.com/acme/storefront/tree/main/db/migrations
+    title: Postgres migrations
+    author: team:checkout
+    last_modified: 2026-06-17
 ---
 
 # Overview
@@ -33,3 +40,7 @@ pending ──▶ paid ──▶ fulfilled
 
 * An order in `paid` has exactly one successful `charges` row.
 * `charges` is never updated in place — voids/refunds insert new rows.
+
+Tables and constraints are read straight from the migrations.[^migrations]
+
+[^migrations]: Postgres migrations

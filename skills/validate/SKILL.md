@@ -1,8 +1,8 @@
 ---
 name: validate
 description: >-
-  Check that an Open Knowledge Format (OKF) bundle is conformant with the v0.1
-  spec (§9). Use when asked to validate, lint, or check an OKF bundle, or before
+  Check that an Open Knowledge Format (OKF) bundle is conformant with the v0.2
+  spec (§11). Use when asked to validate, lint, or check an OKF bundle, or before
   committing changes to one. Runs a deterministic Python checker — not an
   eyeball pass.
 user-invocable: true
@@ -32,11 +32,17 @@ always found alongside the skill.
 
 Interpret the result:
 
-- **ERROR** → a hard §9 conformance failure (no parseable frontmatter, or a
+- **ERROR** → a hard §11 conformance failure (no parseable frontmatter, or a
   missing/empty `type`). The bundle is non-conformant. Fix every one.
 - **warn** → soft guidance (missing recommended field, non-ISO log date, broken
-  cross-link). Never blocks; broken links in particular are explicitly tolerated
-  by the spec (§5.3). Fix when cheap.
+  cross-link, a malformed v0.2 family, a footnote naming no source). Never
+  blocks; broken links in particular are explicitly tolerated by the spec
+  (§6.1). Fix when cheap.
+
+v0.1 bundles validate too: a legacy `timestamp` or `# Citations` section is
+reported as a warning naming its v0.2 replacement (`generated.at`, `sources`),
+never as an error (§13.1). Under `--strict` those warnings do fail the run —
+that is the migration nudge.
 
 Exit code is non-zero if any error is present (or any warning, when `--strict`).
 Add `--json` for machine-readable output (useful in CI).

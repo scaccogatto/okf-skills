@@ -6,7 +6,7 @@
 knowledge bundles — markdown your team and your agents both read.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
-[![OKF spec](https://img.shields.io/badge/OKF-v0.1-6E56CF.svg)](skills/okf/reference/SPEC.md)
+[![OKF spec](https://img.shields.io/badge/OKF-v0.2-6E56CF.svg)](skills/okf/reference/SPEC.md)
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757.svg)](https://code.claude.com/docs/en/plugins)
 [![skills.sh](https://img.shields.io/badge/skills.sh-installable-22C55E.svg)](https://skills.sh/scaccogatto/okf-skills)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-3B82F6.svg)](#contributing)
@@ -69,14 +69,14 @@ and an OKF bundle for *what the team knows* — shared, structured, and shippabl
 | Component | What it does |
 |-----------|--------------|
 | `/okf:okf` skill | Produce / maintain / consume bundles, applying the spec and templates. Auto-triggers when a repo has an OKF bundle. |
-| `/okf:validate` skill | Deterministic §9 conformance check (not an eyeball pass). |
+| `/okf:validate` skill | Deterministic §11 conformance check (not an eyeball pass). |
 | `/okf:visualize` skill | Render a bundle to a self-contained interactive HTML graph (`viz.html`). |
 | `skills/okf/scripts/okf_init.py` | Scaffold a conformant starter bundle (`index.md`, `log.md`, a starter concept) in one shot. |
 | `skills/validate/scripts/okf_validate.py` | Standalone, zero-config validator (`uv run`, PyYAML via PEP 723). |
 | `skills/visualize/scripts/okf_visualize.py` | Standalone bundle→`viz.html` renderer (Cytoscape + marked via CDN). |
-| `skills/okf/reference/SPEC.md` | The OKF v0.1 spec, vendored verbatim — the source of truth. |
+| `skills/okf/reference/SPEC.md` | The OKF v0.2 spec, vendored verbatim — the source of truth. |
 | `templates/CLAUDE-okf.md` | Snippet that turns on automatic consume/maintain in your project. |
-| `examples/sample-bundle/` | The conformant bundle behind the [live demo](https://scaccogatto.github.io/okf-skills/) — code, data, decisions, runbooks, metrics. |
+| `examples/sample-bundle/` | The conformant bundle behind the [live demo](https://scaccogatto.github.io/okf-skills/) — code, data, decisions, runbooks, metrics, and an attested computation. |
 
 ## Install
 
@@ -152,7 +152,8 @@ paste [`templates/CLAUDE-okf.md`](templates/CLAUDE-okf.md) into your project's
 ├── datasets/orders-db.md
 ├── decisions/use-okf.md
 ├── runbooks/payment-failures.md
-└── metrics/checkout-conversion.md
+├── metrics/checkout-conversion.md
+└── computations/checkout-conversion.md   # Attested Computation (v0.2)
 ```
 
 Each concept needs only one thing to be conformant: YAML frontmatter with a
@@ -165,14 +166,47 @@ title: Auth API
 description: Issues and verifies short-lived access tokens.
 resource: https://github.com/acme/auth
 tags: [auth, platform]
-timestamp: 2026-06-14T10:00:00Z
+status: stable
+generated: { by: doc_agent/1.0, at: 2026-06-14T10:00:00Z }
+verified: { by: human:dana, at: 2026-06-20T09:00:00Z }
+sources:
+  - id: auth-readme
+    resource: https://github.com/acme/auth#readme
+    title: Auth service README
 ---
 
 # Endpoints
 | Method | Path     | Description                |
 |--------|----------|----------------------------|
 | `POST` | `/token` | Exchange creds for a JWT.  |
+
+Tokens live 15 minutes.[^auth-readme]
+
+[^auth-readme]: Auth service README
 ```
+
+## What OKF v0.2 adds
+
+v0.2 assumes a corpus that agents keep writing, so it makes four things
+answerable from frontmatter alone. All optional; a concept carrying only `type`
+is still fully conformant.
+
+| Family | Fields | Answers |
+|--------|--------|---------|
+| **Provenance** | `sources[]` + `author` / `usage_count` / `last_modified`, `usage_window` | Where did this come from, and how credible is that source? |
+| **Trust** | `generated: {by, at}`, `verified[]`, actor convention (`human:` / `process:` / `agent/version`) | Who wrote it, who confirmed it? |
+| **Lifecycle** | `status`, `stale_after` | Is it current? Is it still true? |
+| **Attestation** | `type: Attested Computation` + `runtime`, `parameters`, `executor`, `attester` | Was this number produced the sanctioned way? |
+
+Two v0.1 constructs are superseded: `timestamp` → `generated.at`, and the body
+`# Citations` list → `sources` (with per-claim attribution via markdown
+footnotes keyed to a source's `id`).
+
+**Upgrading from v0.1?** Nothing breaks. The validator and visualizer read both
+— a legacy `timestamp` is used as `generated.at` — and report the two superseded
+constructs as *warnings* naming their replacement, never errors. Everything that
+writes emits v0.2. Ask Claude to "migrate this bundle to OKF v0.2" and the `okf`
+skill does the rewrite; `--strict` tells you when you're done.
 
 ## Repository layout
 

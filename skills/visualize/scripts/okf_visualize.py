@@ -6,8 +6,9 @@
 """Render an Open Knowledge Format (OKF) bundle as a single self-contained,
 interactive HTML graph (`viz.html`). No backend, no install on the viewing side,
 no data leaves the page — concepts become nodes (coloured by `type`, sized by
-body length), markdown links become edges, and clicking a node opens a wiki-style
-panel with its rendered markdown, outgoing links, and "Cited by" backlinks.
+body length), markdown links and bundle-internal `sources` become edges, and
+clicking a node opens a wiki-style panel with its rendered markdown, OKF v0.2
+provenance/trust/lifecycle metadata, outgoing links, and "Cited by" backlinks.
 
 Features: force/concentric/breadth-first/circle/grid layouts, per-type filter,
 free-text search, neighbour highlight, clickable cross-links and backlinks.
@@ -83,6 +84,58 @@ def link_targets(text: str):
     return out
 
 
+def resolve(target: str, path: Path, bundle: Path):
+    """Resolve a link/`sources[].resource` to a concept id, or None if it is not
+    one (an external URL, an asset, a scope descriptor, an escape from the tree)."""
+    t = str(target).split("#", 1)[0]
+    if not t.endswith(".md"):
+        return None
+    if t.startswith("/"):
+        return t.lstrip("/")[:-3]
+    cand = (path.parent / t).resolve()
+    return cand.relative_to(bundle.resolve()).as_posix()[:-3] \
+        if cand.is_relative_to(bundle.resolve()) else None
+
+
+def read_sources(meta: dict, path: Path, bundle: Path):
+    """§5.1 `sources`, flattened for display. `cid` is set when the source is
+    itself a concept in this bundle — that derivation is a real graph edge."""
+    raw = meta.get("sources")
+    out = []
+    if not isinstance(raw, list):
+        return out
+    for src in raw:
+        if not isinstance(src, dict):
+            continue
+        resource = str(src.get("resource", "")).strip()
+        out.append({
+            "title": str(src.get("title") or src.get("id") or resource),
+            "resource": resource,
+            "cid": resolve(resource, path, bundle) if resource else None,
+            "author": str(src.get("author", "")),
+            "usage_count": src.get("usage_count"),
+            "last_modified": str(src.get("last_modified") or ""),
+        })
+    return out
+
+
+def read_trust(meta: dict):
+    """§5.2 `generated` / `verified`, falling back to a v0.1 `timestamp` (§13.1)."""
+    gen = meta.get("generated")
+    if isinstance(gen, dict):
+        generated = {"by": str(gen.get("by", "")), "at": str(gen.get("at", ""))}
+    elif meta.get("timestamp"):
+        generated = {"by": "", "at": str(meta["timestamp"])}
+    else:
+        generated = None
+    ver = meta.get("verified")
+    # a bare mapping is one verification event (§5.2)
+    entries = [ver] if isinstance(ver, dict) else (ver if isinstance(ver, list) else [])
+    verified = [{"by": str(e.get("by", "")), "at": str(e.get("at", ""))}
+                for e in entries if isinstance(e, dict)]
+    return generated, verified
+
+
 def build(bundle: Path):
     nodes, edges, seen = [], [], set()
     files = sorted(p for p in bundle.rglob("*.md") if p.is_file() and p.name not in RESERVED)
@@ -97,6 +150,8 @@ def build(bundle: Path):
             continue
         meta, body = split_frontmatter(raw)
         body = body.strip()
+        generated, verified = read_trust(meta)
+        sources = read_sources(meta, p, bundle)
         nodes.append({
             "id": cid,
             "type": str(meta.get("type", "Untyped")),
@@ -105,17 +160,16 @@ def build(bundle: Path):
             "tags": meta.get("tags", []) if isinstance(meta.get("tags"), list) else [],
             "group": cid.split("/")[0] if "/" in cid else "(root)",
             "sz": max(24, min(70, 24 + len(body) // 200)),
+            "status": str(meta.get("status", "")),
+            "stale_after": str(meta.get("stale_after") or ""),
+            "generated": generated,
+            "verified": verified,
+            "sources": sources,
             "body": body[:8000],
         })
-        for t in link_targets(body):
-            t = t.split("#", 1)[0]
-            if not t.endswith(".md"):
-                continue
-            if t.startswith("/"):
-                tgt = t.lstrip("/")[:-3]
-            else:
-                tgt = (p.parent / t).resolve().relative_to(bundle.resolve()).as_posix()[:-3] \
-                    if (p.parent / t).resolve().is_relative_to(bundle.resolve()) else None
+        targets = link_targets(body) + [s["resource"] for s in sources if s["cid"]]
+        for t in targets:
+            tgt = resolve(t, p, bundle)
             if tgt and tgt in ids and tgt != cid and (cid, tgt) not in seen:
                 seen.add((cid, tgt))
                 edges.append({"source": cid, "target": tgt})
@@ -154,6 +208,8 @@ __OGIMAGE__
    font-size:11px;font-weight:600;color:#0e0f13} .desc{color:var(--mut);margin:8px 0 12px}
  .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
  .tag{background:#1d2230;border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-size:11px;color:var(--mut)}
+ .meta{margin:10px 0;font-size:12px;color:var(--mut)} .meta div{padding:1px 0} .meta b{color:var(--fg);font-weight:600}
+ .sig{color:var(--mut)}
  .rel{margin:10px 0} .rel h4{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
  .rel a{display:block;color:var(--accent);cursor:pointer;font-size:13px;padding:1px 0;text-decoration:none}
  .rel a:hover{text-decoration:underline}
@@ -164,7 +220,7 @@ __OGIMAGE__
  .src{pointer-events:auto;color:var(--accent);margin-left:10px;text-decoration:none} .src:hover{text-decoration:underline}
 </style></head><body>
 <div id="app"><div id="cy"></div><div id="side"><p class="empty">Click a concept to inspect it.</p></div></div>
-<header><h1>__NAME__</h1><div class="sub">__N__ concepts · __E__ links · OKF v0.1__LINK__</div></header>
+<header><h1>__NAME__</h1><div class="sub">__N__ concepts · __E__ links · OKF v0.2__LINK__</div></header>
 <div id="bar">
  <input id="search" placeholder="search concepts…">
  <select id="type"><option value="">all types</option></select>
@@ -197,9 +253,26 @@ const cy=cytoscape({container:document.getElementById('cy'),minZoom:.2,maxZoom:1
  ],
  layout:{name:'__LAYOUT__',animate:false,nodeRepulsion:9000,idealEdgeLength:90,padding:40}});
 const side=document.getElementById('side');
-const esc=s=>(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const esc=s=>(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function relList(title,arr){if(!arr.length)return'';
  return `<div class="rel"><h4>${title}</h4>${arr.map(id=>`<a data-go="${esc(id)}">${esc((byId[id]||{}).title||id)}</a>`).join('')}</div>`;}
+// OKF v0.2 trust (§5.2) + lifecycle (§5.4/§5.5). A v0.1 `timestamp` arrives here
+// as generated.at with an empty `by`, so legacy bundles still show a date.
+function metaBlock(n){const g=n.generated||{},rows=[];
+ if(n.status)rows.push(`<div>status <b>${esc(n.status)}</b></div>`);
+ if(g.at||g.by)rows.push(`<div>generated${g.at?` <b>${esc(g.at)}</b>`:''}${g.by?` by ${esc(g.by)}`:''}</div>`);
+ (n.verified||[]).forEach(v=>rows.push(`<div>verified${v.at?` <b>${esc(v.at)}</b>`:''}${v.by?` by ${esc(v.by)}`:''}</div>`));
+ if(n.stale_after)rows.push(`<div>stale after <b>${esc(n.stale_after)}</b></div>`);
+ return rows.length?`<div class="meta">${rows.join('')}</div>`:'';}
+// Provenance (§5.1). A source may be another concept (graph link), an external
+// URL, or a scope descriptor that is not followable at all.
+function srcList(n){const s=n.sources||[];if(!s.length)return'';
+ return `<div class="rel"><h4>Sources</h4>${s.map(x=>{
+  const sig=[x.author,x.usage_count!=null?`used ${x.usage_count}×`:'',x.last_modified].filter(Boolean).join(' · ');
+  const label=esc(x.title||x.resource)+(sig?` <span class="sig">(${esc(sig)})</span>`:'');
+  if(x.cid&&byId[x.cid])return `<a data-go="${esc(x.cid)}">${label}</a>`;
+  if(/^https?:\/\//i.test(x.resource))return `<a href="${esc(x.resource)}" target="_blank" rel="noopener">${label}</a>`;
+  return `<span class="empty">${label}</span>`;}).join('')}</div>`;}
 // Resolve an in-body markdown link href to a concept id, mirroring build()'s
 // resolution: strip #anchor, require .md, absolute strips leading /, relative
 // resolves against the current concept's dir. Returns null if it's not a concept.
@@ -214,7 +287,7 @@ function show(id){const n=byId[id];if(!n)return;const c=color[n.type];
  side.innerHTML=`<span class="type" style="background:${c}">${esc(n.type)}</span>
  <h2>${esc(n.title)}</h2><div class="desc">${esc(n.description)||'<span class=empty>no description</span>'}</div>
  <div class="tags">${(n.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
- ${relList('Links to',outL[id])}${relList('Cited by',inL[id])}
+ ${metaBlock(n)}${srcList(n)}${relList('Links to',outL[id])}${relList('Cited by',inL[id])}
  <div class="body">${n.body?DOMPurify.sanitize(marked.parse(n.body)):'<span class=empty>empty body</span>'}</div>`;
  side.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));
  side.querySelectorAll('.body a[href]').forEach(a=>{const tgt=resolveHref(id,a.getAttribute('href'));

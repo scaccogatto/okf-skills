@@ -3,7 +3,9 @@ type: Runbook
 title: Payment failures runbook
 description: Diagnose and mitigate a spike in declined or failed charges.
 tags: [oncall, payments, incident]
-timestamp: "2026-06-18T07:30:00Z"
+status: stable
+generated: { by: human:sam, at: "2026-06-18T07:30:00Z" }
+stale_after: 2026-12-31
 ---
 
 # Trigger

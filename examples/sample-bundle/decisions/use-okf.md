@@ -3,7 +3,9 @@ type: Decision
 title: Adopt OKF for shared knowledge
 description: Use the Open Knowledge Format as the single, portable home for project knowledge.
 tags: [adr, knowledge, process]
-timestamp: "2026-06-14T09:30:00Z"
+status: stable
+generated: { by: human:dana, at: "2026-06-14T09:30:00Z" }
+verified: { by: human:sam, at: "2026-06-14T16:00:00Z" }
 ---
 
 # Context

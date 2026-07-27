@@ -3,7 +3,8 @@ type: Decision
 title: Self-contained skills via CLAUDE_SKILL_DIR
 description: Each skill bundles its own script and references it through ${CLAUDE_SKILL_DIR}.
 tags: [adr, packaging]
-timestamp: "2026-06-28T00:00:00Z"
+status: stable
+generated: { by: human:scaccogatto, at: "2026-06-28T00:00:00Z" }
 ---
 
 # Context

@@ -3,8 +3,9 @@ name: visualize
 description: >-
   Render an Open Knowledge Format (OKF) bundle as a single self-contained,
   interactive HTML graph (viz.html) — concepts as nodes coloured/sized by type,
-  markdown links as edges, a wiki-style detail panel with rendered markdown plus
-  "Links to" / "Cited by" backlinks, layout switching, per-type filter and search.
+  markdown links and bundle-internal `sources` as edges, a wiki-style detail panel
+  with rendered markdown, v0.2 trust/lifecycle/provenance metadata, and "Links to"
+  / "Cited by" backlinks, layout switching, per-type filter and search.
   Use when asked to visualize, graph, preview, or explore an OKF bundle.
 user-invocable: true
 argument-hint: "[bundle-dir] [-o viz.html]"
@@ -26,6 +27,11 @@ If `uv` is unavailable:
 python3 -m pip install --quiet pyyaml && \
 python3 "${CLAUDE_SKILL_DIR}/scripts/okf_visualize.py" $ARGUMENTS
 ```
+
+The detail panel shows each concept's `status`, `generated`, `verified`,
+`stale_after`, and `sources` (with their credibility signals); a `sources` entry
+pointing at another concept in the bundle also becomes a graph edge. A v0.1
+`timestamp` is read as `generated.at`, so legacy bundles still render fully.
 
 The output defaults to `<bundle>/viz.html`. Pass `-o <path>` to write elsewhere.
 Bundles above 1,000 concepts default to the linear `concentric` layout (the

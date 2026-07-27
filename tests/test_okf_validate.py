@@ -20,7 +20,8 @@ from okf_validate import (  # noqa: E402
     collect_link_targets, split_frontmatter, validate,
 )
 
-FULL_META = '---\ntype: Reference\ntitle: t\ndescription: d\ntags: [x]\ntimestamp: "2026-01-01T00:00:00Z"\n---\n\nbody\n'
+FULL_META = ('---\ntype: Reference\ntitle: t\ndescription: d\ntags: [x]\n'
+             'generated: { by: human:tester, at: "2026-01-01T00:00:00Z" }\n---\n\nbody\n')
 
 
 class TmpBundle(unittest.TestCase):
@@ -83,12 +84,12 @@ class TestCheckConcept(TmpBundle):
     def test_missing_frontmatter_is_error(self):
         self.write("c.md", "no frontmatter\n")
         r = self.run_check(check_concept, "c.md")
-        self.assertIn("§9.1", r.errors[0])
+        self.assertIn("§11.1", r.errors[0])
 
     def test_unterminated_frontmatter_is_error(self):
         self.write("c.md", "---\ntype: A\nbody without closing fence\n")
         r = self.run_check(check_concept, "c.md")
-        self.assertIn("§9.1", r.errors[0])
+        self.assertIn("§11.1", r.errors[0])
 
     def test_invalid_yaml_is_error(self):
         self.write("c.md", "---\ntype: [unclosed\n---\nbody\n")
@@ -104,13 +105,13 @@ class TestCheckConcept(TmpBundle):
         for meta in ("title: t", "type: ''", "type:   "):
             self.write("c.md", f"---\n{meta}\n---\nbody\n")
             r = self.run_check(check_concept, "c.md")
-            self.assertTrue(any("§9.2" in e for e in r.errors), meta)
+            self.assertTrue(any("§11.2" in e for e in r.errors), meta)
 
     def test_missing_recommended_fields_warn_only(self):
         self.write("c.md", "---\ntype: A\n---\nbody\n")
         r = self.run_check(check_concept, "c.md")
         self.assertEqual(r.errors, [])
-        self.assertEqual(len(r.warnings), 4)  # title, description, tags, timestamp
+        self.assertEqual(len(r.warnings), 4)  # title, description, tags, generated
 
     def test_non_utf8_file_is_a_per_file_error_not_a_crash(self):
         (self.bundle / "c.md").write_bytes(b"\xff\xfe invalid")
@@ -118,21 +119,94 @@ class TestCheckConcept(TmpBundle):
         self.assertTrue(any("c.md" in e for e in r.errors), r.errors)
 
 
+class TestV02Families(TmpBundle):
+    """§5 trust / lifecycle / provenance, and the v0.1 fallbacks (§13.1)."""
+
+    def concept(self, meta: str, body: str = "body\n") -> Report:
+        self.write("c.md", f"---\ntype: Reference\ntitle: t\ndescription: d\ntags: [x]\n{meta}---\n\n{body}")
+        return self.run_check(check_concept, "c.md")
+
+    def only(self, r: Report) -> str:
+        self.assertEqual(r.errors, [])
+        self.assertEqual(len(r.warnings), 1, r.warnings)
+        return r.warnings[0]
+
+    def test_legacy_timestamp_warns_and_never_errors(self):
+        r = self.concept('timestamp: "2026-01-01T00:00:00Z"\n')
+        self.assertIn("legacy v0.1 `timestamp`", self.only(r))
+
+    def test_generated_without_by_warns(self):
+        self.assertIn("§5.2", self.only(self.concept('generated: { at: "2026-01-01T00:00:00Z" }\n')))
+
+    def test_bare_verified_mapping_is_a_one_element_list(self):
+        r = self.concept('generated: { by: human:t }\nverified: { by: human:t, at: "2026-01-01T00:00:00Z" }\n')
+        self.assertEqual((r.errors, r.warnings), ([], []))
+
+    def test_verified_entry_without_by_warns(self):
+        r = self.concept('generated: { by: human:t }\nverified:\n  - { at: "2026-01-01T00:00:00Z" }\n')
+        self.assertIn("§5.2", self.only(r))
+
+    def test_unknown_status_warns_known_is_clean(self):
+        self.assertIn("§5.4", self.only(self.concept("generated: { by: human:t }\nstatus: retired\n")))
+        for status in ("draft", "stable", "deprecated"):
+            r = self.concept(f"generated: {{ by: human:t }}\nstatus: {status}\n")
+            self.assertEqual((r.errors, r.warnings), ([], []), status)
+
+    def test_stale_after_must_be_an_absolute_date(self):
+        # unquoted YAML dates resolve to date objects — both spellings must pass
+        for ok in ("2026-09-23", "'2026-09-23'"):
+            r = self.concept(f"generated: {{ by: human:t }}\nstale_after: {ok}\n")
+            self.assertEqual((r.errors, r.warnings), ([], []), ok)
+        self.assertIn("§5.5", self.only(self.concept("generated: { by: human:t }\nstale_after: 30d\n")))
+
+    def test_source_needs_a_resource(self):
+        r = self.concept("generated: { by: human:t }\nsources:\n  - { id: a, title: A }\n")
+        self.assertIn("§5.1", self.only(r))
+
+    def test_footnote_label_must_name_a_source(self):
+        good = ("generated: { by: human:t }\nsources:\n"
+                "  - { id: pol, resource: https://x/pol, title: Policy }\n")
+        r = self.concept(good, "Claim.[^pol]\n\n[^pol]: Policy\n")
+        self.assertEqual((r.errors, r.warnings), ([], []))
+        r = self.concept(good, "Claim.[^nope]\n\n[^nope]: Nope\n")
+        self.assertIn("[^nope]", self.only(r))
+
+    def test_legacy_citations_body_section_warns(self):
+        r = self.concept("generated: { by: human:t }\n", "# Citations\n\n[1] [x](https://x)\n")
+        self.assertIn("legacy v0.1 `# Citations`", self.only(r))
+
+    def test_attested_computation_needs_a_runtime(self):
+        self.write("c.md", "---\ntype: Attested Computation\ntitle: t\ndescription: d\ntags: [x]\n"
+                           "generated: { by: human:t }\n---\n\nbody\n")
+        r = self.run_check(check_concept, "c.md")
+        self.assertIn("§10.2", self.only(r))
+        self.write("c.md", "---\ntype: Attested Computation\ntitle: t\ndescription: d\ntags: [x]\n"
+                           "generated: { by: human:t }\nruntime: bigquery\n---\n\nbody\n")
+        r = self.run_check(check_concept, "c.md")
+        self.assertEqual((r.errors, r.warnings), ([], []))
+
+
 class TestCheckIndex(TmpBundle):
     def test_root_okf_version_only_is_clean(self):
-        self.write("index.md", "---\nokf_version: '0.1'\n---\n# Index\n")
+        self.write("index.md", "---\nokf_version: '0.2'\n---\n# Index\n")
         r = self.run_check(check_index, "index.md", True)
         self.assertEqual((r.errors, r.warnings, r.indexes), ([], [], 1))
 
     def test_root_extra_keys_warn(self):
-        self.write("index.md", "---\nokf_version: '0.1'\ntype: X\n---\n")
+        self.write("index.md", "---\nokf_version: '0.2'\ntype: X\n---\n")
         r = self.run_check(check_index, "index.md", True)
-        self.assertIn("§11", r.warnings[0])
+        self.assertIn("§12", r.warnings[0])
+
+    def test_older_declared_version_warns_but_still_validates(self):
+        self.write("index.md", "---\nokf_version: '0.1'\n---\n# Index\n")
+        r = self.run_check(check_index, "index.md", True)
+        self.assertEqual(r.errors, [])
+        self.assertIn("okf_version", r.warnings[0])
 
     def test_non_root_frontmatter_warns(self):
-        self.write("sub/index.md", "---\nokf_version: '0.1'\n---\n")
+        self.write("sub/index.md", "---\nokf_version: '0.2'\n---\n")
         r = self.run_check(check_index, "sub/index.md", False)
-        self.assertIn("§6", r.warnings[0])
+        self.assertIn("§8", r.warnings[0])
 
     def test_no_frontmatter_is_clean(self):
         self.write("sub/index.md", "# Plain index\n")
@@ -154,7 +228,7 @@ class TestCheckLog(TmpBundle):
     def test_frontmatter_warns(self):
         self.write("log.md", "---\ntype: Log\n---\n## 2026-01-01\n")
         r = self.run_check(check_log, "log.md")
-        self.assertIn("§7", r.warnings[0])
+        self.assertIn("§9", r.warnings[0])
 
 
 class TestCollectLinkTargets(TmpBundle):
@@ -189,7 +263,7 @@ class TestCheckLinks(TmpBundle):
 
 class TestValidateEndToEnd(TmpBundle):
     def test_counts_and_conformance(self):
-        self.write("index.md", "---\nokf_version: '0.1'\n---\n# Root\n\n* [c](c.md)\n")
+        self.write("index.md", "---\nokf_version: '0.2'\n---\n# Root\n\n* [c](c.md)\n")
         self.write("c.md", FULL_META)
         self.write("log.md", "## 2026-01-01\n* created\n")
         r = validate(self.bundle)

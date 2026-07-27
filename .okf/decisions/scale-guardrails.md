@@ -3,7 +3,8 @@ type: Decision
 title: Scale guardrails in the visualizer
 description: Default to a linear layout above 1k concepts, warn above 5k, batch and debounce filtering.
 tags: [adr, performance]
-timestamp: "2026-07-14T00:00:00Z"
+status: stable
+generated: { by: human:scaccogatto, at: "2026-07-14T00:00:00Z" }
 ---
 
 # Context
