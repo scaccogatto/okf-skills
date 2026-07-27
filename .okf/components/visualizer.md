@@ -16,8 +16,23 @@ into nodes (concepts, coloured by `type`, sized by body length) and edges
 bundle), then emits one self-contained HTML file — no backend, nothing leaves the
 page. The detail panel renders the v0.2 trust, lifecycle, and provenance
 frontmatter: `status`, `generated`, `verified`, `stale_after`, and a Sources list
-carrying each source's credibility signals. A v0.1 `timestamp` is read as
-`generated.at` so legacy bundles still show a date.
+carrying each source's credibility signals — a `usage_count` shown together with
+the `usage_window` that frames it. A v0.1 `timestamp` is read as `generated.at`
+so legacy bundles still show a date.
+
+# Derived signals
+
+Two things the panel infers rather than displays, because v0.2 defines them as
+derivations and storing them would be storing an opinion:
+
+* the **trust tier** (§5.3) — no `verified` is *unverified*, `verified` by
+  non-`human:` actors only is *machine-confirmed*, any `human:` actor makes it
+  *human-reviewed*;
+* **staleness** (§5.5) — a concept is stale when `today >= stale_after`, which
+  absolute dates reduce to a string comparison.
+
+Both are advisory badges, not access control: nothing is hidden or refused on
+their account.
 
 # Flags
 

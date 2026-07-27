@@ -1,0 +1,64 @@
+name: Validate OKF bundle
+description: >-
+  Check that an Open Knowledge Format (OKF) bundle is conformant with the v0.2
+  spec. Deterministic, no account, no network beyond installing uv.
+author: Marco Boffo
+branding:
+  icon: check-circle
+  color: purple
+
+inputs:
+  bundle:
+    description: Path to the bundle directory.
+    required: false
+    default: .okf
+  strict:
+    description: Treat every warning as an error (equivalent to max-warnings 0).
+    required: false
+    default: "false"
+  max-warnings:
+    description: >-
+      Fail if warnings exceed this count. Leave empty to allow any number, which
+      is the default — errors still fail the run.
+    required: false
+    default: ""
+
+outputs:
+  report:
+    description: The JSON report, as emitted by --json.
+    value: ${{ steps.validate.outputs.report }}
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v5
+
+    - id: validate
+      shell: bash
+      env:
+        OKF_BUNDLE: ${{ inputs.bundle }}
+        OKF_STRICT: ${{ inputs.strict }}
+        OKF_MAX_WARNINGS: ${{ inputs['max-warnings'] }}
+      # Inputs travel through env rather than being interpolated into the script
+      # body: a bundle path is caller-controlled, and `${{ }}` inside `run:` is
+      # textual substitution, so a crafted value would run as shell.
+      #
+      # The default shell here is `bash -e`, which is why the exit status is
+      # captured with `|| status=$?` and every conditional is a full if/then —
+      # a bare `[ x = y ] && ...` that tests false would abort the step.
+      run: |
+        script="$GITHUB_ACTION_PATH/skills/validate/scripts/okf_validate.py"
+        args=("$OKF_BUNDLE")
+        if [ "$OKF_STRICT" = "true" ]; then args+=(--strict); fi
+        if [ -n "$OKF_MAX_WARNINGS" ]; then args+=(--max-warnings "$OKF_MAX_WARNINGS"); fi
+
+        status=0
+        uv run "$script" "${args[@]}" || status=$?
+
+        {
+          echo "report<<OKF_EOF"
+          uv run "$script" "$OKF_BUNDLE" --json || true
+          echo "OKF_EOF"
+        } >> "$GITHUB_OUTPUT"
+
+        exit $status

@@ -1,8 +1,8 @@
 {
   "name": "okf",
   "displayName": "Open Knowledge Format",
-  "version": "0.5.0",
-  "description": "Author, maintain, validate, and visualize Open Knowledge Format (OKF) bundles — portable markdown knowledge for humans and agents.",
+  "version": "0.6.0",
+  "description": "Author, maintain, validate, and visualize Open Knowledge Format (OKF) bundles \u2014 portable markdown knowledge for humans and agents.",
   "author": {
     "name": "Marco Boffo",
     "email": "chat@marcoboffo.me",
@@ -11,5 +11,13 @@
   "homepage": "https://github.com/scaccogatto/okf-skills",
   "repository": "https://github.com/scaccogatto/okf-skills",
   "license": "MIT",
-  "keywords": ["okf", "open-knowledge-format", "knowledge", "markdown", "metadata", "agents", "documentation"]
+  "keywords": [
+    "okf",
+    "open-knowledge-format",
+    "knowledge",
+    "markdown",
+    "metadata",
+    "agents",
+    "documentation"
+  ]
 }

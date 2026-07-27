@@ -108,12 +108,17 @@ def read_sources(meta: dict, path: Path, bundle: Path):
         if not isinstance(src, dict):
             continue
         resource = str(src.get("resource", "")).strip()
+        # §5.1 — an entry's own `usage_window` overrides the one written once as a
+        # sibling of `sources`. A count without its window has no units.
+        window = src.get("usage_window", meta.get("usage_window"))
         out.append({
             "title": str(src.get("title") or src.get("id") or resource),
             "resource": resource,
             "cid": resolve(resource, path, bundle) if resource else None,
             "author": str(src.get("author", "")),
             "usage_count": src.get("usage_count"),
+            "usage_window": (f"{window.get('from', '?')}→{window.get('to', '?')}"
+                             if isinstance(window, dict) else ""),
             "last_modified": str(src.get("last_modified") or ""),
         })
     return out
@@ -210,6 +215,13 @@ __OGIMAGE__
  .tag{background:#1d2230;border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-size:11px;color:var(--mut)}
  .meta{margin:10px 0;font-size:12px;color:var(--mut)} .meta div{padding:1px 0} .meta b{color:var(--fg);font-weight:600}
  .sig{color:var(--mut)}
+ .badges{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+ .badge{border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;border:1px solid}
+ .t-unverified{color:#9aa3b2;border-color:#3a4150;background:#1d2230}
+ .t-machine{color:#8ab4ff;border-color:#2b4570;background:#141c2b}
+ .t-human{color:#4ade80;border-color:#276b45;background:#12211a}
+ .b-stale{color:#fca5a5;border-color:#7f2b2b;background:#241416}
+ .b-deprecated{color:#fbbf24;border-color:#7a5312;background:#241d10}
  .rel{margin:10px 0} .rel h4{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
  .rel a{display:block;color:var(--accent);cursor:pointer;font-size:13px;padding:1px 0;text-decoration:none}
  .rel a:hover{text-decoration:underline}
@@ -256,6 +268,20 @@ const side=document.getElementById('side');
 const esc=s=>(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function relList(title,arr){if(!arr.length)return'';
  return `<div class="rel"><h4>${title}</h4>${arr.map(id=>`<a data-go="${esc(id)}">${esc((byId[id]||{}).title||id)}</a>`).join('')}</div>`;}
+// §5.3 — the trust tier is derived, never stored: no `verified` is unverified,
+// `verified` by non-`human:` actors only is machine-confirmed, and any `human:`
+// actor makes it human-reviewed. The exact lowercase prefix is the whole key.
+// §5.5 — a concept is stale when today >= stale_after; both are YYYY-MM-DD, so
+// a string compare is the whole comparison. Advisory signals, not access control.
+const TODAY=new Date().toISOString().slice(0,10);
+function trustTier(n){const v=n.verified||[];
+ if(!v.length)return['t-unverified','unverified'];
+ return v.some(e=>(e.by||'').startsWith('human:'))?['t-human','human-reviewed']
+                                                  :['t-machine','machine-confirmed'];}
+function badges(n){const [cls,label]=trustTier(n),out=[`<span class="badge ${cls}">${label}</span>`];
+ if(n.stale_after&&TODAY>=n.stale_after)out.push(`<span class="badge b-stale">stale since ${esc(n.stale_after)}</span>`);
+ if(n.status==='deprecated')out.push('<span class="badge b-deprecated">deprecated</span>');
+ return `<div class="badges">${out.join('')}</div>`;}
 // OKF v0.2 trust (§5.2) + lifecycle (§5.4/§5.5). A v0.1 `timestamp` arrives here
 // as generated.at with an empty `by`, so legacy bundles still show a date.
 function metaBlock(n){const g=n.generated||{},rows=[];
@@ -268,7 +294,8 @@ function metaBlock(n){const g=n.generated||{},rows=[];
 // URL, or a scope descriptor that is not followable at all.
 function srcList(n){const s=n.sources||[];if(!s.length)return'';
  return `<div class="rel"><h4>Sources</h4>${s.map(x=>{
-  const sig=[x.author,x.usage_count!=null?`used ${x.usage_count}×`:'',x.last_modified].filter(Boolean).join(' · ');
+  const used=x.usage_count!=null?`used ${x.usage_count}×${x.usage_window?` (${x.usage_window})`:''}`:'';
+  const sig=[x.author,used,x.last_modified].filter(Boolean).join(' · ');
   const label=esc(x.title||x.resource)+(sig?` <span class="sig">(${esc(sig)})</span>`:'');
   if(x.cid&&byId[x.cid])return `<a data-go="${esc(x.cid)}">${label}</a>`;
   if(/^https?:\/\//i.test(x.resource))return `<a href="${esc(x.resource)}" target="_blank" rel="noopener">${label}</a>`;
@@ -287,7 +314,7 @@ function show(id){const n=byId[id];if(!n)return;const c=color[n.type];
  side.innerHTML=`<span class="type" style="background:${c}">${esc(n.type)}</span>
  <h2>${esc(n.title)}</h2><div class="desc">${esc(n.description)||'<span class=empty>no description</span>'}</div>
  <div class="tags">${(n.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
- ${metaBlock(n)}${srcList(n)}${relList('Links to',outL[id])}${relList('Cited by',inL[id])}
+ ${badges(n)}${metaBlock(n)}${srcList(n)}${relList('Links to',outL[id])}${relList('Cited by',inL[id])}
  <div class="body">${n.body?DOMPurify.sanitize(marked.parse(n.body)):'<span class=empty>empty body</span>'}</div>`;
  side.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));
  side.querySelectorAll('.body a[href]').forEach(a=>{const tgt=resolveHref(id,a.getAttribute('href'));

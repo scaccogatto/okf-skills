@@ -231,6 +231,35 @@ jobs:
           fi
           echo "ok: scale guardrails behave"
 
+  action:
+    # The composite action is a distribution surface, so it gets exercised rather
+    # than assumed: the happy path, and a bundle that must fail the gate. Without
+    # the failing case a broken action would look green by never failing at all.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The action validates this repo's own bundle
+        uses: ./
+        with:
+          bundle: .okf
+          strict: "true"
+
+      - name: The action fails a non-conformant bundle
+        id: bad
+        continue-on-error: true
+        uses: ./
+        with:
+          bundle: tests/fixtures/non-conformant
+
+      - name: ...and that failure is what marks the step failed
+        run: |
+          [ "${{ steps.bad.outcome }}" = "failure" ] || {
+            echo "the action passed a bundle with a missing \`type\`" >&2
+            exit 1
+          }
+          echo "ok: the action gates as documented"
+
   validate-windows:
     # Real regression coverage for the cp1252 class of bug: a genuine Windows
     # console (not a simulated codepage on Linux) defaults to cp1252, which is

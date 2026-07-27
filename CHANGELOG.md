@@ -4,6 +4,33 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.6.0] — 2026-07-27
+
+### Added
+- **`visualize` derives the §5.3 trust tier and staleness.** The panel showed the
+  raw fields; it now shows what they mean — *unverified* / *machine-confirmed* /
+  *human-reviewed*, and a stale badge once `stale_after` is past. Both are
+  computed at render time: OKF deliberately stores neither, because a stored tier
+  is a stored opinion and it goes stale. Advisory badges, never a gate (§5.3).
+- **`validate` checks the §7 actor convention** on `generated.by`,
+  `verified[].by` and `sources[].author`. Not a whitelist — the spec's own §5.1
+  example uses `author: team:ga4-docs`, so the `<prefix>:<id>` family is open.
+  What it catches is the near-miss of `human:`: `Human:dana` satisfies the generic
+  shape and looks well-formed while §5.3 reads it as an agent, silently demoting a
+  concept a person did review.
+- **`usage_window`** is validated (a `usage_count` with nothing framing it warns;
+  bounds must be absolute dates) and rendered next to the count it frames — a
+  count without its window is a number without units (§5.1).
+- **Attested Computation path-valued fields** — `computation`,
+  `executor.resource`, `attester.resource` — are resolved when they point inside
+  the bundle (§6.2). They are exactly the pointer that rots: the concept keeps
+  validating while the script it names moves away.
+- **`generated.at` / `verified[].at` are checked as RFC 3339**, date-only
+  tolerated, with the same quoted/unquoted equivalence as `stale_after`.
+- **A composite GitHub Action** (`action.yml`): gate a bundle in any repo's CI
+  without Claude Code. Exercised in CI on both the passing and the failing path,
+  since an action that never fails looks green for the wrong reason.
+
 ## [0.5.0] — 2026-07-27
 
 ### Changed

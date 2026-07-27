@@ -73,49 +73,49 @@ class TestSplitFrontmatter(unittest.TestCase):
 class TestCheckConcept(TmpBundle):
     def test_valid_full_metadata_is_clean(self):
         self.write("c.md", FULL_META)
-        r = self.run_check(check_concept, "c.md")
+        r = self.run_check(check_concept, "c.md", self.bundle)
         self.assertEqual((r.errors, r.warnings, r.concepts), ([], [], 1))
 
     def test_bom_prefixed_file_still_parses(self):
         self.write("c.md", "﻿" + FULL_META)
-        r = self.run_check(check_concept, "c.md")
+        r = self.run_check(check_concept, "c.md", self.bundle)
         self.assertEqual(r.errors, [])
 
     def test_missing_frontmatter_is_error(self):
         self.write("c.md", "no frontmatter\n")
-        r = self.run_check(check_concept, "c.md")
+        r = self.run_check(check_concept, "c.md", self.bundle)
         self.assertIn("§11.1", r.errors[0])
 
     def test_unterminated_frontmatter_is_error(self):
         self.write("c.md", "---\ntype: A\nbody without closing fence\n")
-        r = self.run_check(check_concept, "c.md")
+        r = self.run_check(check_concept, "c.md", self.bundle)
         self.assertIn("§11.1", r.errors[0])
 
     def test_invalid_yaml_is_error(self):
         self.write("c.md", "---\ntype: [unclosed\n---\nbody\n")
-        r = self.run_check(check_concept, "c.md")
+        r = self.run_check(check_concept, "c.md", self.bundle)
         self.assertIn("not valid YAML", r.errors[0])
 
     def test_non_mapping_frontmatter_is_error(self):
         self.write("c.md", "---\n- a\n- b\n---\nbody\n")
-        r = self.run_check(check_concept, "c.md")
+        r = self.run_check(check_concept, "c.md", self.bundle)
         self.assertIn("YAML mapping", r.errors[0])
 
     def test_missing_or_empty_type_is_error(self):
         for meta in ("title: t", "type: ''", "type:   "):
             self.write("c.md", f"---\n{meta}\n---\nbody\n")
-            r = self.run_check(check_concept, "c.md")
+            r = self.run_check(check_concept, "c.md", self.bundle)
             self.assertTrue(any("§11.2" in e for e in r.errors), meta)
 
     def test_missing_recommended_fields_warn_only(self):
         self.write("c.md", "---\ntype: A\n---\nbody\n")
-        r = self.run_check(check_concept, "c.md")
+        r = self.run_check(check_concept, "c.md", self.bundle)
         self.assertEqual(r.errors, [])
         self.assertEqual(len(r.warnings), 4)  # title, description, tags, generated
 
     def test_non_utf8_file_is_a_per_file_error_not_a_crash(self):
         (self.bundle / "c.md").write_bytes(b"\xff\xfe invalid")
-        r = self.run_check(check_concept, "c.md")
+        r = self.run_check(check_concept, "c.md", self.bundle)
         self.assertTrue(any("c.md" in e for e in r.errors), r.errors)
 
 
@@ -124,7 +124,7 @@ class TestV02Families(TmpBundle):
 
     def concept(self, meta: str, body: str = "body\n") -> Report:
         self.write("c.md", f"---\ntype: Reference\ntitle: t\ndescription: d\ntags: [x]\n{meta}---\n\n{body}")
-        return self.run_check(check_concept, "c.md")
+        return self.run_check(check_concept, "c.md", self.bundle)
 
     def only(self, r: Report) -> str:
         self.assertEqual(r.errors, [])
@@ -175,14 +175,78 @@ class TestV02Families(TmpBundle):
         r = self.concept("generated: { by: human:t }\n", "# Citations\n\n[1] [x](https://x)\n")
         self.assertIn("legacy v0.1 `# Citations`", self.only(r))
 
+    def test_actor_near_miss_of_human_is_caught(self):
+        # §5.3 keys trust tiers off the exact `human:` prefix, so this is the one
+        # actor typo that changes meaning with no other symptom.
+        # `Human:dana` is the nastiest: it satisfies the generic `<prefix>:<id>`
+        # shape, so it looks well-formed while §5.3 still reads it as an agent.
+        for bad in ("human/dana", "Human:dana", "human-dana", "PROCESS:nightly"):
+            self.assertIn("§7", self.only(self.concept(f"generated: {{ by: {bad} }}\n")), bad)
+
+    def test_an_actor_merely_starting_with_human_is_not_a_near_miss(self):
+        r = self.concept("generated: { by: humanoid_agent/v1 }\n")
+        self.assertEqual((r.errors, r.warnings), ([], []))
+
+    def test_actor_shapes_the_spec_uses_are_all_accepted(self):
+        # §7's three shapes plus the open `<prefix>:<id>` family the spec's own
+        # §5.1 example relies on (`author: team:ga4-docs`) — not a whitelist.
+        for ok in ("human:dana", "process:nightly", "reference_agent/gemini-2.5-pro"):
+            r = self.concept(f"generated: {{ by: {ok} }}\n")
+            self.assertEqual((r.errors, r.warnings), ([], []), ok)
+        r = self.concept("generated: { by: human:t }\nsources:\n"
+                         "  - { resource: https://x, author: team:ga4-docs }\n")
+        self.assertEqual((r.errors, r.warnings), ([], []))
+
+    def test_bare_actor_with_no_shape_warns(self):
+        self.assertIn("§7", self.only(self.concept("generated: { by: dana }\n")))
+
+    def test_instants_are_rfc3339_date_only_tolerated(self):
+        for ok in ('"2026-06-20T22:53:05Z"', '"2026-06-20"', "2026-06-20T22:53:05Z",
+                   '"2026-06-20T22:53:05+02:00"'):
+            r = self.concept(f"generated: {{ by: human:t, at: {ok} }}\n")
+            self.assertEqual((r.errors, r.warnings), ([], []), ok)
+        self.assertIn("RFC 3339",
+                      self.only(self.concept('generated: { by: human:t, at: "last tuesday" }\n')))
+
+    def test_usage_count_without_a_window_warns(self):
+        base = "generated: { by: human:t }\nsources:\n  - {{ resource: https://x, usage_count: 5 }}\n"
+        self.assertIn("usage_window", self.only(self.concept(base.replace("{{", "{").replace("}}", "}"))))
+        # a sibling of `sources` frames every entry
+        r = self.concept("generated: { by: human:t }\n"
+                         "usage_window: { from: 2026-06-01, to: 2026-06-30 }\n"
+                         "sources:\n  - { resource: https://x, usage_count: 5 }\n")
+        self.assertEqual((r.errors, r.warnings), ([], []))
+
+    def test_usage_window_bounds_must_be_absolute_dates(self):
+        r = self.concept("generated: { by: human:t }\n"
+                         "usage_window: { from: 2026-06-01, to: last month }\n"
+                         "sources:\n  - { resource: https://x, usage_count: 5 }\n")
+        self.assertIn("usage_window.to", self.only(r))
+
+    def test_computation_paths_that_point_nowhere_warn(self):
+        head = ("---\ntype: Attested Computation\ntitle: t\ndescription: d\ntags: [x]\n"
+                "generated: { by: human:t }\nruntime: bigquery\n")
+        self.write("c.md", head + "attester: { resource: references/gone.py }\n---\n\nbody\n")
+        r = self.run_check(check_concept, "c.md", self.bundle)
+        self.assertIn("§6.2", self.only(r))
+        # an external resource is not ours to resolve
+        self.write("c.md", head + "attester: { resource: https://x/att.py }\n---\n\nbody\n")
+        r = self.run_check(check_concept, "c.md", self.bundle)
+        self.assertEqual((r.errors, r.warnings), ([], []))
+        # and one that exists is clean
+        self.write("references/att.py", "print(1)\n")
+        self.write("c.md", head + "attester: { resource: references/att.py }\n---\n\nbody\n")
+        r = self.run_check(check_concept, "c.md", self.bundle)
+        self.assertEqual((r.errors, r.warnings), ([], []))
+
     def test_attested_computation_needs_a_runtime(self):
         self.write("c.md", "---\ntype: Attested Computation\ntitle: t\ndescription: d\ntags: [x]\n"
                            "generated: { by: human:t }\n---\n\nbody\n")
-        r = self.run_check(check_concept, "c.md")
+        r = self.run_check(check_concept, "c.md", self.bundle)
         self.assertIn("§10.2", self.only(r))
         self.write("c.md", "---\ntype: Attested Computation\ntitle: t\ndescription: d\ntags: [x]\n"
                            "generated: { by: human:t }\nruntime: bigquery\n---\n\nbody\n")
-        r = self.run_check(check_concept, "c.md")
+        r = self.run_check(check_concept, "c.md", self.bundle)
         self.assertEqual((r.errors, r.warnings), ([], []))
 
 

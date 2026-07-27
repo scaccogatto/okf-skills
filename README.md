@@ -76,6 +76,7 @@ and an OKF bundle for *what the team knows* — shared, structured, and shippabl
 | `skills/visualize/scripts/okf_visualize.py` | Standalone bundle→`viz.html` renderer (Cytoscape + marked via CDN). |
 | `skills/okf/reference/SPEC.md` | The OKF v0.2 spec, vendored verbatim — the source of truth. |
 | `templates/CLAUDE-okf.md` | Snippet that turns on automatic consume/maintain in your project. |
+| `action.yml` | Composite GitHub Action — gate a bundle in any repo's CI, no Claude Code needed. |
 | `examples/sample-bundle/` | The conformant bundle behind the [live demo](https://scaccogatto.github.io/okf-skills/) — code, data, decisions, runbooks, metrics, and an attested computation. |
 
 ## Install
@@ -124,6 +125,16 @@ uv run skills/validate/scripts/okf_validate.py .okf --strict
 uv run skills/validate/scripts/okf_validate.py .okf --max-warnings 5
 ```
 
+**Gate it in CI** — the composite action works in any repo, with or without
+Claude Code:
+
+```yaml
+- uses: scaccogatto/okf-skills@main
+  with:
+    bundle: .okf
+    strict: "true"      # or: max-warnings: "5"
+```
+
 **Visualize** the knowledge graph — a self-contained `viz.html` that opens in any
 browser ([live example](https://scaccogatto.github.io/okf-skills/)):
 
@@ -135,7 +146,10 @@ uv run skills/visualize/scripts/okf_visualize.py .okf \
 ```
 
 Every concept gets a shareable deep link — open `viz.html#services/auth-api` and the
-graph loads with that concept already selected.
+graph loads with that concept already selected. Each panel carries two **derived**
+badges: the §5.3 trust tier (*unverified* / *machine-confirmed* / *human-reviewed*)
+and staleness, once `stale_after` is past. OKF stores neither — a stored tier is a
+stored opinion, and it goes stale — so both are computed at render time.
 
 **Turn on automatic upkeep (soft mode).** This plugin ships *no hooks* by design.
 To have Claude consult `.okf/` before tasks and write knowledge back after changes,

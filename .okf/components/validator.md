@@ -21,11 +21,22 @@ non-empty `type`.
 All soft, all warnings: `generated.by` present when `generated` is; every
 `verified` entry has an actor (a bare mapping counts as a one-element list);
 `status` is one of draft/stable/deprecated; `stale_after` and
-`sources[].last_modified` are absolute `YYYY-MM-DD` dates; every `sources` entry
-has a `resource`; every `[^label]` footnote names a `sources[].id`; an
-`Attested Computation` declares a `runtime`. Legacy `timestamp` and
-`# Citations` warn with their v0.2 replacement, per the
-[dual-read decision](/decisions/okf-v02-dual-read.md).
+`sources[].last_modified` are absolute `YYYY-MM-DD` dates; `generated.at` and
+`verified[].at` are RFC 3339 (date-only tolerated); every `sources` entry has a
+`resource`; a `usage_count` is framed by a `usage_window`; every `[^label]`
+footnote names a `sources[].id`; an `Attested Computation` declares a `runtime`
+and its path-valued `computation` / `executor.resource` / `attester.resource`
+resolve inside the bundle. Legacy `timestamp` and `# Citations` warn with their
+v0.2 replacement, per the [dual-read decision](/decisions/okf-v02-dual-read.md).
+
+# The actor check (§7)
+
+Deliberately not a whitelist — the spec's own §5.1 example uses
+`author: team:ga4-docs`, so the `<prefix>:<id>` family is open. What is caught is
+the one failure that is silent: a near-miss of `human:`. `Human:dana` satisfies
+the generic shape and looks well-formed, while §5.3 keys trust tiers off that
+exact lowercase prefix and reads it as an agent. `humanoid_agent/v1` is not a
+near-miss and passes.
 
 # Migration (`--migrate`)
 

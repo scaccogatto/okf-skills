@@ -35,9 +35,15 @@ Interpret the result:
 - **ERROR** → a hard §11 conformance failure (no parseable frontmatter, or a
   missing/empty `type`). The bundle is non-conformant. Fix every one.
 - **warn** → soft guidance (missing recommended field, non-ISO log date, broken
-  cross-link, a malformed v0.2 family, a footnote naming no source). Never
+  cross-link, a malformed v0.2 family, a footnote naming no source, an actor
+  that misses the §7 shapes, a computation path that resolves nowhere). Never
   blocks; broken links in particular are explicitly tolerated by the spec
   (§6.1). Fix when cheap.
+
+One warning is worth more than the others: a §7 near-miss such as `Human:dana`
+or `human/dana`. §5.3 keys trust tiers off the exact lowercase `human:` prefix,
+so the concept silently reads as machine-confirmed when a person did review it.
+Fix that one on sight.
 
 v0.1 bundles validate too: a legacy `timestamp` or `# Citations` section is
 reported as a warning naming its v0.2 replacement (`generated.at`, `sources`),

@@ -29,9 +29,16 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/okf_visualize.py" $ARGUMENTS
 ```
 
 The detail panel shows each concept's `status`, `generated`, `verified`,
-`stale_after`, and `sources` (with their credibility signals); a `sources` entry
-pointing at another concept in the bundle also becomes a graph edge. A v0.1
-`timestamp` is read as `generated.at`, so legacy bundles still render fully.
+`stale_after`, and `sources` (with their credibility signals, a `usage_count`
+alongside the `usage_window` that frames it); a `sources` entry pointing at
+another concept in the bundle also becomes a graph edge. A v0.1 `timestamp` is
+read as `generated.at`, so legacy bundles still render fully.
+
+Two badges are **derived**, not read: the §5.3 trust tier
+(*unverified* / *machine-confirmed* / *human-reviewed*, keyed off the `human:`
+prefix in `verified[].by`) and staleness (`today >= stale_after`). They are
+advisory signals — when reporting on a bundle, say which tier a concept is in
+rather than treating any of them as a gate.
 
 The output defaults to `<bundle>/viz.html`. Pass `-o <path>` to write elsewhere.
 Bundles above 1,000 concepts default to the linear `concentric` layout (the

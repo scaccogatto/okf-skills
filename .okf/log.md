@@ -1,6 +1,16 @@
 # Update Log
 
 ## 2026-07-27
+* **Update**: The [visualizer](/components/visualizer.md) now *derives* the §5.3
+  trust tier and staleness instead of printing raw dates — the inference v0.2 is
+  named for. Both computed at render time; OKF stores neither on purpose.
+* **Update**: The [validator](/components/validator.md) gained the §7 actor check
+  (aimed at near-misses of `human:`, the one actor typo that silently changes a
+  trust tier), `usage_window`, RFC 3339 instants, and resolution of the
+  Attested Computation path-valued fields.
+* **Distribution**: Added a composite GitHub Action so a bundle can be gated in
+  any repo's CI without Claude Code. CI exercises both its passing and failing
+  path — an action that never fails would look green for the wrong reason.
 * **Update**: Moved the toolkit to [OKF v0.2](/reference/okf-spec.md) — the
   [validator](/components/validator.md) checks the trust, lifecycle, provenance
   and attestation families, the [visualizer](/components/visualizer.md) renders

@@ -42,6 +42,25 @@ RESERVED = {"index.md", "log.md"}
 RECOMMENDED = ("title", "description", "tags")
 STATUS_VALUES = {"draft", "stable", "deprecated"}
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+# RFC 3339, as the spec writes `generated.at` / `verified[].at` throughout. A
+# date-only value is tolerated: it is common in the wild and loses only precision.
+# PyYAML resolves an unquoted timestamp to a datetime whose str() separates with a
+# space, so both spellings have to pass — as with `stale_after` above.
+RFC3339 = re.compile(
+    r"^\d{4}-\d{2}-\d{2}"
+    r"(?:[Tt ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:[Zz]|[+-]\d{2}:?\d{2})?)?$")
+# §7 gives three actor shapes, and §5.1 reuses them for `sources[].author`. The
+# spec's own example (`author: team:ga4-docs`) shows the `<prefix>:<id>` family is
+# open, so this is deliberately not a whitelist — it catches the one failure that
+# is silent and costly: a near-miss of `human:`, which §5.3 keys trust tiers off.
+# `human/dana` or `Human:dana` reads as an agent and downgrades the tier with no
+# other symptom.
+ACTOR_SHAPE = re.compile(r"^(?:[^\s:/]+:\S+|\S+/\S+)$")
+# Anything that opens with human/process in any case — `Human:dana` is the worst
+# of these, since it satisfies the generic `<prefix>:<id>` shape and so looks
+# entirely well-formed while §5.3 reads it as an agent. The lookahead keeps
+# `humanoid_agent/v1` out: only a non-identifier boundary makes it a near-miss.
+ACTOR_HUMANISH = re.compile(r"^(?:human|process)(?![A-Za-z0-9_])", re.I)
 FENCE = re.compile(r"^(```|~~~)")
 # markdown link target capture: [text](target) — ignores images ![...]
 LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
@@ -107,7 +126,37 @@ def _read_text(path: Path, rel: str, report: Report) -> str | None:
         return None
 
 
-def check_concept(path: Path, rel: str, report: Report) -> None:
+def check_computation(meta: dict, path: Path, bundle: Path, rel: str, report: Report) -> None:
+    """§10.2 — the Attested Computation contract, including its path-valued fields.
+
+    `computation`, `executor.resource` and `attester.resource` name files (§6.2).
+    They are exactly the pointer that rots: the concept keeps validating while the
+    script it names moves or disappears. A target outside the bundle is legitimate
+    and unverifiable from here, so only bundle-relative paths are resolved.
+    """
+    if not str(meta.get("runtime", "")).strip():
+        report.warn(rel, "§10.2 an Attested Computation concept requires `runtime`")
+    fields = [("computation", meta.get("computation"))]
+    for key in ("executor", "attester"):
+        block = meta.get(key)
+        if isinstance(block, dict):
+            fields.append((f"{key}.resource", block.get("resource")))
+    for where, target in fields:
+        if target is None:
+            continue
+        t = str(target).strip()
+        if not t or re.match(r"^[a-z][a-z0-9+.-]*://", t) or t.startswith("mailto:"):
+            continue
+        candidate = (bundle / t.lstrip("/")) if t.startswith("/") else (path.parent / t)
+        try:
+            inside = candidate.resolve().is_relative_to(bundle.resolve())
+        except OSError:
+            inside = False
+        if inside and not candidate.exists():
+            report.warn(rel, f"§6.2 `{where}` points at `{t}`, which does not exist")
+
+
+def check_concept(path: Path, rel: str, bundle: Path, report: Report) -> None:
     report.concepts += 1
     text = _read_text(path, rel, report)
     if text is None:
@@ -133,9 +182,29 @@ def check_concept(path: Path, rel: str, report: Report) -> None:
     check_trust(meta, rel, report)
     check_lifecycle(meta, rel, report)
     check_sources(meta, body, rel, report)
-    if isinstance(type_val, str) and type_val.strip() == "Attested Computation" \
-            and not str(meta.get("runtime", "")).strip():
-        report.warn(rel, "§10.2 an Attested Computation concept requires `runtime`")
+    if isinstance(type_val, str) and type_val.strip() == "Attested Computation":
+        check_computation(meta, path, bundle, rel, report)
+
+
+def check_actor(value, where: str, rel: str, report: Report) -> None:
+    """§7 — the actor convention shared by `generated.by`, `verified[].by` and
+    `sources[].author`."""
+    actor = str(value).strip()
+    if not actor:
+        return
+    if ACTOR_HUMANISH.match(actor) and not actor.startswith(("human:", "process:")):
+        report.warn(rel, f"§7 `{where}` `{actor}` is a near-miss of "
+                         f"`human:`/`process:` — §5.3 keys trust tiers off that exact "
+                         f"lowercase prefix, so this silently reads as an agent")
+    elif not ACTOR_SHAPE.match(actor):
+        report.warn(rel, f"§7 `{where}` `{actor}` matches no actor shape "
+                         f"(`human:<id>`, `process:<id>`, or `<producer>/<version>`)")
+
+
+def check_instant(value, where: str, rel: str, report: Report) -> None:
+    """§5.2 — `at` values are RFC 3339; a date-only value is tolerated."""
+    if value is not None and not RFC3339.match(str(value).strip()):
+        report.warn(rel, f"§5.2 `{where}` `{value}` is not an RFC 3339 timestamp")
 
 
 def check_trust(meta: dict, rel: str, report: Report) -> None:
@@ -151,6 +220,9 @@ def check_trust(meta: dict, rel: str, report: Report) -> None:
         report.warn(rel, "§5.2 `generated` must be a mapping with `by` and `at`")
     elif not str(gen.get("by", "")).strip():
         report.warn(rel, "§5.2 `generated.by` is required within `generated`")
+    else:
+        check_actor(gen["by"], "generated.by", rel, report)
+        check_instant(gen.get("at"), "generated.at", rel, report)
 
     ver = meta.get("verified")
     if ver is None:
@@ -161,9 +233,12 @@ def check_trust(meta: dict, rel: str, report: Report) -> None:
     if not isinstance(entries, list):
         report.warn(rel, "§5.2 `verified` must be a `{by, at}` mapping or a list of them")
         return
-    for entry in entries:
+    for i, entry in enumerate(entries):
         if not (isinstance(entry, dict) and str(entry.get("by", "")).strip()):
             report.warn(rel, "§5.2 every `verified` entry needs a `by` actor")
+            continue
+        check_actor(entry["by"], f"verified[{i}].by", rel, report)
+        check_instant(entry.get("at"), f"verified[{i}].at", rel, report)
 
 
 def check_lifecycle(meta: dict, rel: str, report: Report) -> None:
@@ -177,6 +252,22 @@ def check_lifecycle(meta: dict, rel: str, report: Report) -> None:
     # it back to the ISO form, so both spellings check identically.
     if stale is not None and not ISO_DATE.match(str(stale)):
         report.warn(rel, f"§5.5 `stale_after` `{stale}` is not an absolute YYYY-MM-DD date")
+
+
+def check_window(window, where: str, rel: str, report: Report) -> None:
+    """§5.1 — a `usage_window` is a `{from, to}` pair of absolute dates."""
+    if window is None:
+        return
+    if not isinstance(window, dict):
+        report.warn(rel, f"§5.1 `{where}` `usage_window` must be a `{{from, to}}` mapping")
+        return
+    for bound in ("from", "to"):
+        value = window.get(bound)
+        if value is None:
+            report.warn(rel, f"§5.1 `{where}` `usage_window` is missing `{bound}`")
+        elif not ISO_DATE.match(str(value)):
+            report.warn(rel, f"§5.1 `{where}` `usage_window.{bound}` `{value}` "
+                             f"is not an absolute YYYY-MM-DD date")
 
 
 def check_sources(meta: dict, body: str, rel: str, report: Report) -> None:
@@ -199,6 +290,17 @@ def check_sources(meta: dict, body: str, rel: str, report: Report) -> None:
             report.warn(rel, f"§5.1 `sources[{i}]` is missing the required `resource`")
         if "id" in src:
             ids.add(str(src["id"]))
+        if src.get("author") is not None:
+            check_actor(src["author"], f"sources[{i}].author", rel, report)
+        # §5.1 — `usage_count` is framed by a `usage_window`, written once as a
+        # sibling of `sources` or overridden on the entry. Without one the count
+        # is a number with no units, and the spec asks consumers to read it as
+        # liveness and trend rather than a score.
+        window = src.get("usage_window", meta.get("usage_window"))
+        if src.get("usage_count") is not None and window is None:
+            report.warn(rel, f"§5.1 `sources[{i}].usage_count` has no `usage_window` "
+                             f"framing it (a sibling of `sources`, or on the entry)")
+        check_window(window, f"sources[{i}]", rel, report)
         last_mod = src.get("last_modified")
         if last_mod is not None and not ISO_DATE.match(str(last_mod)):
             report.warn(rel, f"§5.1 `sources[{i}].last_modified` `{last_mod}` is not YYYY-MM-DD")
@@ -348,10 +450,11 @@ def migrate(bundle: Path) -> list[str]:
         if path.name == "log.md":
             continue
         try:
-            # ponytail: universal newlines on purpose — a CRLF bundle is rewritten
-            # with the platform ending, consistently. Passing newline="" to preserve
-            # them exactly would leave a stray \r inside every `$`-anchored capture
-            # below; harden those regexes first if a bundle ever needs byte fidelity.
+            # Universal newlines on purpose: a CRLF bundle is rewritten with the
+            # platform ending, consistently. Passing newline="" to preserve them
+            # exactly would leave a stray \r inside every `$`-anchored capture
+            # below, so those patterns need hardening first if byte fidelity is
+            # ever required.
             text = path.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):
             continue
@@ -376,7 +479,7 @@ def validate(bundle: Path) -> Report:
         elif name == "log.md":
             check_log(path, rel, report)
         else:
-            check_concept(path, rel, report)
+            check_concept(path, rel, bundle, report)
     check_links(bundle, md_files, report)
     return report
 
