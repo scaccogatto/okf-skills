@@ -33,11 +33,3 @@ markdown links turn a folder of files into a navigable knowledge graph.
 # Metrics
 
 * [Checkout conversion](metrics/checkout-conversion.md) — paid orders over started checkouts.
-
-# Computations
-
-* [Checkout conversion for a window](computations/checkout-conversion.md) — the sanctioned, attestable query behind the metric.
-
-# References
-
-* [References](references/) — the executor and attester the computation points at.

@@ -4,9 +4,9 @@
 * **Migration**: Moved the bundle to OKF v0.2 — `timestamp` became
   `generated: {by, at}`, `# Citations` lists became `sources` frontmatter with
   footnote attribution, and every concept gained `status`.
-* **Attestation**: Added the
-  [checkout conversion computation](/computations/checkout-conversion.md) and the
-  [references](/references/index.md) it executes and attests through.
+* **Provenance**: The [Checkout conversion](/metrics/checkout-conversion.md) metric
+  now records the [orders database](/datasets/orders-db.md) in `sources`, so the
+  derivation is an edge in the graph, not just prose.
 
 ## 2026-06-18
 * **Operations**: Added the [Payment failures runbook](/runbooks/payment-failures.md)
