@@ -345,6 +345,10 @@ def migrate(bundle: Path) -> list[str]:
         if path.name == "log.md":
             continue
         try:
+            # ponytail: universal newlines on purpose — a CRLF bundle is rewritten
+            # with the platform ending, consistently. Passing newline="" to preserve
+            # them exactly would leave a stray \r inside every `$`-anchored capture
+            # below; harden those regexes first if a bundle ever needs byte fidelity.
             text = path.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):
             continue

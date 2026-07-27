@@ -116,7 +116,8 @@ is given. Then extend it:
 2. Update the body and `generated.at` (with your own actor in `generated.by`);
    fix or add cross-links; create new concepts for new assets; mark removed
    assets `status: deprecated` and note the deprecation in `log.md` rather than
-   silently deleting context. Migrate any v0.1 frontmatter you touch.
+   silently deleting context. Facing a whole v0.1 bundle rather than a stray
+   field? Do not hand-edit it — run the validator's `--migrate` once.
 3. Update the relevant `index.md` files and append a dated `log.md` entry
    describing what changed.
 4. Validate.
