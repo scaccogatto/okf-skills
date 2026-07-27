@@ -15,6 +15,10 @@
 * **Migration**: This bundle moved to v0.2 — `timestamp` became
   `generated: {by, at}`, `# Citations` became `sources`, every concept gained
   `status`.
+* **Build**: `make docs` now pins the exact invocation behind the two GitHub
+  Pages demos, and CI fails on a stale `docs/`. They had drifted far enough to
+  serve a build predating the DOMPurify sanitize fix — a security fix that
+  reached the generator but never the pages it was for.
 * **Trim**: Dropped the sample bundle's `Attested Computation` demo and the
   executor/attester it pointed at — a demo of a spec feature the toolkit
   implements nowhere.

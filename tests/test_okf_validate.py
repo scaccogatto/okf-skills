@@ -310,6 +310,22 @@ class TestMigrate(TmpBundle):
         self.assertNotIn("# Citations", out)
         self.assertIn("# Endpoints", out)  # the section after it survives
 
+    def test_no_citation_is_dropped_when_one_carries_a_title(self):
+        # The section is deleted wholesale once anything parses, so an entry the
+        # link regex misses would vanish rather than merely stay behind.
+        self.write("c.md", FULL_META.replace(
+            "\nbody\n",
+            "\nbody\n\n# Citations\n\n"
+            "[1] [A](https://a.com)\n"
+            '[2] [B](https://b.com "Titolo")\n'
+            "[3] [C](https://c.com)\n").replace(
+            "generated: { by: human:tester, at: \"2026-01-01T00:00:00Z\" }\n", ""))
+        migrate(self.bundle)
+        out = (self.bundle / "c.md").read_text(encoding="utf-8")
+        for url in ("https://a.com", "https://b.com", "https://c.com"):
+            self.assertIn(f'resource: "{url}"', out)
+        self.assertNotIn("# Citations", out)
+
     def test_root_index_version_is_bumped(self):
         self.legacy()
         self.assertIn('okf_version: "0.2"',

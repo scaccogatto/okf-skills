@@ -54,7 +54,10 @@ FOOTNOTE = re.compile(r"\[\^([^\]\s]+)\]")
 # an indented one belongs to something else and must not be hoisted.
 TIMESTAMP = re.compile(r"^timestamp:[ \t]*(.+?)[ \t]*$", re.M)
 HEADING = re.compile(r"^#{1,6}[ \t]", re.M)
-MD_LINK = re.compile(r"\[([^\]]+)\]\((\S+?)\)")
+# same shape as LINK above, plus the link text — a citation written with a title
+# attribute, `[Src](url "Title")`, must not be dropped: the section is deleted
+# wholesale once anything parses, so a miss here is silent data loss.
+MD_LINK = re.compile(r"(?<!\!)\[([^\]]+)\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 OKF_VERSION_LINE = re.compile(r"^(okf_version:[ \t]*)[\"']?0\.1[\"']?[ \t]*$", re.M)
 # True, and it keeps the concept correctly `unverified` under §5.3: who wrote the
 # content before `generated` existed is not recoverable, and inventing a `human:`
