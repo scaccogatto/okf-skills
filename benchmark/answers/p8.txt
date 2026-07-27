@@ -1,0 +1,2 @@
+QUESTION: Q2
+Above 1000 concepts (AUTO_COSE_MAX = 1000). The measurement: force (cose) layout froze the page for ~32 seconds at ~2k concepts (measured in Chrome), versus under 2 s for the linear layouts, so the default switches to concentric past that threshold.

@@ -54,7 +54,7 @@ diffable, portable home — versioned next to the code it describes. It is
 | Typed & queryable | ✅ frontmatter | ❌ prose | ❌ | ⚠️ |
 | Graph of linked concepts | ✅ | ❌ | ❌ | ⚠️ |
 | Curated & reviewed in PRs | ✅ | ✅ | ❌ implicit | ⚠️ |
-| Scales past the context window | ✅ progressive disclosure | ❌ loaded wholesale | ⚠️ | n/a |
+| Scales past the context window | ✅ progressive disclosure[*](benchmark/) | ❌ loaded wholesale | ⚠️ | n/a |
 
 Use `CLAUDE.md` for *how to behave*, auto-memory for *what the agent picked up*,
 and an OKF bundle for *what the team knows* — shared, structured, and shippable.
@@ -63,6 +63,30 @@ and an OKF bundle for *what the team knows* — shared, structured, and shippabl
 > behind okf-skills live in [`.okf/`](.okf/) — explore them as a
 > [**live self-graph**](https://scaccogatto.github.io/okf-skills/self.html). CI
 > validates that bundle on every push (dogfooding the conformance checker).
+
+### Does it actually help? We measured it — and it is not what you'd expect
+
+Twelve fresh agents, one repository in two states (with `.okf/` and without),
+six questions, blind grading. Full method, data and the bit that went wrong:
+[`benchmark/`](benchmark/).
+
+| | with `.okf/` | without |
+|---|--:|--:|
+| ground-truth claims hit | **22/26 (85%)** | 20/26 (77%) |
+| tokens spent | 257,602 | **244,805** |
+
+**The bundle did not save tokens — it cost 5% more**, which at n=1 per cell means
+*no measurable saving in either direction*. The "read three files, not three
+thousand lines" pitch did not survive contact with a repo this size.
+
+What did hold up is narrower, and it is the reason to keep a bundle: the bundle
+arm won the two questions asking **why** — the reasons behind a decision, which
+lived in an ADR and nowhere else — and **lost** the one asking where to change
+code, where the concept was a summary that had dropped the detail the source had.
+
+So the bar this sets for your own bundle: **write down what the code cannot say.**
+A concept restating a constant measurably bought nothing. A concept recording why
+the constant is what it is answered a question the codebase could not.
 
 ## What's inside
 

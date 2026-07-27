@@ -1,0 +1,2 @@
+QUESTION: Q1
+The README states it explicitly: "This plugin ships *no hooks* by design." Automatic upkeep is intentionally opt-in ("soft mode") rather than enforced via hooks — instead of a hook forcing Claude to consult/update the bundle on every task, the user pastes the snippet from templates/CLAUDE-okf.md into their project's (or global) CLAUDE.md to turn on automatic consult-before/write-after behavior. This keeps the plugin's automation optional and non-intrusive rather than hard-wired.

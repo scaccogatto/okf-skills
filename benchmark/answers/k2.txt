@@ -1,0 +1,2 @@
+QUESTION: Q2
+Above 1,000 concepts the visualizer stops defaulting to the force (cose) layout and falls back to the linear concentric layout instead. This was driven by measuring the force layout in Chrome against synthetic bundles: it blocked the page for ~32s at ~2k concepts (cost grows roughly quadratically with node count, extrapolating to hours at 20k+), while linear layouts loaded the same bundle in under 2s.

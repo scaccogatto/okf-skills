@@ -1,6 +1,12 @@
 # Update Log
 
 ## 2026-07-27
+* **Measurement**: Ran the first benchmark of whether a bundle helps an agent —
+  12 fresh agents, this repo with and without `.okf/`, blind grading. Result:
+  +8 points of claim coverage, **no token saving** (the bundle arm cost 5% more,
+  which at n=1 is noise). The bundle won the *why* questions and lost the
+  *where-do-I-change-this* one. Recorded in `benchmark/`, and the README's
+  progressive-disclosure claim is now qualified by it.
 * **Update**: The [visualizer](/components/visualizer.md) now *derives* the §5.3
   trust tier and staleness instead of printing raw dates — the inference v0.2 is
   named for. Both computed at render time; OKF stores neither on purpose.
