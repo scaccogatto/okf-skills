@@ -104,6 +104,19 @@ jobs:
           fi
           echo "ok: --max-warnings gates as documented"
 
+      - name: The committed GitHub Pages demos match the generator
+        run: |
+          # docs/*.html is generator output committed to the repo. Nothing checked
+          # it, so both pages shipped for weeks without the DOMPurify sanitize fix
+          # that had already landed in okf_visualize.py. `make docs` pins the exact
+          # invocation; this asserts the committed files are what it produces.
+          make docs
+          git diff --exit-code -- docs/ || {
+            echo "docs/ is stale — run 'make docs' and commit the result" >&2
+            exit 1
+          }
+          echo "ok: the live demos match the generator"
+
       - name: Self-test — okf_init.py scaffold passes strict validation clean
         run: |
           # The scaffold is meant to be exemplary: every recommended frontmatter
