@@ -5,8 +5,12 @@
 **Teach your coding agent to author, maintain, validate, and *visualize* portable
 knowledge bundles — markdown your team and your agents both read.**
 
+**On OKF v0.2** — trust signals, provenance, staleness — and the only toolkit that
+[**measured whether any of it helps**](benchmark/) instead of asserting it.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 [![OKF spec](https://img.shields.io/badge/OKF-v0.2-6E56CF.svg)](skills/okf/reference/SPEC.md)
+[![benchmarked](https://img.shields.io/badge/benchmarked-85%25%20vs%2077%25-0EA5E9.svg)](benchmark/)
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757.svg)](https://code.claude.com/docs/en/plugins)
 [![skills.sh](https://img.shields.io/badge/skills.sh-installable-22C55E.svg)](https://skills.sh/scaccogatto/okf-skills)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-3B82F6.svg)](#contributing)
@@ -37,7 +41,20 @@ This is the **Claude Code-native** OKF toolchain. It teaches Claude to **produce
 **maintain**, **consume**, **validate**, and **visualize** OKF bundles as a normal
 part of how it already works — driven by the *verbatim* spec, backed by a
 deterministic conformance checker, with a self-contained graph renderer. Ships as
-a **Claude Code plugin** and as **agent skills** (Cursor, Codex, and 20+ agents).
+a **Claude Code plugin**, as **agent skills** (Cursor, Codex, and 20+ agents), and
+as a **GitHub Action** for repos with no agent at all.
+
+Two things here you will not find elsewhere in the OKF ecosystem:
+
+- **v0.2.** Provenance, trust tiers, staleness, attested computations — the
+  validator checks them, the visualizer *derives* the ones the spec says to derive,
+  and `--migrate` moves a v0.1 bundle over in one command. Every other tool in
+  [Google's community list](https://github.com/GoogleCloudPlatform/knowledge-catalog)
+  still targeted v0.1 when we checked on 2026-07-27.
+- **A number.** We ran the experiment — one repo with and without its bundle,
+  twelve fresh agents, blind grading — and [published the result](benchmark/)
+  including the part that went against us: **the bundle did not save tokens.** What
+  it did do was answer the *why* questions the code could not.
 
 ## Why knowledge-as-code (and where OKF fits)
 
@@ -153,7 +170,7 @@ uv run skills/validate/scripts/okf_validate.py .okf --max-warnings 5
 Claude Code:
 
 ```yaml
-- uses: scaccogatto/okf-skills@main
+- uses: scaccogatto/okf-skills@v1
   with:
     bundle: .okf
     strict: "true"      # or: max-warnings: "5"
