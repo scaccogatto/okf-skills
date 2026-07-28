@@ -8,9 +8,19 @@
   spec" long after the toolkit had moved to v0.2. Keeping the card as markup
   means the next correction is a one-line edit rather than a redesign.
 
-  Regenerate: open this file at a 1280x640 viewport and screenshot it. Not wired
-  into `make` on purpose — that would put a headless browser in the build for an
-  image that changes about twice a year.
+  Regenerate (produces the committed 2560x1280 at 2x for high-DPI):
+
+    google-chrome --headless --hide-scrollbars --force-device-scale-factor=2 \
+      --window-size=1280,640 --screenshot=docs/assets/og.png \
+      "file://$PWD/docs/assets/og.html"
+
+  Deliberately not a `make` target: it is the only thing in this repo that needs
+  a browser installed, and it runs about twice a year. Keeping it out means CI
+  and contributors never have to have Chrome.
+
+  Note that GitHub does not read this file. The social preview is an uploaded
+  copy — after regenerating, re-upload it under Settings > General > Social
+  preview, or the card stays whatever was uploaded last.
 -->
 <style>
  *{margin:0;padding:0;box-sizing:border-box}
