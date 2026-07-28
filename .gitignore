@@ -12,3 +12,6 @@ __pycache__/
 
 # Worktrees
 .worktrees/
+
+# Local tooling caches
+.impeccable/

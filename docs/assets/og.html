@@ -1,0 +1,69 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>okf — social preview source</title>
+<!--
+  Source of truth for docs/assets/og.png, the repository's social preview card.
+
+  The PNG it produces is what renders on every share of the repo link, so it goes
+  stale silently — the first version shipped in 0.3.0 and still said "OKF v0.1
+  spec" long after the toolkit had moved to v0.2. Keeping the card as markup
+  means the next correction is a one-line edit rather than a redesign.
+
+  Regenerate: open this file at a 1280x640 viewport and screenshot it. Not wired
+  into `make` on purpose — that would put a headless browser in the build for an
+  image that changes about twice a year.
+-->
+<style>
+ *{margin:0;padding:0;box-sizing:border-box}
+ /* Same stack the generated viz.html uses, so the card and the thing it depicts
+    are set in one typeface rather than two that nearly match. */
+ body{width:1280px;height:640px;overflow:hidden;background:#0b0c10;
+   font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+   color:#fff;position:relative}
+ /* the purple bloom sits top-right, behind the graph */
+ .glow{position:absolute;top:-280px;right:-200px;width:900px;height:760px;border-radius:50%;
+   background:radial-gradient(closest-side,rgba(110,86,207,.42),rgba(110,86,207,0));filter:blur(10px)}
+ /* Flex column rather than absolute positioning: the text is set in whatever the
+    rendering machine resolves system-ui to, so line widths are not knowable in
+    advance. A column cannot overlap itself when a line wraps unexpectedly. */
+ .wrap{position:relative;height:100%;width:790px;padding:58px 0 48px 64px;
+   display:flex;flex-direction:column}
+ .mark{display:flex;align-items:center;gap:12px;font-size:28px;font-weight:800;letter-spacing:-.01em}
+ .dot{width:13px;height:13px;border-radius:50%;background:#6E56CF}
+ h1{margin-top:28px;font-size:64px;line-height:1.08;font-weight:800;letter-spacing:-.03em}
+ .b{color:#6C9BFF} .p{color:#8B72E8}
+ .sub{margin-top:26px;font-size:26px;line-height:1.4;color:#9aa3b2;max-width:660px}
+ .sub b{color:#e6e8ee;font-weight:700}
+ .chips{margin-top:32px;display:flex;gap:12px;flex-wrap:wrap}
+ .chip{border:1px solid #2b3040;background:#14161d;border-radius:999px;
+   padding:10px 20px;font-size:19px;color:#c7cdda;white-space:nowrap}
+ .chip.hot{border-color:#4a3d86;background:#191532;color:#c3b6ff}
+ .url{margin-top:auto;padding-top:24px;font-size:22px;font-weight:700;color:#e6e8ee}
+ svg{position:absolute;right:96px;top:196px}
+</style></head><body>
+<div class="glow"></div>
+<div class="wrap">
+ <div class="mark"><span class="dot"></span>okf</div>
+ <h1>The <span class="b">Open Knowledge</span><br><span class="p">Format</span> toolkit<br>for Claude Code</h1>
+ <div class="sub">Author · maintain · validate · <b>visualize</b> portable markdown knowledge bundles — readable by your team and your agents.</div>
+ <div class="chips">
+  <span class="chip">Claude Code plugin</span>
+  <span class="chip">skills.sh</span>
+  <span class="chip">GitHub Action</span>
+  <span class="chip hot">OKF v0.2 spec</span>
+ </div>
+ <div class="url">github.com/scaccogatto/okf-skills</div>
+</div>
+<svg width="340" height="270" viewBox="0 0 340 270" fill="none">
+ <g stroke="#3a4150" stroke-width="3">
+  <path d="M170 40 L60 130"/><path d="M170 40 L280 130"/>
+  <path d="M60 130 L280 130"/><path d="M60 130 L110 230"/><path d="M280 130 L235 230"/>
+ </g>
+ <g stroke="#0b0c10" stroke-width="7">
+  <circle cx="170" cy="40" r="34" fill="#6E56CF"/>
+  <circle cx="60" cy="130" r="34" fill="#3B82F6"/>
+  <circle cx="280" cy="130" r="34" fill="#EAB308"/>
+  <circle cx="110" cy="230" r="30" fill="#22C55E"/>
+  <circle cx="235" cy="230" r="30" fill="#D97757"/>
+ </g>
+</svg>
+</body></html>
