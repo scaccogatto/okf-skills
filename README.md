@@ -7,6 +7,7 @@ knowledge bundles — markdown your team and your agents both read.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 [![OKF spec](https://img.shields.io/badge/OKF-v0.2-6E56CF.svg)](skills/okf/reference/SPEC.md)
+[![BundleDex](https://bundledex.net/static-badge.svg)](https://bundledex.net)
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757.svg)](https://code.claude.com/docs/en/plugins)
 [![skills.sh](https://img.shields.io/badge/skills.sh-installable-22C55E.svg)](https://skills.sh/scaccogatto/okf-skills)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-3B82F6.svg)](#contributing)
