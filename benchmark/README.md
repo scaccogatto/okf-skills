@@ -3,6 +3,14 @@
 Nobody in the OKF ecosystem publishes a number. This is ours, including the
 cases where the bundle does not help — those are the interesting ones.
 
+One scoping note. The claim under test — better answers, cheaper reading — is
+the ecosystem's adoption pitch, not the spec's. The spec (§1) promises portable,
+diffable, *trustable* knowledge, and stakes v0.2 on trust of agent-written
+corpora — which this experiment never exercises, because its bundle is pristine
+(see Limits). What is measured here is the question a user asks before
+installing; the spec's own question is
+[specced as the next experiment](results.md#what-to-measure-next).
+
 ## Method
 
 **One repository, two states.** `okf-skills` at commit `e91720e`, exported twice:

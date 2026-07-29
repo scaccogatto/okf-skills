@@ -73,7 +73,7 @@ diffable, portable home — versioned next to the code it describes. It is
 | Typed & queryable | ✅ frontmatter | ❌ prose | ❌ | ⚠️ |
 | Graph of linked concepts | ✅ | ❌ | ❌ | ⚠️ |
 | Curated & reviewed in PRs | ✅ | ✅ | ❌ implicit | ⚠️ |
-| Scales past the context window | ✅ progressive disclosure[*](benchmark/) | ❌ loaded wholesale | ⚠️ | n/a |
+| Read selectively, not wholesale | ✅ indexes + per-concept files[*](benchmark/) | ❌ loaded wholesale | ⚠️ | n/a |
 
 Use `CLAUDE.md` for *how to behave*, auto-memory for *what the agent picked up*,
 and an OKF bundle for *what the team knows* — shared, structured, and shippable.
@@ -102,12 +102,12 @@ value: the bundle earns its keep exactly where the code cannot answer.
 
 **What it did not do is save tokens within a session** — 5% more, which at n=1
 per cell is no measurable difference in either direction: on a repo this small,
-reading everything is already cheap. And the token cost a bundle is actually
-adopted against — re-deriving, or having a human re-explain, the same knowledge
-in every fresh session — accrues *across* sessions, where a one-question-per-agent
-design cannot see it, in either direction. That experiment is
-[specced but not yet run](benchmark/results.md#what-to-measure-next); until it
-runs, we claim no token number, favourable or unfavourable.
+reading everything is already cheap. And the token cost usually cited when
+adopting a bundle — re-deriving, or having a human re-explain, the same
+knowledge in every fresh session — accrues *across* sessions, where a
+one-question-per-agent design cannot see it, in either direction. That
+experiment is [specced but not yet run](benchmark/results.md#what-to-measure-next);
+until it runs, we claim no token number, favourable or unfavourable.
 
 So the bar this sets for your own bundle: **write down what the code cannot say.**
 A concept restating a constant measurably bought nothing. A concept recording why

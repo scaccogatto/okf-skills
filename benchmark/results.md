@@ -93,9 +93,10 @@ why would not behave this way — and most repos are that kind of repo.
 disclosure buys nothing when reading everything is already cheap. The bundle's
 argument is about corpora that outgrow a context window, and this one does not.
 
-**The design stops after one question.** The token cost a bundle is usually
-adopted against is repetition: every fresh session re-derives the same knowledge
-from source, or a human re-explains it, conversation after conversation. That
+**The design stops after one question.** The token cost usually cited for
+adopting a bundle is repetition: every fresh session re-derives the same
+knowledge from source, or a human re-explains it, conversation after
+conversation. That
 cost accrues across sessions, and an experiment that ends after one question
 ends before the meter starts. Q1's control arm is the mechanism in miniature: it
 missed the no-hooks rationale, and in real use that miss does not stay an
@@ -122,7 +123,7 @@ the wrong way.
 
 ## What to measure next
 
-Two experiments would test what this one could not. Both are specced so anyone
+Three experiments would test what this one could not. All are specced so anyone
 can run them — [#21](https://github.com/scaccogatto/okf-skills/issues/21) is the
 open thread.
 
@@ -140,4 +141,18 @@ agent cannot find, the way a colleague does today. Measure cumulative tokens,
 human turns, and whether the answers stay consistent from session to session.
 That is where "the bundle keeps you from explaining the same concepts over and
 over" stops being an assertion — today it is exactly as unmeasured as
-progressive disclosure was before this file existed, and that is why it is next.
+progressive disclosure was before this file existed. One arm this experiment
+must carry: the same knowledge as a flat notes file, no frontmatter, no links.
+Without it, a win here advertises writing-things-down, not OKF.
+
+**Trust.** The experiment the spec would nominate. This one ran against a
+bundle the limits call unusually good — current, curated, verified — which is
+exactly where v0.2's machinery is idle: provenance, trust tiers and staleness
+earn their keep only when knowledge might be wrong. So seed the bundle with
+realistic rot — concepts past their `stale_after`, `status: deprecated`,
+unverified machine-written entries, one concept subtly wrong against source —
+and measure whether agents *calibrate*: discount the unverified, re-check the
+stale, refuse the deprecated. The metric flips from omissions to false
+statements: does the wrong concept's error reach the answers, and do the
+signals stop it? Q4's loss is this failure in miniature — an agent
+over-trusting a summary — and §5 exists so a consumer does not have to.

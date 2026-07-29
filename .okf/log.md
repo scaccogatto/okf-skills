@@ -8,6 +8,13 @@
   ("What to measure next" in `benchmark/results.md`) is specced and unrun; no
   token claim, favourable or not, until it runs. Prompted by
   [#21](https://github.com/scaccogatto/okf-skills/issues/21).
+* **Review**: Re-read the vendored spec's §1 intents against the benchmark
+  discourse. The tested claim — better answers, cheaper reading — is the
+  ecosystem's adoption pitch; the spec stakes v0.2 on trust of agent-written
+  corpora, which a pristine bundle never exercises. Added the trust-calibration
+  experiment (seeded rot, flat-notes arm) to `benchmark/results.md`, scoped the
+  README's selective-reading row to §8's actual promise, and named the tested
+  claim's origin in `benchmark/README.md`.
 
 ## 2026-07-27
 * **Measurement**: Ran the first benchmark of whether a bundle helps an agent —
