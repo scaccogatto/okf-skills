@@ -1,5 +1,14 @@
 # Update Log
 
+## 2026-07-29
+* **Reframe**: The benchmark docs now lead with what the experiment measured —
+  answer quality, +8 points with a consistent why/where pattern — and scope the
+  token result to what a one-question-per-session design can see, which excludes
+  the cross-session repetition cost a bundle is adopted against. That experiment
+  ("What to measure next" in `benchmark/results.md`) is specced and unrun; no
+  token claim, favourable or not, until it runs. Prompted by
+  [#21](https://github.com/scaccogatto/okf-skills/issues/21).
+
 ## 2026-07-27
 * **Measurement**: Ran the first benchmark of whether a bundle helps an agent —
   12 fresh agents, this repo with and without `.okf/`, blind grading. Result:
