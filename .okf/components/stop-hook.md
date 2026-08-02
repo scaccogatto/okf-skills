@@ -26,7 +26,9 @@ checked in order:
 4. that file's **frontmatter** — between the first two `---` lines — contains
    the literal line `upkeep: enforced`, the opt-in flag a bundle sets to ask
    for enforcement. A mention elsewhere in the file does not count.
-5. the working tree is a git repo with uncommitted changes.
+5. the working tree is a git repo with uncommitted changes — untracked
+   `.claude/` session directories (e.g. worktrees) are excluded, they are
+   tooling state, not assets.
 6. `.okf/log.md` is not already among those changes (if it is, the bundle was
    plausibly maintained this session, so the hook stays quiet).
 

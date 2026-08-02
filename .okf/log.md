@@ -1,6 +1,9 @@
 # Update Log
 
 ## 2026-08-02
+* **Fix**: [`okf-stop-check.sh`](/components/stop-hook.md) no longer counts an
+  untracked `.claude/` directory (session worktrees) as uncommitted changes —
+  it false-fired on the first real-world trigger, in this very repo.
 * **Decision**: Recorded [dormant hooks — opt-in enforced
   upkeep](/decisions/dormant-hooks.md) and shipped the plugin's first hook,
   [`okf-stop-check.sh`](/components/stop-hook.md) on `Stop` — a no-op unless a
