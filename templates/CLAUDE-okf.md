@@ -3,8 +3,9 @@
 
   This file is NOT loaded automatically. Paste the block below into the CLAUDE.md
   of a project that adopts OKF (or into ~/.claude/CLAUDE.md to apply it globally).
-  It is what makes the soft-mode "consume / maintain" behavior actually happen,
-  since the plugin ships no hooks.
+  It is what makes the soft-mode "consume / maintain" behavior actually happen.
+  For enforced upkeep instead, set `upkeep: enforced` in .okf/index.md's
+  frontmatter to activate the plugin's dormant Stop hook.
 -->
 
 ## Open Knowledge Format (OKF)

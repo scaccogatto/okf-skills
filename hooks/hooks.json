@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/okf-stop-check.sh\"",
+            "timeout": 15,
+            "statusMessage": "Checking OKF bundle..."
+          }
+        ]
+      }
+    ]
+  }
+}

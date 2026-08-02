@@ -1,5 +1,13 @@
 # Update Log
 
+## 2026-08-02
+* **Decision**: Recorded [dormant hooks — opt-in enforced
+  upkeep](/decisions/dormant-hooks.md) and shipped the plugin's first hook,
+  [`okf-stop-check.sh`](/components/stop-hook.md) on `Stop` — a no-op unless a
+  bundle sets `upkeep: enforced` in `.okf/index.md` and the user hasn't set
+  `OKF_HOOK=off`. This supersedes [ship no hooks](/decisions/no-hooks.md),
+  now `deprecated`.
+
 ## 2026-07-27
 * **Measurement**: Ran the first benchmark of whether a bundle helps an agent —
   12 fresh agents, this repo with and without `.okf/`, blind grading. Result:

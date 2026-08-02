@@ -192,10 +192,21 @@ badges: the §5.3 trust tier (*unverified* / *machine-confirmed* / *human-review
 and staleness, once `stale_after` is past. OKF stores neither — a stored tier is a
 stored opinion, and it goes stale — so both are computed at render time.
 
-**Turn on automatic upkeep (soft mode).** This plugin ships *no hooks* by design.
-To have Claude consult `.okf/` before tasks and write knowledge back after changes,
-paste [`templates/CLAUDE-okf.md`](templates/CLAUDE-okf.md) into your project's
+**Turn on automatic upkeep (soft mode).** To have Claude consult `.okf/` before
+tasks and write knowledge back after changes, paste
+[`templates/CLAUDE-okf.md`](templates/CLAUDE-okf.md) into your project's
 `CLAUDE.md` (or `~/.claude/CLAUDE.md` for all projects).
+
+**Enforced upkeep (opt-in).** The plugin also ships a `Stop` hook,
+`hooks/okf-stop-check.sh`, but it is *dormant by default* — a single file read
+and an exit on every session, for every repo that doesn't ask for it. Activate
+it for a bundle by adding `upkeep: enforced` to `.okf/index.md`'s frontmatter;
+once set, the hook blocks `Stop` when there are uncommitted changes but
+`.okf/log.md` was not touched, nudging the agent to update the matching
+concept and log the change before finishing. Force-disable it regardless of
+what any bundle declares by setting `OKF_HOOK=off` in your environment. See
+the [dormant hooks decision](.okf/decisions/dormant-hooks.md) for why it
+replaced the earlier zero-hooks stance.
 
 ## How a bundle looks
 

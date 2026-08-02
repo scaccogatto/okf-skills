@@ -1,0 +1,39 @@
+---
+type: Tool
+title: okf-stop-check.sh
+description: Dormant Stop hook — a no-op unless a bundle opts in to enforced upkeep.
+resource: https://github.com/scaccogatto/okf-skills/blob/main/hooks/okf-stop-check.sh
+tags: [bash, hook, enforcement]
+status: stable
+generated: { by: "agent:claude-fable-5", at: "2026-08-02T00:00:00Z" }
+---
+
+# Overview
+
+The plugin's only hook, registered via `hooks/hooks.json` on the `Stop` event.
+Ships with every install but is **dormant by default** — see the
+[dormant hooks decision](/decisions/dormant-hooks.md) for why it exists and
+what it replaces.
+
+# The gate
+
+`hooks/okf-stop-check.sh` exits 0 (no-op) unless *every* one of these holds,
+checked in order:
+
+1. it is not itself running inside a stop-hook loop (`stop_hook_active`).
+2. the user has not opted out: env `OKF_HOOK` is not `off`.
+3. `.okf/index.md` exists in the working tree.
+4. that file's frontmatter contains the literal line `upkeep: enforced` — the
+   opt-in flag a bundle sets to ask for enforcement.
+5. the working tree is a git repo with uncommitted changes.
+6. `.okf/log.md` is not already among those changes (if it is, the bundle was
+   plausibly maintained this session, so the hook stays quiet).
+
+Only when all six hold does it block, asking the agent to update the matching
+concept and append a dated `log.md` entry before finishing.
+
+# Activation
+
+A bundle turns this on by adding `upkeep: enforced` to `.okf/index.md`'s
+frontmatter. A user force-disables it regardless of bundle settings by
+setting `OKF_HOOK=off` in their environment.
