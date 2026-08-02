@@ -9,7 +9,7 @@ diffable, *trustable* knowledge, and stakes v0.2 on trust of agent-written
 corpora — which this experiment never exercises, because its bundle is pristine
 (see Limits). What is measured here is the question a user asks before
 installing; the spec's own question is
-[specced as the next experiment](results.md#what-to-measure-next).
+[outlined as the next experiment](results.md#what-to-measure-next).
 
 ## Method
 
@@ -72,7 +72,7 @@ experiment that deletes only one of them measures nothing.
   knowledge from being re-derived or re-explained every time, is invisible here
   in either direction. The token numbers are within-session cost only; the
   cross-session experiment is
-  [specced in results.md](results.md#what-to-measure-next).
+  [outlined in results.md](results.md#what-to-measure-next).
 - **The repo documents itself in OKF**, so its bundle is unusually good. A bundle
   that has rotted would not behave like this one.
 - **Self-reported effort**, as above.

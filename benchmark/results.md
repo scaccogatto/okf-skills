@@ -115,7 +115,7 @@ this size, and says so.
 
 What it does support is narrower and more defensible: **write down what the code
 cannot say.** A concept that restates a constant is a maintenance liability that
-measurably bought nothing here. A concept that records why the constant is 1,000
+bought nothing here. A concept that records why the constant is 1,000
 answered a question the codebase otherwise could not.
 
 That is a bar for what belongs in a bundle, and it came out of a result that went
@@ -123,9 +123,9 @@ the wrong way.
 
 ## What to measure next
 
-Three experiments would test what this one could not. All are specced so anyone
-can run them — [#21](https://github.com/scaccogatto/okf-skills/issues/21) is the
-open thread.
+Three experiments would test what this one could not. Each is outlined below —
+enough to argue with, not yet a full protocol — and
+[#21](https://github.com/scaccogatto/okf-skills/issues/21) is the open thread.
 
 **Scale.** The same design on the corpus this repo cannot be: large enough that
 reading everything is not an option, with comments that say what rather than

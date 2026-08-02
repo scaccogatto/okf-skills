@@ -53,8 +53,9 @@ Two things here you will not find elsewhere in the OKF ecosystem:
   still targeted v0.1 when we checked on 2026-07-27.
 - **A number.** We ran the experiment — one repo with and without its bundle,
   twelve fresh agents, blind grading — and [published the result](benchmark/):
-  **85% of ground-truth claims answered with the bundle, 77% without**, the wins
-  exactly on the *why* questions whose answers live nowhere in the code.
+  **85% of ground-truth claims answered with the bundle, 77% without** — n=1 per
+  cell, so the pattern is the signal, not the total: the wins sat exactly on the
+  *why* questions whose answers live nowhere in the code.
   Published with it, the part that went against us: in one-question sessions it
   saved no tokens.
 
@@ -94,7 +95,10 @@ six questions, blind grading. Full method, data and limits:
 | ground-truth claims hit | **22/26 (85%)** | 20/26 (77%) |
 | tokens spent, one-question sessions | 257,602 | 244,805 |
 
-**What the bundle measurably improved is the answers.** It won the two questions
+**Where the bundle helped is the answers — and the pattern, not the total, is
+the signal.** At n=1 per cell, +8 points is held to the same standard as the
+token delta below: a hint, not a measurement. What the run does support is
+where the points moved: it won the two questions
 asking **why** — the reasons behind a decision, which lived in an ADR and nowhere
 else — and **lost** the one asking where to change code, where the concept was a
 summary that had dropped the detail the source had. That is the shape of the
@@ -106,11 +110,11 @@ reading everything is already cheap. And the token cost usually cited when
 adopting a bundle — re-deriving, or having a human re-explain, the same
 knowledge in every fresh session — accrues *across* sessions, where a
 one-question-per-agent design cannot see it, in either direction. That
-experiment is [specced but not yet run](benchmark/results.md#what-to-measure-next);
+experiment is [outlined but not yet run](benchmark/results.md#what-to-measure-next);
 until it runs, we claim no token number, favourable or unfavourable.
 
 So the bar this sets for your own bundle: **write down what the code cannot say.**
-A concept restating a constant measurably bought nothing. A concept recording why
+A concept restating a constant bought nothing. A concept recording why
 the constant is what it is answered a question the codebase could not.
 
 ## What's inside
