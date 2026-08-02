@@ -4,10 +4,12 @@
 #   1. the repo's bundle opts in: `upkeep: enforced` in .okf/index.md frontmatter
 #   2. the user has not opted out: OKF_HOOK != "off"
 input=$(cat)
-printf '%s' "$input" | jq -e '.stop_hook_active == true' >/dev/null 2>&1 && exit 0
+# loop guard in plain grep, no jq: if this line cannot run, the hook re-blocks forever
+printf '%s' "$input" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true' && exit 0
 [ "$OKF_HOOK" = "off" ] && exit 0
 [ -f .okf/index.md ] || exit 0
-grep -q '^upkeep: enforced' .okf/index.md || exit 0
+# the flag must sit inside the frontmatter (between the first two --- lines)
+awk '/^---[[:space:]]*$/{n++;next} n==1 && /^upkeep:[[:space:]]*enforced[[:space:]]*$/{f=1} END{exit !f}' .okf/index.md || exit 0
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
 changes=$(git status --porcelain 2>/dev/null)
 [ -n "$changes" ] || exit 0

@@ -4,7 +4,7 @@ title: Ship a dormant Stop hook — opt-in enforced upkeep
 description: Supersede zero-hooks with a Stop hook that is a no-op unless the bundle opts in.
 tags: [adr, ux, trust]
 status: stable
-generated: { by: "agent:claude-fable-5", at: "2026-08-02T00:00:00Z" }
+generated: { by: "agent:claude-fable-5", at: "2026-08-02T11:39:43Z" }
 ---
 
 # Context
