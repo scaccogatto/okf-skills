@@ -11,7 +11,10 @@ printf '%s' "$input" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true'
 # the flag must sit inside the frontmatter (between the first two --- lines)
 awk '/^---[[:space:]]*$/{n++;next} n==1 && /^upkeep:[[:space:]]*enforced[[:space:]]*$/{f=1} END{exit !f}' .okf/index.md || exit 0
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
-changes=$(git status --porcelain 2>/dev/null | grep -v ' \.claude/$')
+# count only changes to tracked files: an untracked path is not yet a documented
+# asset, and treating it as one made the hook false-fire on tooling dirs (.claude/,
+# .venv/, ...). New-asset authoring is the maintain flow's job, not this backstop's.
+changes=$(git status --porcelain 2>/dev/null | grep -v '^??')
 [ -n "$changes" ] || exit 0
 # log.md already touched this session -> assume the bundle was maintained
 printf '%s\n' "$changes" | grep -q '\.okf/log\.md' && exit 0

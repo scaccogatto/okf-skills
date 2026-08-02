@@ -10,8 +10,9 @@ __pycache__/
 .idea/
 .vscode/
 
-# Worktrees
+# Worktrees & Claude Code session state
 .worktrees/
+.claude/
 
 # Local tooling caches
 .impeccable/

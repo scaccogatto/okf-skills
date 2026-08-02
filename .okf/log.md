@@ -1,9 +1,12 @@
 # Update Log
 
 ## 2026-08-02
-* **Fix**: [`okf-stop-check.sh`](/components/stop-hook.md) no longer counts an
-  untracked `.claude/` directory (session worktrees) as uncommitted changes —
-  it false-fired on the first real-world trigger, in this very repo.
+* **Fix**: [`okf-stop-check.sh`](/components/stop-hook.md) now counts only
+  *modified tracked files*, not any untracked path — it false-fired on the
+  first real-world trigger (an untracked `.claude/` worktree dir, in this very
+  repo). Ignoring all untracked paths fixes the whole class (`.venv/`,
+  `.DS_Store`, build dirs) instead of whitelisting one; a new untracked file
+  is not yet a documented asset. Also gitignored `.claude/` here as hygiene.
 * **Decision**: Recorded [dormant hooks — opt-in enforced
   upkeep](/decisions/dormant-hooks.md) and shipped the plugin's first hook,
   [`okf-stop-check.sh`](/components/stop-hook.md) on `Stop` — a no-op unless a
