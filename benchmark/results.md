@@ -124,26 +124,27 @@ the wrong way.
 ## What to measure next
 
 Three experiments would test what this one could not. Each is outlined below —
-enough to argue with, not yet a full protocol — and
+enough to argue with — and
 [#21](https://github.com/scaccogatto/okf-skills/issues/21) is the open thread.
+The first, **repetition**, is now a full protocol in
+[`repetition/`](repetition/README.md), ready to pilot ([#28](https://github.com/scaccogatto/okf-skills/issues/28)).
 
 **Scale.** The same design on the corpus this repo cannot be: large enough that
 reading everything is not an option, with comments that say what rather than
 why. That is where progressive disclosure should show up as a within-session
 saving — and where six questions at n=1 would no longer be enough.
 
-**Repetition.** The cost this design truncates. Two arms as before, but a
-*sequence* of tasks per arm with overlapping knowledge needs, run as fresh
-sessions — the way agents are actually used. In the bundle arm the knowledge
-persists in `.okf/` and every session reads it; in the control arm it is
-re-derived from source, or supplied by a scripted "user" who answers what the
-agent cannot find, the way a colleague does today. Measure cumulative tokens,
-human turns, and whether the answers stay consistent from session to session.
-That is where "the bundle keeps you from explaining the same concepts over and
-over" stops being an assertion — today it is exactly as unmeasured as
-progressive disclosure was before this file existed. One arm this experiment
-must carry: the same knowledge as a flat notes file, no frontmatter, no links.
-Without it, a win here advertises writing-things-down, not OKF.
+**Repetition.** The cost this design truncates — now specced end to end in
+[`repetition/`](repetition/README.md): three arms (bundle, control,
+flat-notes), a *sequence* of eight tasks per arm with overlapping knowledge
+needs, run as fresh sessions the way agents actually are. The knowledge
+persists in `.okf/` in the bundle arm and is re-derived from source or a
+scripted colleague in the control arm; measure cumulative tokens, human turns,
+and cross-session consistency. That is where "the bundle keeps you from
+explaining the same concepts over and over" stops being an assertion — today it
+is exactly as unmeasured as progressive disclosure was before this file
+existed. The protocol carries the flat-notes arm the outline demanded: without
+it, a win advertises writing-things-down, not OKF.
 
 **Trust.** The experiment the spec would nominate. This one ran against a
 bundle the limits call unusually good — current, curated, verified — which is
