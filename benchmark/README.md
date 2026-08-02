@@ -3,6 +3,14 @@
 Nobody in the OKF ecosystem publishes a number. This is ours, including the
 cases where the bundle does not help — those are the interesting ones.
 
+One scoping note. The claim under test — better answers, cheaper reading — is
+the ecosystem's adoption pitch, not the spec's. The spec (§1) promises portable,
+diffable, *trustable* knowledge, and stakes v0.2 on trust of agent-written
+corpora — which this experiment never exercises, because its bundle is pristine
+(see Limits). What is measured here is the question a user asks before
+installing; the spec's own question is
+[outlined as the next experiment](results.md#what-to-measure-next).
+
 ## Method
 
 **One repository, two states.** `okf-skills` at commit `e91720e`, exported twice:
@@ -34,6 +42,8 @@ not be described as one.
 ## What is measured
 
 - **claims hit** — of the ground-truth claims, how many the answer contains.
+- **tokens** — what the harness billed each agent for its one-question session.
+  The primary cost signal, and a within-session one by construction.
 - **files opened** — self-reported by each agent.
 - **tool calls** — self-reported by each agent.
 
@@ -57,6 +67,12 @@ experiment that deletes only one of them measures nothing.
 - **n = 1 per cell.** One agent per question per arm. Enough to see a large
   effect, not enough to resolve a small one. Treat single-question differences as
   anecdote and only the aggregate as signal.
+- **One question per session.** Each agent answers a single question and stops.
+  Whatever a bundle saves — or wastes — across sessions, by sparing the same
+  knowledge from being re-derived or re-explained every time, is invisible here
+  in either direction. The token numbers are within-session cost only; the
+  cross-session experiment is
+  [outlined in results.md](results.md#what-to-measure-next).
 - **The repo documents itself in OKF**, so its bundle is unusually good. A bundle
   that has rotted would not behave like this one.
 - **Self-reported effort**, as above.

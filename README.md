@@ -52,9 +52,12 @@ Two things here you will not find elsewhere in the OKF ecosystem:
   [Google's community list](https://github.com/GoogleCloudPlatform/knowledge-catalog)
   still targeted v0.1 when we checked on 2026-07-27.
 - **A number.** We ran the experiment — one repo with and without its bundle,
-  twelve fresh agents, blind grading — and [published the result](benchmark/)
-  including the part that went against us: **the bundle did not save tokens.** What
-  it did do was answer the *why* questions the code could not.
+  twelve fresh agents, blind grading — and [published the result](benchmark/):
+  **85% of ground-truth claims answered with the bundle, 77% without** — n=1 per
+  cell, so the pattern is the signal, not the total: the wins sat exactly on the
+  *why* questions whose answers live nowhere in the code.
+  Published with it, the part that went against us: in one-question sessions it
+  saved no tokens.
 
 ## Why knowledge-as-code (and where OKF fits)
 
@@ -71,7 +74,7 @@ diffable, portable home — versioned next to the code it describes. It is
 | Typed & queryable | ✅ frontmatter | ❌ prose | ❌ | ⚠️ |
 | Graph of linked concepts | ✅ | ❌ | ❌ | ⚠️ |
 | Curated & reviewed in PRs | ✅ | ✅ | ❌ implicit | ⚠️ |
-| Scales past the context window | ✅ progressive disclosure[*](benchmark/) | ❌ loaded wholesale | ⚠️ | n/a |
+| Read selectively, not wholesale | ✅ indexes + per-concept files[*](benchmark/) | ❌ loaded wholesale | ⚠️ | n/a |
 
 Use `CLAUDE.md` for *how to behave*, auto-memory for *what the agent picked up*,
 and an OKF bundle for *what the team knows* — shared, structured, and shippable.
@@ -81,28 +84,37 @@ and an OKF bundle for *what the team knows* — shared, structured, and shippabl
 > [**live self-graph**](https://scaccogatto.github.io/okf-skills/self.html). CI
 > validates that bundle on every push (dogfooding the conformance checker).
 
-### Does it actually help? We measured it — and it is not what you'd expect
+### Does it actually help? We measured it
 
 Twelve fresh agents, one repository in two states (with `.okf/` and without),
-six questions, blind grading. Full method, data and the bit that went wrong:
+six questions, blind grading. Full method, data and limits:
 [`benchmark/`](benchmark/).
 
 | | with `.okf/` | without |
 |---|--:|--:|
 | ground-truth claims hit | **22/26 (85%)** | 20/26 (77%) |
-| tokens spent | 257,602 | **244,805** |
+| tokens spent, one-question sessions | 257,602 | 244,805 |
 
-**The bundle did not save tokens — it cost 5% more**, which at n=1 per cell means
-*no measurable saving in either direction*. The "read three files, not three
-thousand lines" pitch did not survive contact with a repo this size.
+**Where the bundle helped is the answers — and the pattern, not the total, is
+the signal.** At n=1 per cell, +8 points is held to the same standard as the
+token delta below: a hint, not a measurement. What the run does support is
+where the points moved: it won the two questions
+asking **why** — the reasons behind a decision, which lived in an ADR and nowhere
+else — and **lost** the one asking where to change code, where the concept was a
+summary that had dropped the detail the source had. That is the shape of the
+value: the bundle earns its keep exactly where the code cannot answer.
 
-What did hold up is narrower, and it is the reason to keep a bundle: the bundle
-arm won the two questions asking **why** — the reasons behind a decision, which
-lived in an ADR and nowhere else — and **lost** the one asking where to change
-code, where the concept was a summary that had dropped the detail the source had.
+**What it did not do is save tokens within a session** — 5% more, which at n=1
+per cell is no measurable difference in either direction: on a repo this small,
+reading everything is already cheap. And the token cost usually cited when
+adopting a bundle — re-deriving, or having a human re-explain, the same
+knowledge in every fresh session — accrues *across* sessions, where a
+one-question-per-agent design cannot see it, in either direction. That
+experiment is [outlined but not yet run](benchmark/results.md#what-to-measure-next);
+until it runs, we claim no token number, favourable or unfavourable.
 
 So the bar this sets for your own bundle: **write down what the code cannot say.**
-A concept restating a constant measurably bought nothing. A concept recording why
+A concept restating a constant bought nothing. A concept recording why
 the constant is what it is answered a question the codebase could not.
 
 ## What's inside
