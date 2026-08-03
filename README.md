@@ -168,15 +168,18 @@ tasks and write knowledge back after changes, paste
 `CLAUDE.md` (or `~/.claude/CLAUDE.md` for all projects).
 
 **Enforced upkeep (opt-in).** The plugin also ships a `Stop` hook,
-`hooks/okf-stop-check.sh`, but it is *dormant by default* — a single file read
-and an exit on every session, for every repo that doesn't ask for it. Activate
-it for a bundle by adding `upkeep: enforced` to `.okf/index.md`'s frontmatter;
-once set, the hook blocks `Stop` when there are uncommitted changes but
-`.okf/log.md` was not touched, nudging the agent to update the matching
-concept and log the change before finishing. Force-disable it regardless of
-what any bundle declares by setting `OKF_HOOK=off` in your environment. See
-the [dormant hooks decision](.okf/decisions/dormant-hooks.md) for why it
-replaced the earlier zero-hooks stance.
+`hooks/okf-stop-check.sh`, *dormant by default* — a single file read and an exit
+on every session, for every repo that doesn't ask for it. Activate it for a
+bundle by adding `upkeep: enforced` to `.okf/index.md`'s frontmatter (it must
+sit **inside** the frontmatter — a mention elsewhere in the file doesn't count).
+Once set, the hook blocks `Stop` when there are **modified tracked files** but
+`.okf/log.md` isn't among them, nudging the agent to update the matching concept
+and log the change before finishing; if nothing documented changed, it may
+finish. Untracked files (build dirs, `.claude/`) are ignored on purpose. A user
+force-disables it regardless of what any bundle declares by setting
+`OKF_HOOK=off` in their environment. Full gate sequence and known limits live in
+the [stop-hook concept](.okf/components/stop-hook.md); the rationale is in the
+[dormant hooks decision](.okf/decisions/dormant-hooks.md).
 
 ## How a bundle looks
 
