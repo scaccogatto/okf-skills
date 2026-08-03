@@ -1,5 +1,15 @@
 # Update Log
 
+## 2026-08-03
+* **Removal**: Deleted the whole `benchmark/` tree (the with/without run, its
+  reframes, and the unrun cross-session "repetition" protocol). Checked the
+  canonical spec (Google `knowledge-catalog`, the vendored `SPEC.md`): OKF's
+  stated intent (§1) is portable, diffable, *trustable* knowledge exchange — it
+  makes no claim about tokens, cost, or answer quality (those words appear zero
+  times). The benchmark measured the ecosystem's adoption pitch, not the
+  standard, so it does not belong in the toolkit for the standard. Earlier log
+  entries mentioning `benchmark/` are left as history.
+
 ## 2026-08-02
 * **Fix**: [`okf-stop-check.sh`](/components/stop-hook.md) now counts only
   *modified tracked files*, not any untracked path — it false-fired on the
