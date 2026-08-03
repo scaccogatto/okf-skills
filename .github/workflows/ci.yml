@@ -281,9 +281,10 @@ jobs:
     # A PR that changes the shipped surface must bump the plugin version, so the
     # release workflow (release.yml) then cuts a release for it. Docs, .okf/,
     # tests and CI are exempt. Add the `skip-version-check` label to bypass.
-    if: >-
-      github.event_name == 'pull_request' &&
-      !contains(github.event.pull_request.labels.*.name, 'skip-version-check')
+    #
+    # Always runs (no job-level `if`) so it can be a *required* status check: a
+    # skipped job does not report success and would wedge a required check. The
+    # non-PR and label-bypass cases are handled inside the step, exiting 0.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -292,10 +293,20 @@ jobs:
 
       - name: Require a version bump for shipped changes
         env:
+          EVENT: ${{ github.event_name }}
+          SKIP: ${{ contains(github.event.pull_request.labels.*.name, 'skip-version-check') }}
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "Not a pull request; nothing to enforce."
+            exit 0
+          fi
+          if [ "$SKIP" = "true" ]; then
+            echo "skip-version-check label present; bypassing the gate."
+            exit 0
+          fi
           # paths whose contents ship to users and therefore need a release
           shipped='^(\.claude-plugin/|skills/|hooks/|templates/|action\.yml)'
           changed="$(git diff --name-only "$BASE" "$HEAD")"
