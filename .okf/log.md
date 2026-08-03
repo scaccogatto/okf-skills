@@ -1,6 +1,12 @@
 # Update Log
 
 ## 2026-08-03
+* **Enforcement**: Made the version bump mandatory. A `version-bump` CI job fails
+  any PR that changes the shipped surface (`.claude-plugin/`, `skills/`, `hooks/`,
+  `templates/`, `action.yml`) without raising `plugin.json`'s version; docs/`.okf/`
+  /tests are exempt and a `skip-version-check` label bypasses it. This closes the
+  gap the [auto-release](/decisions/auto-release.md) trigger left: a release now
+  can't be skipped by simply forgetting to bump.
 * **Decision**: Automated releases. A [`release` workflow](/components/release-workflow.md)
   now tags and publishes `okf--v<version>` whenever a push to `main` changes
   `plugin.json`'s version — releasing was manual and got skipped (0.7.0 and 0.7.1

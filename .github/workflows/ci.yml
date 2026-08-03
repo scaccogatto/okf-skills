@@ -276,3 +276,42 @@ jobs:
 
       - name: Validate example bundle (strict, native cp1252 console)
         run: uv run skills/validate/scripts/okf_validate.py examples/sample-bundle --strict
+
+  version-bump:
+    # A PR that changes the shipped surface must bump the plugin version, so the
+    # release workflow (release.yml) then cuts a release for it. Docs, .okf/,
+    # tests and CI are exempt. Add the `skip-version-check` label to bypass.
+    if: >-
+      github.event_name == 'pull_request' &&
+      !contains(github.event.pull_request.labels.*.name, 'skip-version-check')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require a version bump for shipped changes
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # paths whose contents ship to users and therefore need a release
+          shipped='^(\.claude-plugin/|skills/|hooks/|templates/|action\.yml)'
+          changed="$(git diff --name-only "$BASE" "$HEAD")"
+          if ! echo "$changed" | grep -qE "$shipped"; then
+            echo "No shipped-surface files changed; version bump not required."
+            exit 0
+          fi
+          base_v="$(git show "$BASE:.claude-plugin/plugin.json" | jq -r .version)"
+          head_v="$(git show "$HEAD:.claude-plugin/plugin.json" | jq -r .version)"
+          # pass only if head_v is strictly greater than base_v
+          highest="$(printf '%s\n%s\n' "$base_v" "$head_v" | sort -V | tail -1)"
+          if [ "$base_v" != "$head_v" ] && [ "$highest" = "$head_v" ]; then
+            echo "Version bumped $base_v -> $head_v for shipped changes. OK."
+            exit 0
+          fi
+          echo "::error::Shipped files changed but .claude-plugin/plugin.json is still $head_v — bump it (it auto-releases on merge), or add the 'skip-version-check' label if this genuinely ships nothing."
+          echo "Changed shipped files:"
+          echo "$changed" | grep -E "$shipped" | sed 's/^/  /'
+          exit 1

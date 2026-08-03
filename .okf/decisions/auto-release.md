@@ -4,7 +4,7 @@ title: Auto-release on version bump
 description: A push to main that changes plugin.json's version tags and publishes a GitHub release, so releasing can't be forgotten.
 tags: [adr, ci, release]
 status: stable
-generated: { by: "agent:claude-opus-4-8", at: "2026-08-03T10:00:36Z" }
+generated: { by: "agent:claude-opus-4-8", at: "2026-08-03T10:06:36Z" }
 ---
 
 # Context
@@ -21,6 +21,13 @@ A [`release` workflow](/components/release-workflow.md)
 `.claude-plugin/plugin.json`. It reads the version and, if no `okf--v<version>`
 release exists yet, creates the tag and a GitHub release with auto-generated
 notes. It is idempotent: a version already released is a no-op.
+
+Auto-release only fires *if* the version was bumped, so a `version-bump` CI job
+(in `.github/workflows/ci.yml`) makes the bump itself mandatory: a pull request
+that touches the shipped surface (`.claude-plugin/`, `skills/`, `hooks/`,
+`templates/`, `action.yml`) must raise `plugin.json`'s version, or it fails.
+Docs, `.okf/`, tests and CI are exempt; the `skip-version-check` label bypasses
+the gate for a shipped change that genuinely warrants no release.
 
 # Consequences
 
