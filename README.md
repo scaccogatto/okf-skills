@@ -218,7 +218,8 @@ okf-skills/
 
 Issues and PRs welcome: new templates, producers for more sources, validator and
 visualizer improvements. CI validates the plugin manifest and the example bundle on
-every push.
+every push. Releases are automatic: bump `version` in `.claude-plugin/plugin.json`
+and merging to `main` tags and publishes `okf--v<version>` on its own.
 
 ## Credits & license
 

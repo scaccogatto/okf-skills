@@ -1,6 +1,12 @@
 # Update Log
 
 ## 2026-08-03
+* **Decision**: Automated releases. A [`release` workflow](/components/release-workflow.md)
+  now tags and publishes `okf--v<version>` whenever a push to `main` changes
+  `plugin.json`'s version — releasing was manual and got skipped (0.7.0 and 0.7.1
+  were bumped but never released). Recorded in
+  [auto-release](/decisions/auto-release.md); cut the missing v0.7.1 release by
+  hand.
 * **Removal**: Deleted the whole `benchmark/` tree (the with/without run, its
   reframes, and the unrun cross-session "repetition" protocol). Checked the
   canonical spec (Google `knowledge-catalog`, the vendored `SPEC.md`): OKF's

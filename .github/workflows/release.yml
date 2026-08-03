@@ -1,0 +1,34 @@
+name: release
+
+# Auto-release on version bump: when a push to main changes the plugin version,
+# tag it and publish a GitHub release. Idempotent — if the release already
+# exists, it does nothing. Releasing is no longer a manual step that can be
+# forgotten; bumping .claude-plugin/plugin.json is the whole trigger.
+on:
+  push:
+    branches: [main]
+    paths: ['.claude-plugin/plugin.json']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag & release if the version is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(jq -r .version .claude-plugin/plugin.json)"
+          tag="okf--v${version}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "release $tag already exists — nothing to do"
+            exit 0
+          fi
+          gh release create "$tag" \
+            --target "${{ github.sha }}" \
+            --title "okf v${version}" \
+            --generate-notes
