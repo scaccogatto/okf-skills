@@ -427,21 +427,36 @@ HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 __OGIMAGE__
 __LIBS__
 <style>
- :root{--bg:#0e0f13;--panel:#16181f;--line:#262a35;--fg:#e6e8ee;--mut:#9aa3b2;--accent:#8ab4ff}
+ :root{--bg:#0e0f13;--panel:#16181f;--line:#262a35;--fg:#e6e8ee;--mut:#9aa3b2;--accent:#8ab4ff;
+   /* One declaration for the panel's width: the grid column and the control bar
+      both derive from it, so the bar cannot drift over the panel as controls
+      are added. */
+   --side:clamp(400px,34vw,560px);
+   /* Width the title block reserves at the top-left. */
+   --hdr:250px}
  *{box-sizing:border-box} html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
    font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
  /* The row must be stated. Left implicit it sizes to `auto`, i.e. to the tallest
     item — a long concept body then stretched #side past the viewport and the page
     grew its own scrollbar on top of the panel's, which in turn forced a spurious
     horizontal one. Pinning the row to 100% keeps the panel scrolling inside. */
- #app{display:grid;grid-template-columns:1fr clamp(400px,34vw,560px);grid-template-rows:100%;height:100vh}
+ #app{display:grid;grid-template-columns:1fr var(--side);grid-template-rows:100%;height:100vh}
  #cy{width:100%;height:100%}
  #side{border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:18px}
  header{position:absolute;top:0;left:0;padding:14px 18px;z-index:5;pointer-events:none}
  h1{font-size:15px;margin:0;font-weight:650} .sub{color:var(--mut);font-size:12px;margin-top:2px}
- #bar{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:5;display:flex;gap:8px}
+ /* Centred in the gap between the title and the panel — the two fixed things it
+    would otherwise sit on top of. Viewport-centred, it slid under the panel as
+    soon as it grew by one control; measured from the left edge alone, it landed
+    on the title instead. */
+ #bar{position:absolute;top:12px;left:var(--hdr);right:var(--side);z-index:5;display:flex;gap:8px;
+   justify-content:center;flex-wrap:wrap;padding:0 12px}
  #bar input,#bar select{background:var(--panel);border:1px solid var(--line);color:var(--fg);
    border-radius:8px;padding:8px 10px;outline:none;font-size:13px}
+ #derivedbox{display:flex;align-items:center;gap:6px;background:var(--panel);
+   border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;
+   color:var(--mut);cursor:pointer;user-select:none;white-space:nowrap}
+ #derivedbox input{margin:0;cursor:pointer;accent-color:var(--accent)}
  #search{width:min(300px,32vw)}
  #legend{position:absolute;bottom:14px;left:18px;z-index:5;display:flex;flex-wrap:wrap;gap:6px;max-width:60vw}
  .chip{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
