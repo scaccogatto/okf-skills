@@ -36,8 +36,8 @@ lifecycle and trust frontmatter — `status` (§5.4), `stale_after` (§5.5), and
 tier derived from `verified` (§5.3) — reduce how often a consumer asserts the
 superseded fact?
 
-Protocol in [`benchmark/trust/PROTOCOL.md`](https://github.com/scaccogatto/okf-skills/blob/main/benchmark/trust/PROTOCOL.md).
-Nothing has been run.
+Protocol in [`benchmark/trust/PROTOCOL.md`](https://github.com/scaccogatto/okf-skills/blob/main/benchmark/trust/PROTOCOL.md),
+tracked in [#40](https://github.com/scaccogatto/okf-skills/issues/40). Nothing has been run.
 
 The call to measure trust rather than re-run sufficiency was made by
 `human:scaccogatto`; the protocol was drafted by an agent and rejected twice in
