@@ -40,3 +40,4 @@ described as an OKF bundle — the toolkit eating its own dog food. Render it wi
 * [Scale guardrails in the visualizer](decisions/scale-guardrails.md)
 * [Target OKF v0.2, migrate v0.1 rather than tolerate it](decisions/okf-v02-dual-read.md)
 * [Ship a read-only MCP server](decisions/mcp-server.md)
+* [Benchmark trustability, not the adoption pitch](decisions/trust-benchmark.md)

@@ -189,6 +189,16 @@
   filtering, and gains `--max-nodes` — see the
   [scale guardrails decision](/decisions/scale-guardrails.md).
 
+## 2026-08-16
+* **Benchmark returns, measuring something else**: `benchmark/trust/` adds a
+  protocol for the one claim the spec leads with and nobody has tested —
+  trustability. See [the decision](/decisions/trust-benchmark.md) for why this is
+  not what #32 removed. Nothing has been run; the protocol was rejected twice in
+  adversarial review (an underpowered criterion, a grader that broke on the most
+  likely answer shape, a power analysis whose input did not exist in its own
+  calibration data, and a metric undefined exactly where the treatment arm
+  concentrates refusals) before being cleared as executable.
+
 ## 2026-06-28
 * **Creation**: Documented okf-skills in its own format — the three
   [skills](/skills/okf.md), the [validator](/components/validator.md) and
