@@ -27,6 +27,7 @@ from typing import Any
 
 import yaml
 from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 
 RESERVED = {"index.md", "log.md"}
 FENCE = re.compile(r"^(```|~~~)")
@@ -87,7 +88,7 @@ def source_resources(meta: dict):
 def concepts(bundle: Path):
     """Every non-reserved concept, as (id, path, meta, body)."""
     if not bundle.is_dir():
-        raise ValueError(f"no OKF bundle at {bundle} — set OKF_BUNDLE to one")
+        raise ToolError(f"no OKF bundle at {bundle} — set OKF_BUNDLE to one")
     for p in sorted(bundle.rglob("*.md")):
         if not p.is_file() or p.name in RESERVED:
             continue
@@ -115,7 +116,7 @@ def concept_path(bundle: Path, concept_id: str) -> Path:
     root = bundle.resolve()
     p = (root / f"{concept_id.strip().lstrip('/')}.md").resolve()
     if not p.is_relative_to(root) or not p.is_file():
-        raise ValueError(f"no such concept: {concept_id}")
+        raise ToolError(f"no such concept: {concept_id}")
     return p
 
 
@@ -131,7 +132,7 @@ def build(bundle: Path) -> MCPServer:
         """
         q = query.strip().lower()
         if not q:
-            raise ValueError("query must not be empty")
+            raise ToolError("query must not be empty")
         hits = []
         for cid, _p, meta, body in concepts(bundle):
             c = card(cid, meta)

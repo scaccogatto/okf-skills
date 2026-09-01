@@ -318,7 +318,7 @@ jobs:
             exit 0
           fi
           # paths whose contents ship to users and therefore need a release
-          shipped='^(\.claude-plugin/|skills/|hooks/|templates/|action\.yml)'
+          shipped='^(\.claude-plugin/|skills/|hooks/|servers/|templates/|action\.yml|\.mcp\.json)'
           changed="$(git diff --name-only "$BASE" "$HEAD")"
           if ! echo "$changed" | grep -qE "$shipped"; then
             echo "No shipped-surface files changed; version bump not required."

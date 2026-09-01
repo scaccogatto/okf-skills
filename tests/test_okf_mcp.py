@@ -104,5 +104,18 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(beta["incoming"][0]["status"], "active")
 
 
+class NoBundleTest(unittest.TestCase):
+    """The plugin installs into projects with no bundle: the server must still
+    start, and say what is missing on first use."""
+
+    def test_missing_bundle_is_a_tool_error_not_a_startup_failure(self):
+        mcp = build(Path("definitely-not-a-bundle"))
+        self.assertEqual({t.name for t in asyncio.run(mcp.list_tools())},
+                         {"search_concepts", "read_concept", "get_neighbors"})
+        with self.assertRaises(Exception) as ctx:
+            call(mcp, "search_concepts", query="anything")
+        self.assertIn("OKF_BUNDLE", str(ctx.exception))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
