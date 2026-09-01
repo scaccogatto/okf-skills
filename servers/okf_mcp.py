@@ -19,6 +19,7 @@ Run:  uv run servers/okf_mcp.py [bundle-dir]
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import sys
@@ -124,8 +125,18 @@ def concept_path(bundle: Path, concept_id: str) -> Path:
     return p
 
 
+def plugin_version() -> str:
+    """The version the plugin manifest declares, read rather than restated: a
+    second copy of it here is one more thing to forget on a release."""
+    manifest = Path(__file__).resolve().parents[1] / ".claude-plugin" / "plugin.json"
+    try:
+        return str(json.loads(manifest.read_text(encoding="utf-8"))["version"])
+    except (OSError, ValueError, KeyError):
+        return ""  # running from outside the plugin tree is not an error
+
+
 def build(bundle: Path) -> MCPServer:
-    mcp = MCPServer("okf")
+    mcp = MCPServer("okf", version=plugin_version())
 
     @mcp.tool()
     def search_concepts(query: str, limit: int = 20) -> list[dict]:

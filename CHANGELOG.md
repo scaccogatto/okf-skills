@@ -19,6 +19,9 @@ OKF spec version it supports.
   the reason rather than inventing a capability gap. A project with no bundle
   still gets a connected server, and a readable error on the first call.
 
+  The handshake reports the plugin version, read from `plugin.json` rather than
+  restated in the server, so a release cannot leave the two disagreeing.
+
 ## [0.7.4] — 2026-09-01
 
 ### Changed

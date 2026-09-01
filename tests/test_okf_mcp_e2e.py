@@ -60,6 +60,7 @@ async def session_probe() -> dict:
             return {
                 "protocol": init.protocol_version,
                 "server": init.server_info.name,
+                "version": init.server_info.version,
                 "tools": sorted(t.name for t in tools.tools),
                 "schemas": {t.name: t.input_schema for t in tools.tools},
                 "hits": [c["id"] for c in hits.structured_content["result"]],
@@ -80,6 +81,12 @@ class EndToEnd(unittest.TestCase):
     def test_handshake_completes(self):
         self.assertEqual(self.probe["server"], "okf")
         self.assertRegex(self.probe["protocol"], r"^\d{4}-\d{2}-\d{2}$")
+
+    def test_handshake_reports_the_plugin_version(self):
+        # Read from the manifest, never restated, so a release cannot drift it.
+        manifest = json.loads(
+            (ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(self.probe["version"], manifest["version"])
 
     def test_the_three_tools_are_advertised_with_their_arguments(self):
         self.assertEqual(self.probe["tools"],

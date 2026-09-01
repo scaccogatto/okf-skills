@@ -42,6 +42,9 @@ resolved and rejected unless it lands under the bundle root.
 * `mcp>=2`: the SDK renamed `FastMCP` to `MCPServer` in 2.0. `tests/test_okf_mcp.py`
   dispatches through the SDK rather than calling the functions directly, so a
   further rename breaks CI instead of production.
+* The handshake's `serverInfo.version` is read from `.claude-plugin/plugin.json`
+  at startup, never restated here, so a release cannot leave the two disagreeing.
+  Outside the plugin tree it is simply empty.
 * Failures a tool anticipates (missing bundle, unknown concept, empty query) are
   raised as `ToolError`. Anything else the SDK replaces with a bare
   `Error executing tool <name>`, so the message would never reach the model.
