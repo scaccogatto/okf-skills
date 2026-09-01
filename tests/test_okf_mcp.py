@@ -112,9 +112,14 @@ class NoBundleTest(unittest.TestCase):
         mcp = build(Path("definitely-not-a-bundle"))
         self.assertEqual({t.name for t in asyncio.run(mcp.list_tools())},
                          {"search_concepts", "read_concept", "get_neighbors"})
-        with self.assertRaises(Exception) as ctx:
-            call(mcp, "search_concepts", query="anything")
-        self.assertIn("OKF_BUNDLE", str(ctx.exception))
+        # Every tool must name the real problem: "no such concept" would point at
+        # the id the caller passed instead of at the absent bundle.
+        for name, args in [("search_concepts", {"query": "anything"}),
+                           ("read_concept", {"concept_id": "index"}),
+                           ("get_neighbors", {"concept_id": "index"})]:
+            with self.subTest(tool=name), self.assertRaises(Exception) as ctx:
+                call(mcp, name, **args)
+            self.assertIn("OKF_BUNDLE", str(ctx.exception))
 
 
 if __name__ == "__main__":

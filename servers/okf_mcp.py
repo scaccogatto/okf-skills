@@ -113,6 +113,10 @@ def card(cid: str, meta: dict) -> dict:
 
 def concept_path(bundle: Path, concept_id: str) -> Path:
     """Bundle-relative id -> file path, refusing anything outside the bundle."""
+    # Checked first: without it, a project with no bundle at all reports every id
+    # as a missing concept, which points at the wrong problem.
+    if not bundle.is_dir():
+        raise ToolError(f"no OKF bundle at {bundle}; set OKF_BUNDLE to one")
     root = bundle.resolve()
     p = (root / f"{concept_id.strip().lstrip('/')}.md").resolve()
     if not p.is_relative_to(root) or not p.is_file():
