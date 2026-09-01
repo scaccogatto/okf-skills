@@ -5,7 +5,7 @@ description: Zero-config Python conformance checker and v0.1→v0.2 migrator (PE
 resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/validate/scripts/okf_validate.py
 tags: [python, validator, uv]
 status: stable
-generated: { by: human:scaccogatto, at: "2026-07-27T00:00:00Z" }
+generated: { by: agent:claude-opus-5, at: "2026-09-01T00:00:00Z" }
 ---
 
 # Overview
@@ -35,6 +35,9 @@ footnote names a `sources[].id`; an `Attested Computation` declares a `runtime`
 and its path-valued `computation` / `executor.resource` / `attester.resource`
 resolve inside the bundle. Legacy `timestamp` and `# Citations` warn with their
 v0.2 replacement, per the [dual-read decision](/decisions/okf-v02-dual-read.md).
+The root `index.md` frontmatter carries only `okf_version` or `upkeep` (the Stop
+hook's opt-in flag rides along, so an enforced-upkeep bundle passes its own
+`--strict` run), and a declared `okf_version` matches the checked version.
 
 # The actor check (§7)
 

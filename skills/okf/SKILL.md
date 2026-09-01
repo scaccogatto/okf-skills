@@ -42,9 +42,10 @@ fields, unknown types, and broken links — never reject a bundle over them.
 - **Cross-links:** standard markdown links; prefer absolute bundle-relative
   form (`/services/auth-api.md`). A link asserts a relationship; its *kind* lives
   in the surrounding prose, not the link.
-- **Reserved files:** `index.md` (directory listing, no frontmatter — except the
-  bundle-root index may carry only `okf_version`) and `log.md` (ISO-dated change
-  history, newest first). Never use these names for concepts.
+- **Reserved files:** `index.md` (directory listing, no frontmatter, except the
+  bundle-root index, which may carry `okf_version` and this plugin's
+  `upkeep: enforced` opt-in flag) and `log.md` (ISO-dated change history, newest
+  first). Never use these names for concepts.
 
 ## The v0.2 families (all optional, all worth filling)
 
@@ -57,11 +58,13 @@ fields, unknown types, and broken links — never reject a bundle over them.
 - **Lifecycle (§5.4–5.5):** `status: draft|stable|deprecated` (absent means
   stable) and `stale_after: YYYY-MM-DD`, an absolute date, not a TTL.
 - **Provenance (§5.1):** `sources: [{ id, resource, title, author,
-  usage_count, last_modified }]` — the materials the concept derives from.
-  `resource` is required per entry and may be a URL, a bundle path, or a scope
-  descriptor. Attribute a specific claim with a markdown footnote whose label is
-  the source's `id`: `…sharded daily.[^ga4-schema]` plus a `[^ga4-schema]: …`
-  definition. The label is the join key — it must match a `sources[].id`.
+  usage_count, last_modified }]` plus a `usage_window: { from, to }` sibling of
+  `sources` framing every `usage_count` (an entry may carry its own to override
+  it); a `usage_count` without a window warns. `resource` is required per entry
+  and may be a URL, a bundle path, or a scope descriptor. Attribute a specific
+  claim with a markdown footnote whose label is the source's `id`:
+  `…sharded daily.[^ga4-schema]` plus a `[^ga4-schema]: …` definition. The label
+  is the join key, it must match a `sources[].id`.
 - **Attestation (§10):** a sanctioned computation is its own concept,
   `type: Attested Computation`, carrying `runtime` (required), `parameters`,
   `executor`, `attester`, and the computation itself under `# Computation` (or a
@@ -143,5 +146,6 @@ checker. If that skill is not installed, run it directly:
 uv run "${CLAUDE_SKILL_DIR}/../validate/scripts/okf_validate.py" <bundle-dir> --strict
 ```
 
-Resolve every `ERROR` (hard §11 failures). Warnings are soft; fix them when cheap,
-but they never block.
+Resolve every `ERROR` (hard §11 failures). Under `--strict` warnings also fail
+the run (exit 1), so clear them too; drop `--strict` (or use `--max-warnings N`)
+if you only want §11 conformance gated.

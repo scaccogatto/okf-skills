@@ -11,6 +11,18 @@
   warned `§12 root index.md frontmatter may only carry \`okf_version\``, so any
   enforced-mode bundle failed its own `--strict` run. `upkeep` is now allowed
   next to `okf_version`.
+* **Documentation**: Full freshness audit of every human-facing surface (README,
+  CHANGELOG, the three `SKILL.md` files, this bundle, `action.yml` and the
+  workflows), each claim re-checked against the code it describes. 42 verified
+  defects, of which five were wrong rather than merely stale: `--strict` was
+  documented as never blocking on warnings while the commands shown beside it
+  pass `--strict`; the visualizer's bundle argument was documented as optional
+  and is required; nodes were documented as sized by type and are sized by body
+  length; "no data leaves the page" omitted the three CDN libraries the rendered
+  page loads. The changelog had drifted three releases behind `plugin.json`,
+  which is what motivated the CI gate below. Two shipped assets turned out to
+  have no concept at all and now do: [ci.yml](/components/ci-workflow.md) and
+  [action.yml](/components/github-action.md).
 * **Enforcement**: Mirrored the [Stop hook](/components/stop-hook.md)'s two
   obligations into CI, as steps on the existing `version-bump` job. A PR that
   touches `skills/*/scripts/**` or `hooks/**` must also touch `.okf/`, and a PR

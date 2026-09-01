@@ -1,11 +1,11 @@
 ---
 type: Tool
 title: okf_visualize.py
-description: Standalone bundle→viz.html renderer (Cytoscape + marked via CDN).
+description: Standalone bundle to viz.html renderer (Cytoscape, marked, DOMPurify via CDN).
 resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/visualize/scripts/okf_visualize.py
 tags: [python, visualization, cytoscape]
 status: stable
-generated: { by: human:scaccogatto, at: "2026-07-27T00:00:00Z" }
+generated: { by: agent:claude-opus-5, at: "2026-09-01T00:00:00Z" }
 ---
 
 # Overview
@@ -19,6 +19,9 @@ frontmatter: `status`, `generated`, `verified`, `stale_after`, and a Sources lis
 carrying each source's credibility signals — a `usage_count` shown together with
 the `usage_window` that frames it. A v0.1 `timestamp` is read as `generated.at`
 so legacy bundles still show a date.
+
+Concept bodies are untrusted content, so markdown output is passed through
+DOMPurify before it reaches `innerHTML`.
 
 # Derived signals
 
@@ -39,8 +42,9 @@ their account.
 | Flag | Effect |
 |------|--------|
 | `--title` / `--link` | Name the graph; show a back-link to source. |
-| `--layout` | Initial layout (`cose`, `breadthfirst`, `circle`, …). |
+| `--layout` | Initial layout (`cose`, `breadthfirst`, `circle`, …); defaults to `cose` up to 1,000 concepts, then `concentric`. |
 | `--og-image` | Emit Open Graph / Twitter Card meta for rich link previews. |
+| `--max-nodes` | Refuse a bundle above N concepts (non-zero exit), for CI. |
 
 Also supports `?layout=` / `?select=` URL params and deep-linkable concepts
 (`viz.html#services/auth-api`).
