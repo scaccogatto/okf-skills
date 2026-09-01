@@ -42,3 +42,10 @@ resolved and rejected unless it lands under the bundle root.
 * `mcp>=2`: the SDK renamed `FastMCP` to `MCPServer` in 2.0. `tests/test_okf_mcp.py`
   dispatches through the SDK rather than calling the functions directly, so a
   further rename breaks CI instead of production.
+* Failures a tool anticipates (missing bundle, unknown concept, empty query) are
+  raised as `ToolError`. Anything else the SDK replaces with a bare
+  `Error executing tool <name>`, so the message would never reach the model.
+* Two test layers. `tests/test_okf_mcp.py` dispatches in-process, over temporary
+  bundles, and covers the tool logic. `tests/test_okf_mcp_e2e.py` spawns the
+  server over stdio using the command read out of `.mcp.json` itself, so the
+  shipped wiring is under test and not just the code it points at.
