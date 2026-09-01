@@ -32,3 +32,17 @@ jobs:
             --target "${{ github.sha }}" \
             --title "okf v${version}" \
             --generate-notes
+
+      - name: Move the floating `v1` tag to this release
+        # `uses: scaccogatto/okf-skills@v1` is what the README shows and what the
+        # Actions ecosystem reads as "the latest 1.x". Nothing moved it, so it sat
+        # frozen on a docs commit from 0.6.0 and served adopters a validator four
+        # versions old. It follows every release now. The repo is pre-1.0, so `v1`
+        # tracks the latest release rather than a major line; that is stated in
+        # the README next to the example.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git tag -f v1 "${{ github.sha }}"
+          git push -f origin refs/tags/v1
+          echo "v1 -> ${{ github.sha }}"

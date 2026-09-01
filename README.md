@@ -5,8 +5,7 @@
 **Teach your coding agent to author, maintain, validate, and *visualize* portable
 knowledge bundles: markdown your team and your agents both read.**
 
-Built for **OKF v0.2** (trust signals, provenance, staleness), while the rest of
-the ecosystem still targets v0.1.
+Built for **OKF v0.2**: trust signals, provenance, staleness.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 [![OKF spec](https://img.shields.io/badge/OKF-v0.2-6E56CF.svg)](skills/okf/reference/SPEC.md)
@@ -41,9 +40,9 @@ This is the **Claude Code-native** OKF toolchain. It teaches Claude to
 part of how it already works, driven by the verbatim spec, backed by a
 deterministic conformance checker, with a self-contained graph renderer. Ships as
 a **Claude Code plugin**, as **agent skills** (Cursor, Codex, and 20+ agents), and
-as a **GitHub Action** for repos with no agent at all. Every other tool in
-[Google's community list](https://github.com/GoogleCloudPlatform/knowledge-catalog)
-still targeted v0.1 when we checked on 2026-07-27; this one is v0.2 throughout.
+as a **GitHub Action** for repos with no agent at all. This one is v0.2
+throughout: trust signals, provenance and staleness, validated by
+`skills/validate/scripts/okf_validate.py`.
 
 > 🪞 **This repo documents itself in OKF.** The architecture, skills, and decisions
 > behind okf-skills live in [`.okf/`](.okf/), explorable as a
@@ -99,6 +98,13 @@ uv run skills/validate/scripts/okf_validate.py .okf --max-warnings 5
     strict: "true"      # or: max-warnings: "5"
 ```
 
+`@v1` follows every release (the repo is pre-1.0, so it tracks the latest one
+rather than a major line). Pin an exact `@okf--v<version>` tag instead if you
+want the action frozen.
+
+The step also exposes a `report` output: the validator's JSON report
+(`--json`), for a later step to post or parse via `${{ steps.<id>.outputs.report }}`.
+
 **Visualize** the knowledge graph, a self-contained `viz.html` that opens in any
 browser ([live example](https://scaccogatto.github.io/okf-skills/)):
 
@@ -108,6 +114,10 @@ browser ([live example](https://scaccogatto.github.io/okf-skills/)):
 uv run skills/visualize/scripts/okf_visualize.py .okf \
   -o viz.html --title "My project" --link "https://github.com/me/project"
 ```
+
+Above 1000 concepts the default layout falls back to a linear one (force layout
+freezes the page); override with `--layout cose`, or refuse oversized bundles
+with `--max-nodes N`.
 
 Every concept gets a shareable deep link (`viz.html#services/auth-api` opens with
 that concept selected). Each panel carries two **derived** badges: the §5.3 trust
@@ -225,8 +235,8 @@ okf-skills/
 ├── docs/                          # GitHub Pages: the live interactive demo
 ├── templates/CLAUDE-okf.md
 ├── action.yml                     # the CI-gating GitHub Action
-├── Makefile                       # make docs / test / validate; CI runs the same
-└── .github/workflows/ci.yml
+├── Makefile                       # make docs / test / validate; CI runs `make docs`
+└── .github/workflows/{ci,release}.yml
 ```
 
 ## Contributing
@@ -237,8 +247,13 @@ every push. Releases are automatic: bump `version` in `.claude-plugin/plugin.jso
 and merging to `main` tags and publishes `okf--v<version>` on its own. That bump is
 required, not optional: a PR touching the shipped surface (`skills/`, `hooks/`,
 `templates/`, `action.yml`, `.claude-plugin/`) fails CI until the version is
-raised. Docs, `.okf/` and tests are exempt; the `skip-version-check` label
-bypasses the gate for a shipped change that warrants no release.
+raised. A bump must also add a `## [<version>]` section to `CHANGELOG.md`; CI
+refuses the PR otherwise. Docs and tests are exempt. A PR touching
+`skills/*/scripts/` or `hooks/` must additionally update `.okf/`, and the
+`skip-version-check` label bypasses all three checks.
+
+This repo's own bundle sets `upkeep: enforced`, so the plugin's Stop hook blocks
+finishing until `.okf/log.md` records your change. Set `OKF_HOOK=off` to opt out.
 
 ## Credits & license
 

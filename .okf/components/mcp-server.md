@@ -1,7 +1,7 @@
 ---
 type: Tool
 title: okf_mcp.py
-description: Read-only MCP server over a bundle: search_concepts, read_concept, get_neighbors.
+description: Read-only MCP server over a bundle, exposing search_concepts, read_concept and get_neighbors.
 resource: https://github.com/scaccogatto/okf-skills/blob/main/servers/okf_mcp.py
 tags: [python, mcp, consumer]
 status: stable

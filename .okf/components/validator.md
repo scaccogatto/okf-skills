@@ -5,7 +5,7 @@ description: Zero-config Python conformance checker and v0.1→v0.2 migrator (PE
 resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/validate/scripts/okf_validate.py
 tags: [python, validator, uv]
 status: stable
-generated: { by: human:scaccogatto, at: "2026-07-27T00:00:00Z" }
+generated: { by: agent:claude-opus-5, at: "2026-09-01T00:00:00Z" }
 ---
 
 # Overview
@@ -15,6 +15,13 @@ single self-describing script (dependencies declared inline via PEP 723) that
 parses every non-reserved `.md` file and enforces the one hard rule of the
 [OKF v0.2 spec](/reference/okf-spec.md): parseable YAML frontmatter with a
 non-empty `type`.
+
+Only `index.md` and `log.md` are reserved, so a convention file sharing the
+bundle directory (an `AGENTS.md` scoping agent rules to it, a `README.md`) is a
+concept by §11.1 and errors without frontmatter. That is the spec read
+literally, not over-strictness: a skip-list or a downgrade to warning would put
+the checker out of conformance. The §11.1 error therefore names the fix: add a
+`type`, or move the file above the bundle root.
 
 # Checks beyond the hard rule
 
@@ -28,6 +35,9 @@ footnote names a `sources[].id`; an `Attested Computation` declares a `runtime`
 and its path-valued `computation` / `executor.resource` / `attester.resource`
 resolve inside the bundle. Legacy `timestamp` and `# Citations` warn with their
 v0.2 replacement, per the [dual-read decision](/decisions/okf-v02-dual-read.md).
+The root `index.md` frontmatter carries only `okf_version` or `upkeep` (the Stop
+hook's opt-in flag rides along, so an enforced-upkeep bundle passes its own
+`--strict` run), and a declared `okf_version` matches the checked version.
 
 # The actor check (§7)
 

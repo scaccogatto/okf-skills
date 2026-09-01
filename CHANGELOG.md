@@ -4,6 +4,169 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.8.0] - 2026-09-01
+
+### Added
+- **A read-only MCP server over a bundle** (`servers/okf_mcp.py`), wired into the
+  plugin by `.mcp.json` and started with it. Three tools, the shape the rest of
+  the OKF ecosystem converged on: `search_concepts`, `read_concept`,
+  `get_neighbors`. Nothing writes, and no `concept_id` resolves outside the
+  bundle root. The bundle comes from a CLI argument, `$OKF_BUNDLE`, or `./.okf`.
+
+  For Claude Code this duplicates Read and Grep, which is why it was declined in
+  July. It ships for parity with a category that now expects it, and
+  [`.okf/decisions/mcp-server.md`](.okf/decisions/mcp-server.md) records that as
+  the reason rather than inventing a capability gap. A project with no bundle
+  still gets a connected server, and a readable error on the first call.
+
+## [0.7.4] — 2026-09-01
+
+### Changed
+- This repo's own `.okf/` bundle now declares `upkeep: enforced`, arming the
+  plugin's own Stop hook on this repo. The bundle that ships enforced upkeep
+  was the one bundle not using it, so upkeep here rested on a maintainer's
+  machine-level hook no contributor has, which is how CHANGELOG.md drifted
+  three releases behind `plugin.json` without anyone noticing.
+
+### Fixed
+- **`validate` accepts `upkeep` in the root `index.md` frontmatter**, alongside
+  `okf_version`. Without it, the §12 warning fired on the very key just
+  described above, so every bundle opting into enforced upkeep failed its own
+  `--strict` validation, this repo's included.
+
+### Added
+- CI: two new steps mirror the Stop hook's obligations onto pull requests, so
+  a contributor sending a PR from a plain checkout gets the same nudge a local
+  session gets. A version bump must add the matching `## [version]` heading to
+  CHANGELOG.md, and a PR touching `skills/*/scripts/**` or `hooks/**` must also
+  touch `.okf/`. Both steps live on the existing version-bump job rather than a
+  new one, so the set of required status checks does not change, and both take
+  that job's `skip-version-check` label as their bypass.
+
+### Fixed
+- **The floating `v1` tag follows every release.** It had been created by hand
+  on a docs commit and never moved, so `uses: scaccogatto/okf-skills@v1`, the
+  form the README shows, ran the validator from 0.6.0: the one that rejects the
+  `upkeep` flag the README tells adopters to add, failing their CI on our
+  instructions. `release.yml` now force-moves it onto each release commit. The
+  repo is pre-1.0, so `v1` tracks the latest release rather than a major line,
+  stated in the README beside the example. Pin `@okf--v<version>` to freeze.
+
+### Docs
+- **Every documented claim re-checked against the code it describes**, across
+  the three shipped `SKILL.md` files. Five were wrong rather than stale:
+  `--strict` was documented as never blocking on warnings, beside two commands
+  that pass `--strict` (it exits 1 on any warning); the visualizer's bundle
+  argument was documented as optional and is a required positional; nodes were
+  documented as sized by type and are sized by body length; "no data leaves the
+  page" omitted the three CDN libraries the rendered page loads at view time
+  (bundle content does stay local, the viewer still needs network). `validate`
+  now also lists the checks it had omitted (unreadable UTF-8, a missing
+  `runtime`, frontmatter in a reserved file, §12), `okf` documents
+  `usage_window`, and `visualize` gains a full flag table and the deep-link
+  parameters. Two shipped assets had no concept in this repo's own bundle and
+  now do: `ci.yml` and `action.yml`.
+
+## [0.7.3] — 2026-09-01
+
+### Fixed
+- **The §11.1 frontmatter error now names the way out.** A bundle shipping a
+  convention file next to its concepts (an `AGENTS.md` scoping agent rules to
+  that directory) was told only "no parseable YAML frontmatter block", true and
+  useless to someone who never meant that file as a concept. Exempting
+  well-known filenames or downgrading to a warning was rejected, since §11.1
+  covers every non-reserved `.md` in the tree and either would make the checker
+  itself non-conformant. The message now states both fixes: add frontmatter with
+  a `type`, or move the file outside the bundle (#42).
+
+## [0.7.2] — 2026-08-15
+
+### Changed
+- **The action is now `OKF Bundle Validator`**, with a description under 125
+  characters. The Marketplace listing form rejects the old metadata: "Validate
+  OKF bundle" collides with an existing action, user or org name, and the
+  description was over the limit. Consumers pin
+  `scaccogatto/okf-skills@<tag>`, not the display name, so nothing breaks.
+
+### Added
+- CI: **releases follow the version bump automatically**
+  (`.github/workflows/release.yml`). Releasing was a manual `gh release create`
+  and it got skipped: 0.7.0 and 0.7.1 were bumped in `plugin.json` and never
+  released. A push to `main` touching `plugin.json` now tags and publishes
+  `okf--v<version>`, idempotently.
+- CI: **the bump itself is mandatory.** Auto-release only fires on a bump, so a
+  PR touching the shipped surface (`.claude-plugin/`, `skills/`, `hooks/`,
+  `templates/`, `action.yml`) fails unless `plugin.json`'s version is strictly
+  greater. Docs, `.okf/`, tests and CI are exempt, and the `skip-version-check`
+  label bypasses it. The job always runs and handles the bypass inside the step,
+  because a job skipped by a job-level `if` reports no status and would wedge
+  the merge once the check is required.
+- CI: `GITHUB_TOKEN` pinned to `contents: read` where write is not needed.
+
+## [0.7.1] — 2026-08-03
+
+### Fixed
+- **The Stop hook no longer counts untracked files as uncommitted changes.** It
+  false-fired on its first real trigger (this repo: session worktrees under
+  `.claude/`). Excluding `.claude/` would have been a symptom patch, since
+  `.venv/`, `.DS_Store` or a build dir would false-fire the same way in a
+  consumer repo, so the gate now ignores every untracked path (`grep -v '^??'`)
+  and matches its own intent: a brand-new untracked file is not yet a documented
+  asset with a concept to update. Stated tradeoff, a new file that ought to get
+  a concept no longer triggers the nudge; authoring is the maintain flow's job.
+
+### Removed
+- **The `benchmark/` tree is gone**, with the README badge, differentiator and
+  "Does it actually help" section that pointed at it. It measured better answers
+  and cheaper reading, which is the ecosystem's adoption pitch, not this
+  standard: the vendored SPEC.md §1 states its intent as portable, diffable,
+  trustable knowledge and never mentions tokens, cost or answer quality.
+  Removed with it, the with/without run, its reframes, and the repetition
+  protocol that was written in this same release and never run.
+
+### Docs
+- README reordered example-first and cut from 289 to 229 lines: the
+  knowledge-as-code comparison table, the duplicated trust-tier explanation and
+  the re-taught normative detail are gone, the reference material is not.
+- The Stop-hook section had described the gate as "uncommitted changes"; it now
+  says modified tracked files, notes that the opt-in flag must sit in the
+  frontmatter, and links the stop-hook concept for the gate sequence and known
+  limits instead of duplicating them.
+
+## [0.7.0] — 2026-08-02
+
+### Added
+- **A dormant Stop hook** (`hooks/hooks.json`, `hooks/okf-stop-check.sh`). The
+  plugin now ships a hook on Stop that does nothing unless the bundle opts in
+  with `upkeep: enforced` in `.okf/index.md` frontmatter and the user has not
+  set `OKF_HOOK=off`. When armed it blocks Stop if the tree has uncommitted
+  changes while `.okf/log.md` was not touched: a bundle rots in exactly the
+  session that forgets it, and a reminder that only exists on the maintainer's
+  machine is not shipped enforcement. The flag counts only inside the
+  frontmatter, not anywhere in the file, and the `stop_hook_active` loop guard
+  is plain `grep`, not `jq`, because a missing `jq` must never disable the guard
+  and re-block forever. Supersedes the `no-hooks` decision, now deprecated, with
+  `dormant-hooks`.
+
+### Docs
+- `demo.gif` re-recorded on the v0.2 detail panel (the old one still showed the
+  v0.1 header and none of what v0.2 added) and walks three trust tiers, ending
+  on a derivation edge reached through SOURCES. Recording it surfaced a real
+  layout bug, fixed here: `#app` left its grid row implicit, so a long concept
+  body stretched the panel past the viewport and the page grew its own
+  scrollbars. Both live pages had them.
+- README leads with the two claims that are true and unique today (the toolkit
+  is on v0.2 while the other tools in Google's community list were on v0.1 when
+  checked, with the date of the check, since that claim quietly goes false), and
+  the action example is pinned to `@v1` rather than `@main`.
+- The social preview still said "OKF v0.1 spec" and had no source, so it aged
+  through two spec versions unnoticed. Its source is now `docs/assets/og.html`
+  and it is regenerated with headless Chrome at 2x, the invocation recorded in
+  the file header. Not a `make` target: it needs a browser and changes about
+  twice a year. The header also records the part that is easy to miss, that
+  GitHub serves an uploaded copy, so regenerating the PNG does nothing until it
+  is re-uploaded under Settings.
+
 ## [0.6.0] — 2026-07-27
 
 ### Added

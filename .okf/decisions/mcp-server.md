@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: Ship a read-only MCP server, for parity and not for capability
-description: The July 2026 "no MCP" call, re-read against a category that converged on one: reversed on positioning, with the original argument left intact.
+description: The July 2026 no-MCP call, re-read against a category that converged on one, then reversed on positioning with the original argument left intact.
 tags: [adr, ecosystem, mcp]
 status: stable
 generated: { by: "agent:claude-opus-5", at: "2026-09-01T00:00:00Z" }

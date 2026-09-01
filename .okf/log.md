@@ -1,12 +1,55 @@
 # Update Log
 
 ## 2026-09-01
+* **Dogfooding**: Armed the [dormant Stop hook](/decisions/dormant-hooks.md) on
+  this repo. `.okf/index.md` now carries `upkeep: enforced`, so the plugin's own
+  hook blocks a session that changed tracked files without touching
+  `.okf/log.md`. The bundle shipping the enforcement mechanism was the one repo
+  not using it, relying instead on a maintainer's machine-level hook that no
+  contributor has.
+  Arming it surfaced a second defect: the [validator](/components/validator.md)
+  warned `§12 root index.md frontmatter may only carry \`okf_version\``, so any
+  enforced-mode bundle failed its own `--strict` run. `upkeep` is now allowed
+  next to `okf_version`.
+* **Documentation**: Full freshness audit of every human-facing surface (README,
+  CHANGELOG, the three `SKILL.md` files, this bundle, `action.yml` and the
+  workflows), each claim re-checked against the code it describes. 42 verified
+  defects, of which five were wrong rather than merely stale: `--strict` was
+  documented as never blocking on warnings while the commands shown beside it
+  pass `--strict`; the visualizer's bundle argument was documented as optional
+  and is required; nodes were documented as sized by type and are sized by body
+  length; "no data leaves the page" omitted the three CDN libraries the rendered
+  page loads. The changelog had drifted three releases behind `plugin.json`,
+  which is what motivated the CI gate below. Two shipped assets turned out to
+  have no concept at all and now do: [ci.yml](/components/ci-workflow.md) and
+  [action.yml](/components/github-action.md).
+* **Release**: The floating `v1` tag now follows every release
+  ([release.yml](/components/release-workflow.md)). It had been created by hand
+  on a docs commit and never moved, so the README's own action example ran a
+  validator from 0.6.0, one that rejects the `upkeep` flag the README tells
+  adopters to add. Pinning the README to an exact tag was the alternative and
+  was rejected: it is another thing someone has to remember, which is precisely
+  how this drifted.
+* **Enforcement**: Mirrored the [Stop hook](/components/stop-hook.md)'s two
+  obligations into CI, as steps on the existing `version-bump` job. A PR that
+  touches `skills/*/scripts/**` or `hooks/**` must also touch `.okf/`, and a PR
+  that bumps the version must add the matching `CHANGELOG.md` heading. The hook
+  only reaches people running the plugin; a contributor on a plain checkout had
+  no obligation at all, which is how the changelog drifted three releases behind
+  `plugin.json` unnoticed.
+* **Message**: The §11.1 error now names its fix. A third-party bundle shipping
+  an `AGENTS.md` next to its concepts was told only "no parseable YAML
+  frontmatter block", which is true and useless to someone who never meant that
+  file as a concept. The [validator](/components/validator.md) now points at the
+  two ways out (add a `type`, or move the file outside the bundle). Exempting
+  convention filenames was rejected: §11.1 covers every non-reserved `.md` in the
+  tree, so a skip-list would make the checker itself non-conformant (v0.7.3).
+
 * **MCP server**: added [`okf_mcp.py`](/components/mcp-server.md), a read-only
   stdio server over a bundle (`search_concepts`, `read_concept`, `get_neighbors`),
   wired into the plugin by `.mcp.json`. It reverses the July 2026 "no MCP" call on
   positioning grounds only; the original audience argument is intact and recorded
-  in the [MCP server decision](/decisions/mcp-server.md). Plugin 0.7.2 → 0.8.0.
-
+  in the [MCP server decision](/decisions/mcp-server.md). Plugin 0.7.4 to 0.8.0.
 ## 2026-08-15
 * **Distribution**: Published the composite action to the GitHub Marketplace.
   The listing form rejected the shipped metadata — the name `Validate OKF

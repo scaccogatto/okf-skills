@@ -1,10 +1,10 @@
 ---
 type: Decision
-title: Dual distribution — plugin + skills.sh
-description: Ship the same repo as a Claude Code plugin and as skills.sh-installable skills.
+title: "Distribution: plugin, skills.sh, GitHub Action"
+description: Ship the same repo as a Claude Code plugin, as skills.sh-installable skills, and as a composite GitHub Action.
 tags: [adr, distribution]
 status: stable
-generated: { by: human:scaccogatto, at: "2026-06-28T00:00:00Z" }
+generated: { by: agent:claude-opus-5, at: "2026-09-01T00:00:00Z" }
 ---
 
 # Context
@@ -19,6 +19,8 @@ One repo, both layouts: `.claude-plugin/` makes it a plugin marketplace;
 `skills/<name>/SKILL.md` makes it skills.sh-discoverable. The
 [okf](/skills/okf.md), [validate](/skills/validate.md), and
 [visualize](/skills/visualize.md) skills are identical in either path.
+`action.yml` makes the same validator runnable as a composite GitHub Action,
+for repos with no agent at all.
 
 # Consequences
 

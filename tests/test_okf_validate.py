@@ -85,6 +85,9 @@ class TestCheckConcept(TmpBundle):
         self.write("c.md", "no frontmatter\n")
         r = self.run_check(check_concept, "c.md", self.bundle)
         self.assertIn("§11.1", r.errors[0])
+        # The message names the fix: a convention file (AGENTS.md) inside a
+        # bundle trips this and its author needs to be told what to add (#42).
+        self.assertIn("`type`", r.errors[0])
 
     def test_unterminated_frontmatter_is_error(self):
         self.write("c.md", "---\ntype: A\nbody without closing fence\n")
@@ -255,6 +258,13 @@ class TestCheckIndex(TmpBundle):
         self.write("index.md", "---\nokf_version: '0.2'\n---\n# Index\n")
         r = self.run_check(check_index, "index.md", True)
         self.assertEqual((r.errors, r.warnings, r.indexes), ([], [], 1))
+
+    def test_root_upkeep_flag_is_clean(self):
+        # The Stop hook's opt-in lives here; warning on it would make every
+        # enforced-mode bundle fail its own `--strict` run.
+        self.write("index.md", "---\nokf_version: '0.2'\nupkeep: enforced\n---\n# Index\n")
+        r = self.run_check(check_index, "index.md", True)
+        self.assertEqual((r.errors, r.warnings), ([], []))
 
     def test_root_extra_keys_warn(self):
         self.write("index.md", "---\nokf_version: '0.2'\ntype: X\n---\n")

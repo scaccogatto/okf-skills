@@ -163,7 +163,10 @@ def check_concept(path: Path, rel: str, bundle: Path, report: Report) -> None:
         return
     raw, body = split_frontmatter(text)
     if raw is None:
-        report.err(rel, "§11.1 no parseable YAML frontmatter block")
+        report.err(rel, "§11.1 no parseable YAML frontmatter block "
+                        "(every non-reserved `.md` in a bundle is a concept: add "
+                        "frontmatter with a `type` field, or move the file outside "
+                        "the bundle)")
         return
     try:
         meta = yaml.safe_load(raw)
@@ -325,7 +328,10 @@ def check_index(path: Path, rel: str, is_root: bool, report: Report) -> None:
             except yaml.YAMLError:
                 report.warn(rel, "§12 root index.md frontmatter is not valid YAML")
                 meta = {}
-            extra = set(meta) - {"okf_version"}
+            # `upkeep` rides along: the plugin's Stop hook reads its opt-in flag
+            # from here, so an enforced-mode bundle would otherwise fail its own
+            # `--strict` run. §11 forbids rejecting a bundle for unknown keys.
+            extra = set(meta) - {"okf_version", "upkeep"}
             if extra:
                 report.warn(rel, f"§12 root index.md frontmatter may only carry `okf_version` (found {sorted(extra)})")
             declared = meta.get("okf_version")
