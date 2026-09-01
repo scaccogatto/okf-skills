@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: changed-precedence-05
+shape: changed-precedence
+
+question: >-
+  When two Bramble tasks are eligible in the same lane, which one is dispatched first?
+
+f_old: "the higher priority"
+f_new: "the earlier submission"
+
+superseded:
+  source: superseded.md
+  filename: bramble-dispatch-order.md
+current:
+  source: current.md
+  filename: dispatch-fairness-notes.md

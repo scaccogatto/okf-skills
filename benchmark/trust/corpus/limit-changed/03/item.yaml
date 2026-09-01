@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: limit-changed-03
+shape: limit-changed
+
+question: >-
+  What is the maximum number of concurrent subscriptions a Corvid mesh channel may carry?
+
+f_old: "240"
+f_new: "64"
+
+superseded:
+  source: superseded.md
+  filename: corvid-channel-subscriptions.md
+current:
+  source: current.md
+  filename: mesh-fanout-notes.md

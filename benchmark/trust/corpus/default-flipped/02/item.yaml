@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: default-flipped-02
+shape: default-flipped
+
+question: >-
+  What acknowledgement mode does a Marlowe queue consumer use by default?
+
+f_old: "at-least-once"
+f_new: "at-most-once"
+
+superseded:
+  source: superseded.md
+  filename: marlowe-ack-modes.md
+current:
+  source: current.md
+  filename: queue-delivery-notes.md

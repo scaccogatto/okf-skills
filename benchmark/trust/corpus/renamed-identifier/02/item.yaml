@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: renamed-identifier-02
+shape: renamed-identifier
+
+question: >-
+  What is the name of the Vireo metric reporting ingest lag?
+
+f_old: "vireo.queue.lag"
+f_new: "vireo_ingest_lag_seconds"
+
+superseded:
+  source: superseded.md
+  filename: vireo-metric-catalogue.md
+current:
+  source: current.md
+  filename: observability-notes.md

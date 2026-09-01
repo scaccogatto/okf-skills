@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: default-flipped-03
+shape: default-flipped
+
+question: >-
+  Which protocol does a Dunlin proxy listener negotiate by default?
+
+f_old: "http/1.1"
+f_new: "h2"
+
+superseded:
+  source: superseded.md
+  filename: dunlin-listener-protocol.md
+current:
+  source: current.md
+  filename: proxy-listener-notes.md

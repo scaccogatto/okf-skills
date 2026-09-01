@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: renamed-identifier-04
+shape: renamed-identifier
+
+question: >-
+  Which error code does the Merrowbank API return when the requested state record is absent?
+
+f_old: "MB_ENOSTATE"
+f_new: "MB_STATE_MISSING"
+
+superseded:
+  source: superseded.md
+  filename: merrowbank-error-codes.md
+current:
+  source: current.md
+  filename: api-error-notes.md

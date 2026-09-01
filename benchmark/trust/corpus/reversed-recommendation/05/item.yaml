@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: reversed-recommendation-05
+shape: reversed-recommendation
+
+question: >-
+  What does the guidance say a Marlowe consumer group should be sized against?
+
+f_old: "cores"
+f_new: "partitions"
+
+superseded:
+  source: superseded.md
+  filename: marlowe-group-sizing.md
+current:
+  source: current.md
+  filename: consumer-scaling-notes.md

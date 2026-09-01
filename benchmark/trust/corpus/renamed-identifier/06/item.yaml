@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: renamed-identifier-06
+shape: renamed-identifier
+
+question: >-
+  Which flag makes a Peregrine write commit without staging?
+
+f_old: "--fast-path"
+f_new: "--direct-commit"
+
+superseded:
+  source: superseded.md
+  filename: peregrine-write-flags.md
+current:
+  source: current.md
+  filename: write-command-notes.md

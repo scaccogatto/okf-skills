@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: removed-capability-02
+shape: removed-capability
+
+question: >-
+  What is the supported way to reprocess messages from a Marlowe dead-letter queue?
+
+f_old: "replay-in-place"
+f_new: "export and reingest"
+
+superseded:
+  source: superseded.md
+  filename: marlowe-dead-letter-handling.md
+current:
+  source: current.md
+  filename: dlq-recovery-notes.md

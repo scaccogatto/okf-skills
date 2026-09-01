@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: default-flipped-01
+shape: default-flipped
+
+question: >-
+  What is the default payload compression setting on a Kestrel agent?
+
+f_old: "enabled"
+f_new: "disabled"
+
+superseded:
+  source: superseded.md
+  filename: kestrel-agent-compression.md
+current:
+  source: current.md
+  filename: agent-defaults-notes.md

@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: removed-capability-06
+shape: removed-capability
+
+question: >-
+  From what may the Fennec runtime load plugins?
+
+f_old: "a directory"
+f_new: "signed bundles"
+
+superseded:
+  source: superseded.md
+  filename: fennec-plugin-loading.md
+current:
+  source: current.md
+  filename: runtime-extension-notes.md

@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: default-flipped-07
+shape: default-flipped
+
+question: >-
+  What retry backoff strategy does an Osprey scheduler job use by default?
+
+f_old: "linear"
+f_new: "exponential"
+
+superseded:
+  source: superseded.md
+  filename: osprey-retry-backoff.md
+current:
+  source: current.md
+  filename: scheduler-retry-notes.md

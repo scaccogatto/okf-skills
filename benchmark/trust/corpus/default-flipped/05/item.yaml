@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: default-flipped-05
+shape: default-flipped
+
+question: >-
+  What heap sizing mode does the Fennec runtime use by default?
+
+f_old: "static"
+f_new: "adaptive"
+
+superseded:
+  source: superseded.md
+  filename: fennec-heap-sizing.md
+current:
+  source: current.md
+  filename: runtime-memory-notes.md

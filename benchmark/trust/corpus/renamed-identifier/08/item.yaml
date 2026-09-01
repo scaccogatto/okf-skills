@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: renamed-identifier-08
+shape: renamed-identifier
+
+question: >-
+  Which command-line tool administers a Sparrow cluster?
+
+f_old: "sparrowctl"
+f_new: "sparrow-admin"
+
+superseded:
+  source: superseded.md
+  filename: sparrow-tooling.md
+current:
+  source: current.md
+  filename: cluster-operations-notes.md

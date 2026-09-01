@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: reversed-recommendation-02
+shape: reversed-recommendation
+
+question: >-
+  What write shape does the guidance recommend for Selkie ingest clients?
+
+f_old: "batched"
+f_new: "streamed"
+
+superseded:
+  source: superseded.md
+  filename: selkie-ingest-guidance.md
+current:
+  source: current.md
+  filename: ingest-client-notes.md

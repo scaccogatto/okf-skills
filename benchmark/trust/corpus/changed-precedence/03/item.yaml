@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: changed-precedence-03
+shape: changed-precedence
+
+question: >-
+  When a Selkie bucket policy and an account policy both apply to a request, which one is evaluated as decisive?
+
+f_old: "the bucket policy"
+f_new: "the account policy"
+
+superseded:
+  source: superseded.md
+  filename: selkie-policy-evaluation.md
+current:
+  source: current.md
+  filename: access-control-notes.md

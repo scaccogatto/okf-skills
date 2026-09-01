@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: limit-changed-05
+shape: limit-changed
+
+question: >-
+  What is the maximum queue depth of a single Bramble worker lane?
+
+f_old: "1024"
+f_new: "384"
+
+superseded:
+  source: superseded.md
+  filename: bramble-lane-depth.md
+current:
+  source: current.md
+  filename: scheduler-admission-notes.md

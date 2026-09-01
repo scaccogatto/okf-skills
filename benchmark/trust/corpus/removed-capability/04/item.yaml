@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: removed-capability-04
+shape: removed-capability
+
+question: >-
+  How does an operator run a series of Larkspur commands over a single reused connection?
+
+f_old: "shell"
+f_new: "background connection"
+
+superseded:
+  source: superseded.md
+  filename: larkspur-interactive-mode.md
+current:
+  source: current.md
+  filename: cli-surface-notes.md

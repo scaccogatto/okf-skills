@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: default-flipped-08
+shape: default-flipped
+
+question: >-
+  Where does a Tamarisk broker store messages by default?
+
+f_old: "in-memory"
+f_new: "on-disk"
+
+superseded:
+  source: superseded.md
+  filename: tamarisk-message-durability.md
+current:
+  source: current.md
+  filename: broker-storage-notes.md

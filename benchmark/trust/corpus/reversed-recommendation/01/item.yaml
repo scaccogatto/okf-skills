@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: reversed-recommendation-01
+shape: reversed-recommendation
+
+question: >-
+  Where does the guidance say Bramble workers should be placed relative to the store?
+
+f_old: "colocated"
+f_new: "dedicated"
+
+superseded:
+  source: superseded.md
+  filename: bramble-worker-placement.md
+current:
+  source: current.md
+  filename: capacity-planning-notes.md

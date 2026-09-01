@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: removed-capability-07
+shape: removed-capability
+
+question: >-
+  What is the transaction scope available across two Selkie buckets?
+
+f_old: "cross-bucket"
+f_new: "single-bucket"
+
+superseded:
+  source: superseded.md
+  filename: selkie-transaction-scope.md
+current:
+  source: current.md
+  filename: transaction-notes.md

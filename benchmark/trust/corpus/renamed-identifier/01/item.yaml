@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: renamed-identifier-01
+shape: renamed-identifier
+
+question: >-
+  Which environment variable sets the socket path used by the Halcyon daemon?
+
+f_old: "HALCYON_SOCK"
+f_new: "HCY_SOCKET_PATH"
+
+superseded:
+  source: superseded.md
+  filename: halcyon-daemon-environment.md
+current:
+  source: current.md
+  filename: daemon-startup-notes.md

@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: removed-capability-01
+shape: removed-capability
+
+question: >-
+  How is the shard count of a Juniper stream reduced?
+
+f_old: "shard-merge"
+f_new: "republish"
+
+superseded:
+  source: superseded.md
+  filename: juniper-shard-operations.md
+current:
+  source: current.md
+  filename: stream-topology-notes.md

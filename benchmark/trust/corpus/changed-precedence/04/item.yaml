@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: changed-precedence-04
+shape: changed-precedence
+
+question: >-
+  When a Corvid channel filter and a subscriber filter disagree about a message, which filter decides delivery?
+
+f_old: "the channel filter"
+f_new: "the subscriber filter"
+
+superseded:
+  source: superseded.md
+  filename: corvid-filter-resolution.md
+current:
+  source: current.md
+  filename: delivery-filtering-notes.md

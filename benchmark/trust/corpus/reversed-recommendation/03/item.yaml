@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: reversed-recommendation-03
+shape: reversed-recommendation
+
+question: >-
+  How does the guidance say production images should treat the Fennec runtime version?
+
+f_old: "pinned"
+f_new: "floating"
+
+superseded:
+  source: superseded.md
+  filename: fennec-image-guidance.md
+current:
+  source: current.md
+  filename: image-build-notes.md

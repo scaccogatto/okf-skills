@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: reversed-recommendation-07
+shape: reversed-recommendation
+
+question: >-
+  Where does the guidance say Selkie snapshots should be encrypted?
+
+f_old: "client-side"
+f_new: "server-side"
+
+superseded:
+  source: superseded.md
+  filename: selkie-snapshot-guidance.md
+current:
+  source: current.md
+  filename: snapshot-handling-notes.md

@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: reversed-recommendation-04
+shape: reversed-recommendation
+
+question: >-
+  At which layer does the guidance say retries for idempotent Wexford routes belong?
+
+f_old: "gateway"
+f_new: "client"
+
+superseded:
+  source: superseded.md
+  filename: wexford-retry-guidance.md
+current:
+  source: current.md
+  filename: failure-handling-notes.md

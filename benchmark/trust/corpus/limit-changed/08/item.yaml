@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: limit-changed-08
+shape: limit-changed
+
+question: >-
+  Into how many shards may a single Juniper stream be split?
+
+f_old: "96"
+f_new: "28"
+
+superseded:
+  source: superseded.md
+  filename: juniper-stream-shards.md
+current:
+  source: current.md
+  filename: stream-coordination-notes.md

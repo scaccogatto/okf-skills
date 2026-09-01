@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: changed-precedence-07
+shape: changed-precedence
+
+question: >-
+  When a Larkspur setting is defined in more than one profile, which profile is applied?
+
+f_old: "the project profile"
+f_new: "the user profile"
+
+superseded:
+  source: superseded.md
+  filename: larkspur-profile-resolution.md
+current:
+  source: current.md
+  filename: profile-notes.md

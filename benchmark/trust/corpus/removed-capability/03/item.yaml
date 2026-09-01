@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: removed-capability-03
+shape: removed-capability
+
+question: >-
+  What makes the Halcyon daemon pick up a changed configuration file?
+
+f_old: "SIGHUP"
+f_new: "restart"
+
+superseded:
+  source: superseded.md
+  filename: halcyon-config-reload.md
+current:
+  source: current.md
+  filename: daemon-lifecycle-notes.md

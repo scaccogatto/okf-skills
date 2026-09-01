@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: reversed-recommendation-06
+shape: reversed-recommendation
+
+question: >-
+  What warming strategy does the guidance recommend for a Pellworm cache after deployment?
+
+f_old: "eager"
+f_new: "lazy"
+
+superseded:
+  source: superseded.md
+  filename: pellworm-warming-guidance.md
+current:
+  source: current.md
+  filename: deployment-cache-notes.md

@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: changed-precedence-01
+shape: changed-precedence
+
+question: >-
+  When a Halcyon setting is given both on the command line and in the environment, which one takes effect?
+
+f_old: "the environment variable"
+f_new: "the command-line flag"
+
+superseded:
+  source: superseded.md
+  filename: halcyon-settings-resolution.md
+current:
+  source: current.md
+  filename: configuration-precedence-notes.md

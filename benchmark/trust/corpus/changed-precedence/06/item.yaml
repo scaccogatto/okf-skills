@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: changed-precedence-06
+shape: changed-precedence
+
+question: >-
+  When a Pellworm entry is covered by both a tag rule and a key rule, which rule governs its invalidation?
+
+f_old: "the tag rule"
+f_new: "the key rule"
+
+superseded:
+  source: superseded.md
+  filename: pellworm-invalidation-rules.md
+current:
+  source: current.md
+  filename: invalidation-notes.md

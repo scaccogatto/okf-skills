@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: renamed-identifier-03
+shape: renamed-identifier
+
+question: >-
+  Which configuration key sizes the warm pool used by the index service?
+
+f_old: "index.warm_pool"
+f_new: "index.prefetch_pool"
+
+superseded:
+  source: superseded.md
+  filename: index-service-configuration.md
+current:
+  source: current.md
+  filename: search-tier-notes.md
