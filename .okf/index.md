@@ -24,6 +24,7 @@ described as an OKF bundle — the toolkit eating its own dog food. Render it wi
 * [release.yml](components/release-workflow.md): auto-release on version bump.
 * [ci.yml](components/ci-workflow.md): validate, action, Windows and version-bump jobs.
 * [action.yml](components/github-action.md): composite GitHub Action wrapping the validator.
+* [okf_mcp.py](components/mcp-server.md): the read-only MCP server.
 
 # Reference
 
@@ -38,3 +39,4 @@ described as an OKF bundle — the toolkit eating its own dog food. Render it wi
 * [Self-contained skills via CLAUDE_SKILL_DIR](decisions/self-contained-skills.md)
 * [Scale guardrails in the visualizer](decisions/scale-guardrails.md)
 * [Target OKF v0.2, migrate v0.1 rather than tolerate it](decisions/okf-v02-dual-read.md)
+* [Ship a read-only MCP server](decisions/mcp-server.md)

@@ -45,6 +45,11 @@
   convention filenames was rejected: §11.1 covers every non-reserved `.md` in the
   tree, so a skip-list would make the checker itself non-conformant (v0.7.3).
 
+* **MCP server**: added [`okf_mcp.py`](/components/mcp-server.md), a read-only
+  stdio server over a bundle (`search_concepts`, `read_concept`, `get_neighbors`),
+  wired into the plugin by `.mcp.json`. It reverses the July 2026 "no MCP" call on
+  positioning grounds only; the original audience argument is intact and recorded
+  in the [MCP server decision](/decisions/mcp-server.md). Plugin 0.7.4 to 0.8.0.
 ## 2026-08-15
 * **Distribution**: Published the composite action to the GitHub Marketplace.
   The listing form rejected the shipped metadata — the name `Validate OKF

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "bundle": {
+      "command": "uv",
+      "args": ["run", "${CLAUDE_PLUGIN_ROOT}/servers/okf_mcp.py"]
+    }
+  }
+}

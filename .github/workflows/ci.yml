@@ -19,10 +19,16 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Validate plugin & marketplace manifests
-        run: jq empty .claude-plugin/plugin.json .claude-plugin/marketplace.json
+        run: jq empty .claude-plugin/plugin.json .claude-plugin/marketplace.json .mcp.json
 
       - name: Unit tests — okf_validate internals
         run: uv run tests/test_okf_validate.py
+
+      - name: Unit tests for the okf_mcp server tools
+        run: uv run tests/test_okf_mcp.py
+
+      - name: End-to-end spawn of the MCP server from .mcp.json over stdio
+        run: uv run tests/test_okf_mcp_e2e.py
 
       - name: Validate example bundle (strict)
         run: uv run skills/validate/scripts/okf_validate.py examples/sample-bundle --strict
@@ -278,6 +284,9 @@ jobs:
       - name: Unit tests — okf_validate internals
         run: uv run tests/test_okf_validate.py
 
+      - name: Unit tests for the okf_mcp server tools
+        run: uv run tests/test_okf_mcp.py
+
       - name: Validate example bundle (strict, native cp1252 console)
         run: uv run skills/validate/scripts/okf_validate.py examples/sample-bundle --strict
 
@@ -312,7 +321,7 @@ jobs:
             exit 0
           fi
           # paths whose contents ship to users and therefore need a release
-          shipped='^(\.claude-plugin/|skills/|hooks/|templates/|action\.yml)'
+          shipped='^(\.claude-plugin/|skills/|hooks/|servers/|templates/|action\.yml|\.mcp\.json)'
           changed="$(git diff --name-only "$BASE" "$HEAD")"
           if ! echo "$changed" | grep -qE "$shipped"; then
             echo "No shipped-surface files changed; version bump not required."

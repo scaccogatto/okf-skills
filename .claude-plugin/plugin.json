@@ -1,7 +1,7 @@
 {
   "name": "okf",
   "displayName": "Open Knowledge Format",
-  "version": "0.7.4",
+  "version": "0.8.0",
   "description": "Author, maintain, validate, and visualize Open Knowledge Format (OKF) bundles \u2014 portable markdown knowledge for humans and agents.",
   "author": {
     "name": "Marco Boffo",
@@ -13,6 +13,7 @@
   "license": "MIT",
   "keywords": [
     "okf",
+    "mcp",
     "open-knowledge-format",
     "knowledge",
     "markdown",

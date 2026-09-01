@@ -4,6 +4,24 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.8.0] - 2026-09-01
+
+### Added
+- **A read-only MCP server over a bundle** (`servers/okf_mcp.py`), wired into the
+  plugin by `.mcp.json` and started with it. Three tools, the shape the rest of
+  the OKF ecosystem converged on: `search_concepts`, `read_concept`,
+  `get_neighbors`. Nothing writes, and no `concept_id` resolves outside the
+  bundle root. The bundle comes from a CLI argument, `$OKF_BUNDLE`, or `./.okf`.
+
+  For Claude Code this duplicates Read and Grep, which is why it was declined in
+  July. It ships for parity with a category that now expects it, and
+  [`.okf/decisions/mcp-server.md`](.okf/decisions/mcp-server.md) records that as
+  the reason rather than inventing a capability gap. A project with no bundle
+  still gets a connected server, and a readable error on the first call.
+
+  The handshake reports the plugin version, read from `plugin.json` rather than
+  restated in the server, so a release cannot leave the two disagreeing.
+
 ## [0.7.4] — 2026-09-01
 
 ### Changed

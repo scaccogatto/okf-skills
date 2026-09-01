@@ -39,8 +39,9 @@ This is the **Claude Code-native** OKF toolchain. It teaches Claude to
 **produce, maintain, consume, validate, and visualize** OKF bundles as a normal
 part of how it already works, driven by the verbatim spec, backed by a
 deterministic conformance checker, with a self-contained graph renderer. Ships as
-a **Claude Code plugin**, as **agent skills** (Cursor, Codex, and 20+ agents), and
-as a **GitHub Action** for repos with no agent at all. This one is v0.2
+a **Claude Code plugin**, as **agent skills** (Cursor, Codex, and 20+ agents), as
+a **GitHub Action** for repos with no agent at all, and as a **read-only MCP
+server** for hosts whose agents cannot reach the files. This one is v0.2
 throughout: trust signals, provenance and staleness, validated by
 `skills/validate/scripts/okf_validate.py`.
 
@@ -125,6 +126,38 @@ tier (*unverified* / *machine-confirmed* / *human-reviewed*) and staleness once
 `stale_after` is past. OKF stores neither (a stored tier is a stored opinion, and
 it goes stale), so both are computed at render time.
 
+**Read a bundle over MCP.** A read-only server exposes any bundle to a host that
+speaks MCP, for agents that have no file tools of their own:
+
+| Tool | What it returns |
+|------|-----------------|
+| `search_concepts(query, limit)` | Matching concepts as cards: `id`, `type`, `title`, `description`, `status`, `stale_after`. Metadata hits rank above body-only hits. |
+| `read_concept(concept_id)` | One concept verbatim, frontmatter included. `concept_id` is the bundle path without `.md`; `index` and `log` work too. |
+| `get_neighbors(concept_id)` | `outgoing` and `incoming` cards, from markdown links and bundle-internal `sources`. External URLs are not neighbours. |
+
+Nothing writes, and no `concept_id` resolves outside the bundle root.
+
+It ships with the plugin and starts with it, reading `./.okf`, so inside Claude
+Code there is nothing to configure: the tools appear as
+`mcp__plugin_okf_bundle__search_concepts` and friends. In a project with no
+bundle the server still connects and says so on the first call.
+
+Standalone, or for any other MCP host:
+
+```shell
+uv run servers/okf_mcp.py .okf           # stdio; a bundle path, else $OKF_BUNDLE, else ./.okf
+```
+
+```json
+{ "mcpServers": { "okf": { "command": "uv",
+    "args": ["run", "/path/to/okf-skills/servers/okf_mcp.py", "/path/to/.okf"] } } }
+```
+
+Worth saying plainly: for Claude Code this duplicates Read and Grep, and it was
+declined on those grounds in July 2026. It ships for parity with a category that
+now expects one, and [decisions/mcp-server.md](.okf/decisions/mcp-server.md)
+records that as the reason instead of inventing a user need.
+
 **Keep it up to date.** Two opt-in ways to make upkeep automatic:
 
 - **Soft mode:** paste [`templates/CLAUDE-okf.md`](templates/CLAUDE-okf.md) into
@@ -146,6 +179,7 @@ it goes stale), so both are computed at render time.
 | `skills/okf/scripts/okf_init.py` | Scaffold a conformant starter bundle in one shot. |
 | `skills/validate/scripts/okf_validate.py` | Standalone, zero-config validator (`uv run`, PyYAML via PEP 723). |
 | `skills/visualize/scripts/okf_visualize.py` | Standalone bundle→`viz.html` renderer. |
+| `servers/okf_mcp.py` | Read-only MCP server over a bundle: `search_concepts`, `read_concept`, `get_neighbors`. Ships with the plugin via `.mcp.json`. |
 | `skills/okf/reference/SPEC.md` | The OKF v0.2 spec, vendored verbatim: the source of truth. |
 | `templates/CLAUDE-okf.md` | Snippet that turns on automatic consume/maintain in your project. |
 | `action.yml` | Composite GitHub Action to gate a bundle in any repo's CI, no Claude Code needed. |
@@ -216,6 +250,7 @@ okf-skills/
 ├── .claude-plugin/{plugin.json, marketplace.json}
 ├── skills/{okf, validate, visualize}/{SKILL.md, scripts/}
 ├── hooks/                         # the dormant Stop hook
+├── servers/okf_mcp.py             # the read-only MCP server (.mcp.json wires it)
 ├── examples/sample-bundle/        # the live-demo bundle
 ├── docs/                          # GitHub Pages: the live interactive demo
 ├── templates/CLAUDE-okf.md
