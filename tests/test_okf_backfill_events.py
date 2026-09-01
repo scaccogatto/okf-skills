@@ -19,8 +19,8 @@ import os
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills" / "backfill" / "scripts"))
 from okf_backfill_events import (  # noqa: E402
-    apply_skip_rules, git_log, normalize_ts, sessions_from_transcripts,
-    merge_and_sort, truncate_text,
+    apply_skip_rules, git_log, normalize_ts, repo_slug,
+    sessions_from_transcripts, merge_and_sort, truncate_text,
 )
 
 
@@ -220,8 +220,10 @@ class TestSessionExtraction(unittest.TestCase):
     envelope with message.content, timestamp, gitBranch, isMeta, isSidechain,
     plus standalone ai-title lines."""
 
-    REPO = "/Users/fake/repo"
-    SLUG = REPO.replace("/", "-").replace(".", "-")
+    # A real, resolvable path: on Windows a POSIX-style fake path resolves to a
+    # drive-prefixed one and would never match the slug or the cwd filter.
+    REPO = str(Path(tempfile.gettempdir()).resolve() / "okf-backfill-fake-repo")
+    SLUG = repo_slug(Path(REPO))
 
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -501,7 +503,7 @@ class TestDeterminism(unittest.TestCase):
             subprocess.run(
                 ["uv", "run", "skills/backfill/scripts/okf_backfill_events.py",
                  str(self.repo), "--out", str(out1), "--no-sessions"],
-                cwd="/Users/gatto/Developer/scaccogatto/okf-skills/.claude/worktrees/backfill-skill",
+                cwd=str(Path(__file__).resolve().parents[1]),
                 check=True,
                 capture_output=True
             )
@@ -510,7 +512,7 @@ class TestDeterminism(unittest.TestCase):
             subprocess.run(
                 ["uv", "run", "skills/backfill/scripts/okf_backfill_events.py",
                  str(self.repo), "--out", str(out2), "--no-sessions"],
-                cwd="/Users/gatto/Developer/scaccogatto/okf-skills/.claude/worktrees/backfill-skill",
+                cwd=str(Path(__file__).resolve().parents[1]),
                 check=True,
                 capture_output=True
             )

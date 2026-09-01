@@ -293,6 +293,15 @@ def _git_log_one_branch(repo_dir: Path, branch: str) -> list[dict]:
     return events
 
 
+def repo_slug(repo_abs: Path) -> str:
+    """Slugify an absolute repo path the way Claude Code names transcript dirs.
+
+    Portable: also maps Windows separators and drive colons to dashes, so the
+    slug is stable regardless of platform path syntax.
+    """
+    return re.sub(r"[/\\:.]", "-", str(repo_abs))
+
+
 def sessions_from_transcripts(repo_dir: Path, sessions_dir: Optional[Path]) -> list[dict]:
     """Extract events from Claude session transcripts."""
     events = []
@@ -305,8 +314,7 @@ def sessions_from_transcripts(repo_dir: Path, sessions_dir: Optional[Path]) -> l
 
     # Compute repo slug and canonical path (for the cwd filter)
     repo_abs = repo_dir.resolve()
-    repo_str = str(repo_abs)
-    slug = repo_str.replace("/", "-").replace(".", "-")
+    slug = repo_slug(repo_abs)
 
     # Find session files: <slug>/*.jsonl and <slug>--*/*.jsonl
     session_globs = [
@@ -377,7 +385,8 @@ def sessions_from_transcripts(repo_dir: Path, sessions_dir: Optional[Path]) -> l
 
             # cwd filter: only keep records from this repo (or a worktree under it)
             cwd = rec.get("cwd") or ""
-            if cwd != repo_str and not cwd.startswith(repo_str + "/"):
+            cwd_path = Path(cwd) if cwd else None
+            if cwd_path is None or (cwd_path != repo_abs and repo_abs not in cwd_path.parents):
                 i += 1
                 continue
 

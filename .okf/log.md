@@ -1,6 +1,12 @@
 # Update Log
 
 ## 2026-09-01
+* **Fix**: The [backfill](/skills/backfill.md) extractor and its tests are now
+  Windows-portable: `repo_slug()` maps `\` and drive colons to dashes alongside
+  `/` and `.`, the cwd filter compares `Path`s instead of string prefixes, and
+  the tests use a real resolvable temp path plus a `__file__`-derived cwd
+  instead of a hardcoded machine-local worktree path (which broke CI on both
+  runners).
 * **Dogfooding**: Armed the [dormant Stop hook](/decisions/dormant-hooks.md) on
   this repo. `.okf/index.md` now carries `upkeep: enforced`, so the plugin's own
   hook blocks a session that changed tracked files without touching
