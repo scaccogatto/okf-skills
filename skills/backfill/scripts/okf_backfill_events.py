@@ -299,7 +299,9 @@ def repo_slug(repo_abs: Path) -> str:
     Portable: also maps Windows separators and drive colons to dashes, so the
     slug is stable regardless of platform path syntax.
     """
-    return re.sub(r"[/\\:.]", "-", str(repo_abs))
+    # Claude Code maps every non-alphanumeric character to a dash
+    # (verified: p-045_ekar_skills -> p-045-ekar-skills), not just separators.
+    return re.sub(r"[^A-Za-z0-9-]", "-", str(repo_abs))
 
 
 def sessions_from_transcripts(repo_dir: Path, sessions_dir: Optional[Path]) -> list[dict]:

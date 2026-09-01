@@ -215,6 +215,14 @@ class TestSkipRules(unittest.TestCase):
         self.assertIsNone(rule_id)
 
 
+class TestRepoSlug(unittest.TestCase):
+    def test_maps_every_non_alphanumeric_to_dash(self):
+        self.assertEqual(
+            repo_slug(Path("/Users/g/dev/p-045_ekar_skills")),
+            "-Users-g-dev-p-045-ekar-skills",
+        )
+
+
 class TestSessionExtraction(unittest.TestCase):
     """Test session transcript extraction, against the REAL transcript schema:
     envelope with message.content, timestamp, gitBranch, isMeta, isSidechain,

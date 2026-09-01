@@ -4,6 +4,14 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.9.1] — 2026-09-01
+
+### Fixed
+- **`backfill` found zero session transcripts for repos with `_` (or any
+  non-alphanumeric beyond `/ \ : .`) in their path.** `repo_slug()` now maps
+  every non-alphanumeric character to a dash, matching how Claude Code names
+  transcript directories.
+
 ## [0.9.0] — 2026-09-01
 
 ### Added

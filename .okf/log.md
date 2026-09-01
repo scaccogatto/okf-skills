@@ -1,6 +1,10 @@
 # Update Log
 
 ## 2026-09-01
+* **Fix**: [backfill](/skills/backfill.md) `repo_slug()` now maps every
+  non-alphanumeric character to a dash, matching Claude Code's real transcript
+  dir naming (`p-045_ekar_skills` -> `p-045-ekar-skills`); underscores in the
+  repo path previously yielded zero session events. Plugin 0.9.0 to 0.9.1.
 * **Fix**: The [backfill](/skills/backfill.md) extractor and its tests are now
   Windows-portable: `repo_slug()` maps `\` and drive colons to dashes alongside
   `/` and `.`, the cwd filter compares `Path`s instead of string prefixes, and
