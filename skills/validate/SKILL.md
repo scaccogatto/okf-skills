@@ -32,8 +32,9 @@ always found alongside the skill.
 
 Interpret the result:
 
-- **ERROR** → a hard §11 conformance failure (no parseable frontmatter, or a
-  missing/empty `type`). The bundle is non-conformant. Fix every one.
+- **ERROR** → a hard §11 conformance failure (no parseable frontmatter, a
+  missing/empty `type`, or a file the checker cannot read as UTF-8). The bundle
+  is non-conformant. Fix every one.
 
 Only `index.md` and `log.md` are reserved: §11.1 makes *every* other `.md` in
 the tree a concept, convention files included. An `AGENTS.md` or `README.md`
@@ -43,9 +44,11 @@ checker out of conformance. Move the file above the bundle root if it is not
 knowledge.
 - **warn** → soft guidance (missing recommended field, non-ISO log date, broken
   cross-link, a malformed v0.2 family, a footnote naming no source, an actor
-  that misses the §7 shapes, a computation path that resolves nowhere). Never
-  blocks; broken links in particular are explicitly tolerated by the spec
-  (§6.1). Fix when cheap.
+  that misses the §7 shapes, an Attested Computation missing `runtime`, a
+  computation path that resolves nowhere, frontmatter in a reserved file (§8,
+  §9), a root `index.md` carrying extra keys or declaring a different
+  `okf_version` (§12)). Never blocks; broken links in particular are explicitly
+  tolerated by the spec (§6.1). Fix when cheap.
 
 One warning is worth more than the others: a §7 near-miss such as `Human:dana`
 or `human/dana`. §5.3 keys trust tiers off the exact lowercase `human:` prefix,

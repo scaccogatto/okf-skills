@@ -1,5 +1,6 @@
 ---
 okf_version: "0.2"
+upkeep: enforced
 ---
 
 # okf-skills — documented in its own format
@@ -16,9 +17,13 @@ described as an OKF bundle — the toolkit eating its own dog food. Render it wi
 
 # Components
 
-* [okf_init.py](components/okf_init.md) — the starter bundle scaffolder.
-* [okf_validate.py](components/validator.md) — the conformance checker.
-* [okf_visualize.py](components/visualizer.md) — the graph renderer.
+* [okf_init.py](components/okf_init.md): the starter bundle scaffolder.
+* [okf_validate.py](components/validator.md): the conformance checker.
+* [okf_visualize.py](components/visualizer.md): the graph renderer.
+* [okf-stop-check.sh](components/stop-hook.md): the dormant Stop hook.
+* [release.yml](components/release-workflow.md): auto-release on version bump.
+* [ci.yml](components/ci-workflow.md): validate, action, Windows and version-bump jobs.
+* [action.yml](components/github-action.md): composite GitHub Action wrapping the validator.
 
 # Reference
 
@@ -26,8 +31,10 @@ described as an OKF bundle — the toolkit eating its own dog food. Render it wi
 
 # Decisions
 
-* [Dual distribution — plugin + skills.sh](decisions/dual-distribution.md)
-* [Ship no hooks — soft-mode upkeep](decisions/no-hooks.md)
+* [Dual distribution: plugin, skills.sh, GitHub Action](decisions/dual-distribution.md)
+* [Ship no hooks: soft-mode upkeep](decisions/no-hooks.md): *deprecated*, superseded by dormant hooks.
+* [Ship a dormant Stop hook: opt-in enforced upkeep](decisions/dormant-hooks.md)
+* [Auto-release on version bump](decisions/auto-release.md)
 * [Self-contained skills via CLAUDE_SKILL_DIR](decisions/self-contained-skills.md)
 * [Scale guardrails in the visualizer](decisions/scale-guardrails.md)
-* [Target OKF v0.2, keep reading v0.1](decisions/okf-v02-dual-read.md)
+* [Target OKF v0.2, migrate v0.1 rather than tolerate it](decisions/okf-v02-dual-read.md)
