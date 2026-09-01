@@ -6,4 +6,4 @@
 * [Auto-release on version bump](auto-release.md)
 * [Self-contained skills via CLAUDE_SKILL_DIR](self-contained-skills.md)
 * [Scale guardrails in the visualizer](scale-guardrails.md)
-* [Target OKF v0.2, keep reading v0.1](okf-v02-dual-read.md)
+* [Target OKF v0.2, migrate v0.1 rather than tolerate it](okf-v02-dual-read.md)

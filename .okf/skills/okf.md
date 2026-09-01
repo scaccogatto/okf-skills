@@ -5,7 +5,7 @@ description: Produce, maintain, and consume OKF bundles, driven by the verbatim 
 resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/okf/SKILL.md
 tags: [skill, produce, maintain, consume]
 status: stable
-generated: { by: human:scaccogatto, at: "2026-07-27T00:00:00Z" }
+generated: { by: agent:claude-opus-5, at: "2026-09-01T00:00:00Z" }
 ---
 
 # Overview
@@ -37,4 +37,5 @@ blank directory.
 Validates its output with the [validate skill](/skills/validate.md) and can render
 it with the [visualize skill](/skills/visualize.md). Its dual delivery is set by
 the [dual-distribution decision](/decisions/dual-distribution.md); automatic upkeep
-is governed by the [no-hooks decision](/decisions/no-hooks.md).
+is governed by the [dormant-hooks decision](/decisions/dormant-hooks.md), which
+supersedes the earlier [no-hooks decision](/decisions/no-hooks.md).
