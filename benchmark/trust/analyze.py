@@ -48,7 +48,7 @@ def _empty_cell() -> dict:
 def per_item_rates(trials: list[dict], arm: str) -> dict[str, dict]:
     """Per-item stale/fresh/neither counts and conditional rate, for one arm.
 
-    Conditional rate is stale/(stale+fresh) — §3.2's primary metric, defined
+    Conditional rate is stale/(stale+fresh), §3.2's primary metric, defined
     over *committed* answers only, so a `neither`-heavy arm cannot manufacture
     a low rate by simply not answering. `None` when no answer was committed;
     callers apply the §3.2 imputation rule, this function reports raw fact.
@@ -100,7 +100,7 @@ def _paired_rates(trials: list[dict], arm_x: str, arm_y: str) -> tuple[list[str]
     exactly what to do with it. An item with *no trials at all* in an arm is not
     that: it is missing data, a harness or budget failure, and imputing it as
     fully stale would launder a collection bug into an observation. The direction
-    is what makes it unacceptable rather than merely untidy — a lost A1 cell
+    is what makes it unacceptable rather than merely untidy: a lost A1 cell
     penalises the treatment, but a lost B1 cell inflates the contrast in favour
     of the hypothesis, and neither would leave a trace in the output. So it
     aborts.
@@ -140,11 +140,11 @@ def _descriptive_contrast(trials: list[dict], arm_x: str, arm_y: str) -> dict:
 def bootstrap_bca(
     paired_diffs: list[float], resamples: int, alpha: float = 0.05, seed: int = 0,
 ) -> tuple[float, float]:
-    """BCa bootstrap CI over items (§3.6) — stdlib only, seeded for reproducibility.
+    """BCa bootstrap CI over items (§3.6), stdlib only, seeded for reproducibility.
 
     Bias correction z0 comes from the proportion of resamples falling below the
     observed statistic; acceleration `a` comes from a jackknife over items (the
-    unit of analysis, per §3.6 — not a jackknife over trials).
+    unit of analysis, per §3.6, not a jackknife over trials).
     """
     n = len(paired_diffs)
     if n == 0:
@@ -212,7 +212,7 @@ def analyze(trials: list[dict], config: dict, seed: int = 0) -> dict:
     a1_undefined = {i for i in items if a1_counts.get(i, _empty_cell())["conditional_rate"] is None}
     b1_undefined = {i for i in items if b1_counts.get(i, _empty_cell())["conditional_rate"] is None}
 
-    # §3.2: report per arm, never aggregated — imputing on A1 penalises the
+    # §3.2: report per arm, never aggregated. Imputing on A1 penalises the
     # treatment, imputing on B1 inflates the contrast in its favour.
     undefined_counts = {"A1": len(a1_undefined), "B1": len(b1_undefined)}
     undefined_rate = ({arm: n / len(items) for arm, n in undefined_counts.items()}
@@ -272,7 +272,7 @@ def analyze(trials: list[dict], config: dict, seed: int = 0) -> dict:
 
 
 def select_k() -> int:
-    """§3.6: smallest k with 0.5**k <= 1% — the empty-cell floor, not a power fit."""
+    """§3.6: smallest k with 0.5**k <= 1%, the empty-cell floor, not a power fit."""
     k = 1
     while 0.5 ** k > EMPTY_CELL_CEILING:
         k += 1
@@ -309,7 +309,7 @@ def select_n_and_k(min_effect_pp: float, heterogeneity: float,
 def load_trials(path: str | Path, config: dict, base: str | Path | None = None) -> list[dict]:
     """Read a JSONL run file. Refuses anything under `calibration.outdir` (§7):
     calibration data selects items and feeds the §3.6 heterogeneity proxy, and
-    must never enter a result — enforced here rather than left to memory.
+    must never enter a result, enforced here rather than left to memory.
 
     `base` is the directory `calibration.outdir` is relative to (the harness
     file's own directory). Resolving it against the caller's cwd instead would
@@ -321,7 +321,7 @@ def load_trials(path: str | Path, config: dict, base: str | Path | None = None) 
     outdir = (base / config["calibration"]["outdir"]).resolve()
     if p == outdir or outdir in p.parents:
         raise ValueError(
-            f"§7 discard rule: refusing to load {p} — it is under the calibration "
+            f"§7 discard rule: refusing to load {p}, which is under the calibration "
             f"outdir {outdir}, which is discarded entirely before measurement")
     trials = []
     with open(p, encoding="utf-8") as f:

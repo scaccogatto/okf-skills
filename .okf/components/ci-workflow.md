@@ -19,7 +19,12 @@ at the workflow level, since every job only reads the checkout. Four jobs:
 Runs on `ubuntu-latest` with `astral-sh/setup-uv`. Steps, in order:
 
 1. `jq empty` on `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`.
-2. Unit tests for `okf_validate.py` internals.
+2. Unit tests: `okf_validate.py` internals, the MCP server's tools and its
+   stdio spawn, and the [trust benchmark](/decisions/trust-benchmark.md)'s
+   grader, analysis, trial assembly and item selection. The benchmark ships no
+   runnable product, but its grader and its analysis decide whether a published
+   result is honest, so they sit behind the same gate as the skills. No step
+   calls an API: the runner is exercised through assembly and preflight only.
 3. Validates `examples/sample-bundle` and this repo's own `.okf` bundle, both
    `--strict` (the latter is the dogfooding check this bundle itself must pass).
 4. Self-tests: success output survives a simulated cp1252 console, a

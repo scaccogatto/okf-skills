@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import zlib
 import sys
 import tempfile
 from dataclasses import dataclass, field
@@ -203,6 +204,7 @@ class Trial:
     docs: list[Doc]
     order: list[str]  # randomised filename order (§8: directory position)
     prompt: str
+    seed: int  # the per-trial assembly seed, recorded so one row can be rebuilt
 
 
 def _render_for_arm(source_text: str, arm: str, full_frontmatter_arms: list[str]) -> str:
@@ -269,7 +271,7 @@ def render_base_prompt(today: str, question: str, instruction: str | None, order
     instruction (harness.yaml `instructions`) is appended for B1/A1 only.
 
     `order` is the randomised directory listing (§8: file order and directory
-    position of the target pair are randomised per trial) — without naming the
+    position of the target pair are randomised per trial), without naming the
     files here the model has no way to invoke read_file at all.
     """
     listing = "\n".join(f"- {name}" for name in order)
@@ -286,7 +288,21 @@ def render_base_prompt(today: str, question: str, instruction: str | None, order
     return "\n\n".join(parts)
 
 
-def assemble_trial(item: Item, other_items: list[Item], arm: str, rep: int, harness: dict, rng: random.Random) -> Trial:
+def trial_seed(run_seed: int, arm: str, item_id: str, rep: int) -> int:
+    """A stable per-trial seed derived from the run seed and the trial's identity.
+
+    A single RNG threaded through every trial would make a row reproducible only
+    by replaying the whole run in the same order. Deriving the seed from
+    (run_seed, arm, item, rep) makes each trial rebuildable on its own, which is
+    what the published transcripts need to be checkable one at a time.
+    """
+    return zlib.crc32(f"{run_seed}:{arm}:{item_id}:{rep}".encode()) & 0xFFFFFFFF
+
+
+def assemble_trial(item: Item, other_items: list[Item], arm: str, rep: int, harness: dict,
+                    rng: random.Random | None = None, run_seed: int = 0) -> Trial:
+    seed = trial_seed(run_seed, arm, item.id, rep)
+    rng = rng if rng is not None else random.Random(seed)
     full_frontmatter_arms = harness["full_frontmatter_arms"]
     today = harness["today"]
 
@@ -317,11 +333,12 @@ def assemble_trial(item: Item, other_items: list[Item], arm: str, rep: int, harn
     instruction = harness["instructions"].get(arm)
     prompt = render_base_prompt(today, item.question, instruction, order)
 
-    return Trial(item=item, arm=arm, rep=rep, root=root, docs=docs, order=order, prompt=prompt)
+    return Trial(item=item, arm=arm, rep=rep, root=root, docs=docs, order=order,
+                 prompt=prompt, seed=seed)
 
 
 # --------------------------------------------------------------------------
-# Preflight checks (§8, §10) — every one aborts the run, never warns
+# Preflight checks (§8, §10): every one aborts the run, never warns
 # --------------------------------------------------------------------------
 
 
@@ -430,6 +447,8 @@ def run_one_trial(client, harness: dict, trial: Trial) -> dict:
     from grade import extract_answer, grade
 
     request = build_request(harness, trial)
+    # The assembly seed decides which distractors were drawn and in what order,
+    # so a row without it cannot be rebuilt from the corpus alone.
     messages = list(request["messages"])
     response = None
     while True:
@@ -455,6 +474,7 @@ def run_one_trial(client, harness: dict, trial: Trial) -> dict:
         "shape": trial.item.shape,
         "arm": trial.arm,
         "rep": trial.rep,
+        "assembly_seed": trial.seed,
         "answer": answer,
         "grade": grade_result,
         "response_id": response.id,
@@ -485,11 +505,26 @@ def _completed_trials(outdir: Path) -> set[tuple[str, str, int]]:
 
 
 def phase_config(harness: dict, phase: str) -> dict:
-    config = harness[phase]
+    """Resolve a phase block, folding in the measurement plan when there is one.
+
+    Calibration is fully specified up front. Measurement is not, and deliberately
+    so (§3.6): the *rule* for picking k and n is committed before calibration and
+    the *numbers* fall out of it afterwards. `power.py` writes them to the plan
+    file, which has to exist before the measurement run starts.
+    """
+    config = dict(harness[phase])
+    plan_name = config.pop("plan", None)
+    if plan_name:
+        plan_path = TRUST_DIR / plan_name
+        if not plan_path.is_file():
+            raise PreflightError(
+                f"{phase} needs {plan_path}, which does not exist yet. Run the "
+                f"calibration phase, then power.py, before measuring (§7).")
+        plan = yaml.safe_load(plan_path.read_text(encoding="utf-8"))
+        config["repetitions"] = plan["repetitions"]
+        config["items"] = plan["items"]
     if config.get("repetitions") is None:
-        raise PreflightError(
-            f"{phase}.repetitions is null in harness.yaml: power.py has not filled this in"
-        )
+        raise PreflightError(f"{phase}.repetitions is unset and no plan supplied it")
     return config
 
 
@@ -508,7 +543,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ABORT: {exc}", file=sys.stderr)
         return 1
     outdir = TRUST_DIR / config["outdir"]
-    rng = random.Random(args.seed)
 
     planned = 0
     aborted = 0
@@ -526,13 +560,17 @@ def main(argv: list[str] | None = None) -> int:
 
         client = anthropic.Anthropic()
 
+    selected = config.get("items")
+    if selected:
+        items = [i for i in items if i.id in set(selected)]
+
     for arm in config["arms"]:
         for item in items:
             for rep in range(config["repetitions"]):
                 if (arm, item.id, rep) in done:
                     continue
                 try:
-                    trial = assemble_trial(item, items, arm, rep, harness, rng)
+                    trial = assemble_trial(item, items, arm, rep, harness, run_seed=args.seed)
                 except PreflightError as exc:
                     print(f"ABORT (assembly) {item.id} {arm} rep{rep}: {exc}", file=sys.stderr)
                     aborted += 1

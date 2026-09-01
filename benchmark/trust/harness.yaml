@@ -7,15 +7,19 @@ model: claude-opus-5
 
 # claude-opus-5 rejects `temperature`, `top_p` and `top_k` with a 400, and the
 # Messages API exposes no seed parameter. There is deliberately no sampling
-# section here — see §8, rev 4. What *is* settable and does move behaviour is
+# section here (see §8, rev 4). What *is* settable and does move behaviour is
 # pinned instead, so it cannot drift between calibration and measurement:
-effort: high            # output_config.effort — `high` is the default, stated anyway
+effort: high            # output_config.effort, `high` is the default, stated anyway
 thinking: adaptive      # on by default on claude-opus-5, stated anyway
 max_tokens: 16000
 
-# Injected "today" (§8). Must be on or after every `stale_after` in the corpus;
-# asserted at preflight. Without it the spec's `today >= stale_after` rule is
-# inert and one of the three fields under test is not tested at all.
+# Injected "today" (§8, rev 5). Sits BETWEEN the two documents of every item: on
+# or after the superseded document's `stale_after`, strictly before the
+# replacement's. Asserted per item at preflight. Without an injected date the
+# spec's `today >= stale_after` rule is inert and one of the three fields under
+# test is not tested at all; with a date past *every* `stale_after`, which is
+# what rev 4 asked for, the replacement reads stale too and the item has no
+# correct answer left to give.
 today: "2027-01-01"
 
 # Corpus delivery (§8). Distractors are documents belonging to *other* items.
@@ -56,16 +60,19 @@ measurement:
   # §3.6 fixes the *rule* before calibration and lets the *numbers* fall out of
   # it afterwards, which is what makes this legitimate rather than a placeholder:
   # k comes from the empty-cell floor (0.5^k <= 1%, so k >= 7), then n is solved
-  # for power >= 0.80 at that k. `power.py` writes them here after calibration.
-  repetitions: null
-  items: null
+  # for power >= 0.80 at that k. `power.py` applies that rule to the calibration
+  # run and writes `repetitions` and `items` into `measurement-plan.yaml`, which
+  # `run.py` then reads. The plan is a separate file so that rewriting it never
+  # touches this one: harness.yaml is the pre-registration record, and its
+  # comments are the reasoning, not decoration.
+  plan: measurement-plan.yaml
   outdir: runs/measurement
 
 analysis:
-  primary_contrast: [A1, B1]      # §3.1 — and only this one
+  primary_contrast: [A1, B1]      # §3.1, and only this one
   bootstrap_resamples: 10000      # §3.6
   ci_method: BCa
-  min_effect_pp: 15               # §3.5 — an a priori judgment, not a derivation
+  min_effect_pp: 15               # §3.5, an a priori judgment, not a derivation
   neither_cap_pp: 10              # §3.3
   max_undefined_cell_rate: 0.10   # §3.2
-  min_b0_trap_rate: 0.50          # §7 — never lowered post hoc
+  min_b0_trap_rate: 0.50          # §7, never lowered post hoc

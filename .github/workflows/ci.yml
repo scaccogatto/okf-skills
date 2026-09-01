@@ -32,6 +32,19 @@ jobs:
       - name: Unit tests — okf_backfill_events extraction
         run: uv run tests/test_okf_backfill_events.py
 
+      # The trust benchmark ships no runnable product, but its grader and its
+      # analysis decide whether a published result is honest, so they are held to
+      # the same gate as the skills. No API call is made: the runner is exercised
+      # through its assembly and preflight paths only.
+      - name: Unit tests for the trust benchmark grader and analysis
+        run: uv run benchmark/trust/tests/test_grade_analyze.py
+
+      - name: Unit tests for the trust benchmark trial assembly and preflight
+        run: uv run benchmark/trust/tests/test_run.py
+
+      - name: Unit tests for the trust benchmark item selection and power
+        run: uv run benchmark/trust/tests/test_power.py
+
       - name: Validate example bundle (strict)
         run: uv run skills/validate/scripts/okf_validate.py examples/sample-bundle --strict
 

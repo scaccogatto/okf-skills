@@ -21,6 +21,9 @@ test:
 	uv run tests/test_okf_mcp.py
 	uv run tests/test_okf_mcp_e2e.py
 	uv run tests/test_okf_backfill_events.py
+	uv run benchmark/trust/tests/test_grade_analyze.py
+	uv run benchmark/trust/tests/test_run.py
+	uv run benchmark/trust/tests/test_power.py
 
 validate:
 	uv run skills/validate/scripts/okf_validate.py examples/sample-bundle --strict
