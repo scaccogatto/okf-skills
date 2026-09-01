@@ -1,6 +1,16 @@
 # Update Log
 
 ## 2026-09-01
+* **Dogfooding**: Armed the [dormant Stop hook](/decisions/dormant-hooks.md) on
+  this repo. `.okf/index.md` now carries `upkeep: enforced`, so the plugin's own
+  hook blocks a session that changed tracked files without touching
+  `.okf/log.md`. The bundle shipping the enforcement mechanism was the one repo
+  not using it, relying instead on a maintainer's machine-level hook that no
+  contributor has.
+  Arming it surfaced a second defect: the [validator](/components/validator.md)
+  warned `§12 root index.md frontmatter may only carry \`okf_version\``, so any
+  enforced-mode bundle failed its own `--strict` run. `upkeep` is now allowed
+  next to `okf_version`.
 * **Message**: The §11.1 error now names its fix. A third-party bundle shipping
   an `AGENTS.md` next to its concepts was told only "no parseable YAML
   frontmatter block", which is true and useless to someone who never meant that

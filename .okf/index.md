@@ -1,5 +1,6 @@
 ---
 okf_version: "0.2"
+upkeep: enforced
 ---
 
 # okf-skills — documented in its own format

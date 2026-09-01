@@ -259,6 +259,13 @@ class TestCheckIndex(TmpBundle):
         r = self.run_check(check_index, "index.md", True)
         self.assertEqual((r.errors, r.warnings, r.indexes), ([], [], 1))
 
+    def test_root_upkeep_flag_is_clean(self):
+        # The Stop hook's opt-in lives here; warning on it would make every
+        # enforced-mode bundle fail its own `--strict` run.
+        self.write("index.md", "---\nokf_version: '0.2'\nupkeep: enforced\n---\n# Index\n")
+        r = self.run_check(check_index, "index.md", True)
+        self.assertEqual((r.errors, r.warnings), ([], []))
+
     def test_root_extra_keys_warn(self):
         self.write("index.md", "---\nokf_version: '0.2'\ntype: X\n---\n")
         r = self.run_check(check_index, "index.md", True)
