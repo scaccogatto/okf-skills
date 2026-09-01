@@ -34,6 +34,13 @@ Interpret the result:
 
 - **ERROR** → a hard §11 conformance failure (no parseable frontmatter, or a
   missing/empty `type`). The bundle is non-conformant. Fix every one.
+
+Only `index.md` and `log.md` are reserved: §11.1 makes *every* other `.md` in
+the tree a concept, convention files included. An `AGENTS.md` or `README.md`
+dropped next to a bundle is therefore an ERROR until it carries frontmatter with
+a `type` (`Document` reads well), which is the fix; a skip-list would put the
+checker out of conformance. Move the file above the bundle root if it is not
+knowledge.
 - **warn** → soft guidance (missing recommended field, non-ISO log date, broken
   cross-link, a malformed v0.2 family, a footnote naming no source, an actor
   that misses the §7 shapes, a computation path that resolves nowhere). Never

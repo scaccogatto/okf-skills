@@ -85,6 +85,9 @@ class TestCheckConcept(TmpBundle):
         self.write("c.md", "no frontmatter\n")
         r = self.run_check(check_concept, "c.md", self.bundle)
         self.assertIn("§11.1", r.errors[0])
+        # The message names the fix: a convention file (AGENTS.md) inside a
+        # bundle trips this and its author needs to be told what to add (#42).
+        self.assertIn("`type`", r.errors[0])
 
     def test_unterminated_frontmatter_is_error(self):
         self.write("c.md", "---\ntype: A\nbody without closing fence\n")
