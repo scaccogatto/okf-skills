@@ -1,6 +1,6 @@
 # Trust benchmark — protocol
 
-**Status:** draft, revision 4. Nothing has been run. Revisions 1, 2 and 3 were
+**Status:** draft, revision 5. Nothing has been run. Revisions 1 through 4 were
 each corrected before any run; §15 records the history.
 
 **Spec under test:** OKF **v0.2**, as vendored at `skills/okf/reference/SPEC.md`,
@@ -270,14 +270,25 @@ that something would be decided later.
 - **Base prompt** identical across all four arms, instructing the agent to answer
   only from the corpus — without it, invented values produce refusals and
   `neither` explodes.
-- **Injected current date:** a fixed "today", identical across arms, later than
-  every `stale_after` in the corpus.
+- **Injected current date:** a fixed "today", identical across arms, and placed
+  **between** the two documents of every item: on or after the superseded
+  document's `stale_after`, and strictly before the replacement's. Asserted per
+  item at preflight.
 
 That last point would otherwise have silently voided a third of the experiment.
 The spec defines staleness as **`today >= stale_after`** (§5.5): a past
 `stale_after` is inert if the model has no idea what day it is. Without an
 injected date, one of the three fields under test is not tested at all, and
 nothing in the results would reveal it.
+
+Revision 4 wrote that rule as "later than every `stale_after` in the corpus",
+which is worse than imprecise, it is unsatisfiable and self-defeating. It
+contradicts the straddling requirement two bullets above, which needs distractor
+dates on both sides of "today". And taken literally it makes the *replacement*
+stale too, so the treatment arm is told every document is out of date and the
+item has no correct answer left to give. A rule that voids the experiment it is
+meant to protect, in the very section written to stop exactly that, is worth
+recording rather than quietly correcting.
 
 ## 9. Grading
 
@@ -362,6 +373,12 @@ without this package is indefensible against "you adjusted it afterwards".
   harness section, hiding the inert-`stale_after` failure; degenerate win via
   refusal. Plus matched instructions, supersession link removed, reproducibility
   package, neutral filenames, 6×8 shapes.
+- **Rev 4 → 5.** One blocker, and it was hiding inside rev 4's own fix: §8's
+  injected-date rule ("later than every `stale_after` in the corpus") both
+  contradicted the distractor-straddling rule and marked the replacement document
+  stale, leaving the treatment arm no fresh answer. Restated as a per-item
+  sandwich, checked at preflight. Also: a trial with duplicate filenames now
+  aborts, since it would silently deliver fewer documents than the design says.
 - **Rev 3 → 4.** One blocker, found by checking §8 against the API instead of
   against memory: revision 3 froze two harness values that do not exist.
   `claude-opus-5` rejects `temperature` with a 400, and the Messages API has no

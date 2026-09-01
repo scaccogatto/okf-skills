@@ -19,7 +19,12 @@
   seed parameter, so the section written specifically to remove placeholders had
   frozen two values that do not exist. `effort` and `thinking` are pinned in
   their place, and per-trial response ids replace the seeds §13 promised to
-  publish.
+  publish. Revision 5 followed immediately, from the same habit of checking §8
+  against something: its injected-date rule ("later than every `stale_after` in
+  the corpus") contradicted the distractor-straddling rule one bullet up and
+  marked the *replacement* document stale too, leaving the treatment arm no
+  fresh answer to give. Both defects lived in the section written specifically
+  to stop that class of failure.
 * **Dogfooding**: Armed the [dormant Stop hook](/decisions/dormant-hooks.md) on
   this repo. `.okf/index.md` now carries `upkeep: enforced`, so the plugin's own
   hook blocks a session that changed tracked files without touching
