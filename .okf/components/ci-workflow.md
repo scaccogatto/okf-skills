@@ -20,7 +20,8 @@ Runs on `ubuntu-latest` with `astral-sh/setup-uv`. Steps, in order:
 
 1. `jq empty` on `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`.
 2. Unit tests: `okf_validate.py` internals, the MCP server's tools and its
-   stdio spawn, and the [trust benchmark](/decisions/trust-benchmark.md)'s
+   stdio spawn, `okf_backfill_events` extraction, and the
+   [trust benchmark](/decisions/trust-benchmark.md)'s
    grader, analysis, trial assembly and item selection. The benchmark ships no
    runnable product, but its grader and its analysis decide whether a published
    result is honest, so they sit behind the same gate as the skills. No step
