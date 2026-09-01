@@ -16,6 +16,13 @@ parses every non-reserved `.md` file and enforces the one hard rule of the
 [OKF v0.2 spec](/reference/okf-spec.md): parseable YAML frontmatter with a
 non-empty `type`.
 
+Only `index.md` and `log.md` are reserved, so a convention file sharing the
+bundle directory (an `AGENTS.md` scoping agent rules to it, a `README.md`) is a
+concept by §11.1 and errors without frontmatter. That is the spec read
+literally, not over-strictness: a skip-list or a downgrade to warning would put
+the checker out of conformance. The §11.1 error therefore names the fix: add a
+`type`, or move the file above the bundle root.
+
 # Checks beyond the hard rule
 
 All soft, all warnings: `generated.by` present when `generated` is; every

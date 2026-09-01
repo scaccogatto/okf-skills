@@ -163,7 +163,10 @@ def check_concept(path: Path, rel: str, bundle: Path, report: Report) -> None:
         return
     raw, body = split_frontmatter(text)
     if raw is None:
-        report.err(rel, "§11.1 no parseable YAML frontmatter block")
+        report.err(rel, "§11.1 no parseable YAML frontmatter block "
+                        "(every non-reserved `.md` in a bundle is a concept: add "
+                        "frontmatter with a `type` field, or move the file outside "
+                        "the bundle)")
         return
     try:
         meta = yaml.safe_load(raw)

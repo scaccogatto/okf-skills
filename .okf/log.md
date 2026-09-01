@@ -1,5 +1,14 @@
 # Update Log
 
+## 2026-09-01
+* **Message**: The §11.1 error now names its fix. A third-party bundle shipping
+  an `AGENTS.md` next to its concepts was told only "no parseable YAML
+  frontmatter block", which is true and useless to someone who never meant that
+  file as a concept. The [validator](/components/validator.md) now points at the
+  two ways out (add a `type`, or move the file outside the bundle). Exempting
+  convention filenames was rejected: §11.1 covers every non-reserved `.md` in the
+  tree, so a skip-list would make the checker itself non-conformant (v0.7.3).
+
 ## 2026-08-15
 * **Distribution**: Published the composite action to the GitHub Marketplace.
   The listing form rejected the shipped metadata — the name `Validate OKF
