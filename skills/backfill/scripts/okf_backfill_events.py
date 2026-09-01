@@ -20,7 +20,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -119,45 +119,70 @@ def normalize_ts(ts: str) -> float:
             dt = datetime.fromisoformat(ts + "T00:00:00")
         return dt.timestamp()
     except Exception:
-        # Fallback: return 0
+        print(f"Warning: could not parse timestamp {ts!r}, using epoch 0", file=sys.stderr)
         return 0.0
 
 
-def git_log(repo_dir: Path, branches: list[str]) -> list[dict]:
-    """Extract events from git log (first-parent, reverse, numstat)."""
-    events = []
+def epoch_to_iso_z(epoch: float) -> str:
+    """Format a UTC epoch as ISO8601 with a Z suffix, second precision."""
+    return datetime.fromtimestamp(epoch, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    # Determine branches to query
+
+def git_log(repo_dir: Path, branches: list[str]) -> list[dict]:
+    """Extract events from git log across one or more branches (union, first
+    branch wins on duplicate SHAs)."""
+    branches = _resolve_branches(repo_dir, branches)
     if not branches:
-        # Try to get default branch from origin/HEAD
+        return []
+
+    events = []
+    seen_shas = set()
+    for branch in branches:
+        for event in _git_log_one_branch(repo_dir, branch):
+            if event["sha"] in seen_shas:
+                continue
+            seen_shas.add(event["sha"])
+            events.append(event)
+    return events
+
+
+def _resolve_branches(repo_dir: Path, branches: list[str]) -> list[str]:
+    """Resolve the branch list to query: explicit branches, else default
+    branch from origin/HEAD, else current branch."""
+    if branches:
+        return branches
+
+    # Try to get default branch from origin/HEAD
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_dir), "symbolic-ref", "refs/remotes/origin/HEAD"],
+            capture_output=True, text=True, check=False
+        )
+        if result.returncode == 0:
+            # Typically returns "refs/remotes/origin/main" or similar
+            default_branch = result.stdout.strip().split("/")[-1]
+            branches = [default_branch]
+    except Exception:
+        pass
+
+    if not branches:
+        # Fallback to current branch
         try:
             result = subprocess.run(
-                ["git", "-C", str(repo_dir), "symbolic-ref", "refs/remotes/origin/HEAD"],
-                capture_output=True, text=True, check=False
+                ["git", "-C", str(repo_dir), "rev-parse", "--abbrev-ref", "HEAD"],
+                capture_output=True, text=True, check=True
             )
-            if result.returncode == 0:
-                # Typically returns "refs/remotes/origin/main" or similar
-                default_branch = result.stdout.strip().split("/")[-1]
-                branches = [default_branch]
+            branches = [result.stdout.strip()]
         except Exception:
-            pass
+            return []
 
-        if not branches:
-            # Fallback to current branch
-            try:
-                result = subprocess.run(
-                    ["git", "-C", str(repo_dir), "rev-parse", "--abbrev-ref", "HEAD"],
-                    capture_output=True, text=True, check=True
-                )
-                branches = [result.stdout.strip()]
-            except Exception:
-                return events
+    return branches
 
-    # Use first branch
-    if not branches:
-        return events
 
-    branch = branches[0]
+def _git_log_one_branch(repo_dir: Path, branch: str) -> list[dict]:
+    """Extract events from git log for a single branch (first-parent,
+    reverse, numstat)."""
+    events = []
 
     # Get log info and numstat separately
     try:
@@ -278,9 +303,10 @@ def sessions_from_transcripts(repo_dir: Path, sessions_dir: Optional[Path]) -> l
     if not sessions_dir.exists():
         return events
 
-    # Compute repo slug
+    # Compute repo slug and canonical path (for the cwd filter)
     repo_abs = repo_dir.resolve()
-    slug = str(repo_abs).replace("/", "-").replace(".", "-")
+    repo_str = str(repo_abs)
+    slug = repo_str.replace("/", "-").replace(".", "-")
 
     # Find session files: <slug>/*.jsonl and <slug>--*/*.jsonl
     session_globs = [
@@ -297,76 +323,96 @@ def sessions_from_transcripts(repo_dir: Path, sessions_dir: Optional[Path]) -> l
     for session_file in session_files:
         session_path = Path(session_file)
 
-        # Read JSONL
+        # Read raw lines, keeping the real 1-based line number of each record
         try:
-            lines = session_path.read_text(encoding="utf-8").strip().split("\n")
+            raw_lines = session_path.read_text(encoding="utf-8").splitlines()
         except Exception:
             continue
 
-        # Parse lines and pair user → assistant text
-        records = []
-        for line in lines:
+        records = []  # list of (lineno, dict)
+        for lineno, line in enumerate(raw_lines, start=1):
+            line = line.strip()
+            if not line:
+                continue
             try:
-                records.append(json.loads(line))
+                rec = json.loads(line)
             except Exception:
-                pass
+                continue
+            if isinstance(rec, dict):
+                records.append((lineno, rec))
 
-        # Extract turns: user message → next assistant text
+        # Title: the LAST aiTitle in the file, computed once per file (not
+        # rescanned per turn).
+        title = None
+        for _, rec in records:
+            if rec.get("type") == "ai-title" and rec.get("aiTitle"):
+                title = rec["aiTitle"]
+
+        n = len(records)
         i = 0
-        while i < len(records):
-            rec = records[i]
+        while i < n:
+            lineno, rec = records[i]
 
-            # Skip non-user messages
+            # Skip non-user messages, meta, and sidechain records
             if rec.get("type") != "user" or rec.get("isMeta") or rec.get("isSidechain"):
                 i += 1
                 continue
 
-            user_text = rec.get("text", "")
-            lineno_user = rec.get("_lineno", i)
-            ts_str = rec.get("ts", "")
+            content = (rec.get("message") or {}).get("content")
+            if isinstance(content, str):
+                user_text = content
+            elif isinstance(content, list):
+                text_blocks = [
+                    b.get("text", "") for b in content
+                    if isinstance(b, dict) and b.get("type") == "text"
+                ]
+                if not text_blocks:
+                    # e.g. tool_result-only user record: nothing to extract
+                    i += 1
+                    continue
+                user_text = "".join(text_blocks)
+            else:
+                i += 1
+                continue
 
-            # Find next assistant text (skip thinking, tool_use, etc)
+            # cwd filter: only keep records from this repo (or a worktree under it)
+            cwd = rec.get("cwd") or ""
+            if cwd != repo_str and not cwd.startswith(repo_str + "/"):
+                i += 1
+                continue
+
+            ts_str = rec.get("timestamp", "")
+            branch = rec.get("gitBranch")
+
+            # Find the outcome: scan forward to the next user record, taking
+            # the LAST non-empty text block across the assistant records
+            # in between (the turn wrap-up).
             outcome_text = ""
-            next_i = i + 1
-            while next_i < len(records):
-                next_rec = records[next_i]
+            j = i + 1
+            while j < n:
+                _, next_rec = records[j]
                 if next_rec.get("type") == "user":
-                    # Next user message found
                     break
                 if next_rec.get("type") == "assistant":
-                    # Found assistant response
-                    if next_rec.get("text"):
-                        # This is our outcome
-                        outcome_text = next_rec.get("text", "")
-                        break
-                next_i += 1
-
-            # Get title from ai-title of session
-            title = None
-            for rec_search in records:
-                if rec_search.get("ai-title"):
-                    title = rec_search.get("ai-title")
-                    break
-
-            # Try to extract branch from session data
-            branch = None
-            for rec_search in records:
-                if rec_search.get("branch"):
-                    branch = rec_search.get("branch")
-                    break
+                    acontent = (next_rec.get("message") or {}).get("content")
+                    if isinstance(acontent, list):
+                        for block in acontent:
+                            if isinstance(block, dict) and block.get("type") == "text" and block.get("text"):
+                                outcome_text = block["text"]
+                j += 1
 
             event = {
-                "id": f"session:{session_path.name}:{lineno_user}",
+                "id": f"session:{session_path.name}:{lineno}",
                 "source": "session",
                 "ts": normalize_ts(ts_str),
-                "user": user_text[:100],  # Truncate for privacy
-                "outcome": outcome_text[:100] if outcome_text else None,
+                "user": user_text,
+                "outcome": outcome_text if outcome_text else None,
                 "title": title,
                 "branch": branch,
             }
             events.append(event)
 
-            i = next_i + 1
+            i = j
 
     return events
 
@@ -397,11 +443,11 @@ def truncate_text(text: str, max_len: int = 2000) -> str:
     if len(text) <= max_len:
         return text
 
-    head_len = max(1500, max_len // 3)
-    tail_len = max_len - head_len - 5  # Reserve 5 for marker
+    head_len = max_len * 3 // 4
+    tail_len = max_len - head_len
 
     head = text[:head_len]
-    tail = text[-tail_len:]
+    tail = text[-tail_len:] if tail_len else ""
     return head + "\n[...]\n" + tail
 
 
@@ -457,6 +503,10 @@ def main():
         for key in ["subject", "body", "outcome", "user"]:
             if key in event and isinstance(event[key], str):
                 event[key] = truncate_text(event[key], args.max_text)
+
+        # Emit ts as an ISO8601 UTC string; the epoch float was only needed
+        # for sorting.
+        event["ts"] = epoch_to_iso_z(event["ts"])
 
     # Write JSONL (deterministic order)
     out_path = Path(args.out)

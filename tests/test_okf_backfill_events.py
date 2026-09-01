@@ -20,7 +20,7 @@ import os
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills" / "backfill" / "scripts"))
 from okf_backfill_events import (  # noqa: E402
     apply_skip_rules, git_log, normalize_ts, sessions_from_transcripts,
-    merge_and_sort,
+    merge_and_sort, truncate_text,
 )
 
 
@@ -120,6 +120,51 @@ class TestGitLog(unittest.TestCase):
         self.assertGreaterEqual(len(events[0]["files"]), 1)
 
 
+class TestGitLogMultiBranch(unittest.TestCase):
+    """Test --branch given multiple times: union of commits, first branch wins on dup SHAs."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+
+        subprocess.run(["git", "init", "-b", "main"], cwd=self.repo, check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=self.repo, check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.name", "Test User"], cwd=self.repo, check=True, capture_output=True)
+
+    def commit(self, filename: str, content: str, msg: str):
+        (self.repo / filename).write_text(content)
+        subprocess.run(["git", "add", filename], cwd=self.repo, check=True, capture_output=True)
+        env = os.environ.copy()
+        env["GIT_COMMITTER_DATE"] = "2026-01-15 10:00:00 +0000"
+        subprocess.run(["git", "commit", "-m", msg], cwd=self.repo, check=True, capture_output=True, env=env)
+
+    def test_union_of_two_branches_no_duplicate_shas(self):
+        self.commit("a.txt", "a", "Common commit")
+        subprocess.run(["git", "checkout", "-b", "feature"], cwd=self.repo, check=True, capture_output=True)
+        self.commit("b.txt", "b", "Feature commit")
+        subprocess.run(["git", "checkout", "main"], cwd=self.repo, check=True, capture_output=True)
+        self.commit("c.txt", "c", "Main-only commit")
+
+        events = git_log(self.repo, ["main", "feature"])
+        shas = [e["sha"] for e in events]
+        self.assertEqual(len(shas), len(set(shas)), "no duplicate SHAs across branches")
+        subjects = {e["subject"] for e in events}
+        self.assertEqual(subjects, {"Common commit", "Feature commit", "Main-only commit"})
+
+
+class TestTruncateText(unittest.TestCase):
+    def test_within_bound_for_small_max_len(self):
+        text = "x" * 5000
+        max_len = 200
+        result = truncate_text(text, max_len)
+        self.assertLessEqual(len(result), max_len + 7)
+        self.assertIn("[...]", result)
+
+    def test_short_text_untouched(self):
+        self.assertEqual(truncate_text("short", 200), "short")
+
+
 class TestSkipRules(unittest.TestCase):
     """Test event skip rules."""
 
@@ -171,61 +216,164 @@ class TestSkipRules(unittest.TestCase):
 
 
 class TestSessionExtraction(unittest.TestCase):
-    """Test session transcript extraction."""
+    """Test session transcript extraction, against the REAL transcript schema:
+    envelope with message.content, timestamp, gitBranch, isMeta, isSidechain,
+    plus standalone ai-title lines."""
+
+    REPO = "/Users/fake/repo"
+    SLUG = REPO.replace("/", "-").replace(".", "-")
 
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.sessions_dir = Path(self._tmp.name)
         self.addCleanup(self._tmp.cleanup)
 
-    def write_session_jsonl(self, subdir: str, records: list[dict]):
-        """Helper to write a session JSONL file."""
-        session_dir = self.sessions_dir / subdir
+    def write_session_jsonl(self, records: list[dict], filename: str = "session.jsonl", subdir: str = None):
+        """Helper to write a session JSONL file, defaulting to the slug dir
+        that matches self.REPO so sessions_from_transcripts finds it."""
+        session_dir = self.sessions_dir / (subdir or self.SLUG)
         session_dir.mkdir(parents=True, exist_ok=True)
-        session_file = session_dir / "session.jsonl"
+        session_file = session_dir / filename
 
         with open(session_file, "w") as f:
             for rec in records:
                 f.write(json.dumps(rec) + "\n")
 
+    @staticmethod
+    def user_rec(content, ts="2026-01-15T10:00:00.000Z", cwd=REPO, branch="main",
+                 is_meta=None, is_sidechain=False):
+        return {
+            "type": "user",
+            "timestamp": ts,
+            "cwd": cwd,
+            "gitBranch": branch,
+            "isMeta": is_meta,
+            "isSidechain": is_sidechain,
+            "message": {"role": "user", "content": content},
+        }
+
+    @staticmethod
+    def assistant_rec(text_blocks, ts="2026-01-15T10:00:05.000Z"):
+        content = [{"type": "text", "text": t} for t in text_blocks]
+        return {
+            "type": "assistant",
+            "timestamp": ts,
+            "message": {"role": "assistant", "content": content},
+        }
+
     def test_extract_user_assistant_pair(self):
         records = [
-            {
-                "type": "user",
-                "text": "What is OKF?",
-                "ts": "2026-01-15T10:00:00Z",
-                "_lineno": 0,
-            },
-            {
-                "type": "assistant",
-                "text": "OKF is an open knowledge format.",
-                "ts": "2026-01-15T10:00:05Z",
-            },
+            self.user_rec("What is OKF?"),
+            self.assistant_rec(["OKF is an open knowledge format."]),
         ]
-        self.write_session_jsonl("test-repo", records)
+        self.write_session_jsonl(records)
 
-        events = sessions_from_transcripts(Path("/fake-repo"), self.sessions_dir)
-        # Note: the slug won't match, so we might get 0 events
-        # Let's just ensure no crash
+        events = sessions_from_transcripts(Path(self.REPO), self.sessions_dir)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["user"], "What is OKF?")
+        self.assertEqual(events[0]["outcome"], "OKF is an open knowledge format.")
+        self.assertEqual(events[0]["branch"], "main")
 
-    def test_skip_meta_records(self):
+    def test_skip_meta_and_sidechain_records(self):
         records = [
-            {
-                "type": "user",
-                "text": "Question",
-                "ts": "2026-01-15T10:00:00Z",
-                "_lineno": 0,
-            },
-            {
-                "type": "user",
-                "text": "Meta message",
-                "isMeta": True,
-                "ts": "2026-01-15T10:00:01Z",
-                "_lineno": 1,
-            },
+            self.user_rec("Real question"),
+            self.assistant_rec(["Real answer"]),
+            self.user_rec("Meta message", is_meta=True),
+            self.user_rec("Sidechain message", is_sidechain=True),
         ]
-        self.write_session_jsonl("test-repo", records)
-        # Should not crash
+        self.write_session_jsonl(records)
+
+        events = sessions_from_transcripts(Path(self.REPO), self.sessions_dir)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["user"], "Real question")
+
+    def test_tool_result_only_user_excluded(self):
+        """A user record whose content is only tool_result blocks (no text)
+        must be excluded entirely, not turned into an empty-string event."""
+        records = [
+            self.user_rec("Real question"),
+            self.assistant_rec(["Real answer", ""]),
+            self.user_rec([{"type": "tool_result", "content": "some output"}]),
+        ]
+        self.write_session_jsonl(records)
+
+        events = sessions_from_transcripts(Path(self.REPO), self.sessions_dir)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["user"], "Real question")
+
+    def test_wrong_cwd_excluded(self):
+        records = [
+            self.user_rec("In repo", cwd=self.REPO),
+            self.assistant_rec(["ok"]),
+            self.user_rec("Other repo entirely", cwd="/Users/fake/other-repo"),
+            self.assistant_rec(["ok2"]),
+        ]
+        self.write_session_jsonl(records)
+
+        events = sessions_from_transcripts(Path(self.REPO), self.sessions_dir)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["user"], "In repo")
+
+    def test_worktree_cwd_included(self):
+        """cwd under <repo>/.claude/worktrees/* must still count as in-repo."""
+        records = [
+            self.user_rec("From a worktree", cwd=self.REPO + "/.claude/worktrees/foo"),
+            self.assistant_rec(["ok"]),
+        ]
+        self.write_session_jsonl(records)
+
+        events = sessions_from_transcripts(Path(self.REPO), self.sessions_dir)
+        self.assertEqual(len(events), 1)
+
+    def test_last_text_block_is_outcome(self):
+        """Outcome must be the LAST non-empty text block across all assistant
+        records before the next user record (the turn wrap-up), not the first."""
+        records = [
+            self.user_rec("Do a thing"),
+            self.assistant_rec(["I'll start by looking at the files."]),
+            self.assistant_rec(["Here's the final wrap-up."]),
+        ]
+        self.write_session_jsonl(records)
+
+        events = sessions_from_transcripts(Path(self.REPO), self.sessions_dir)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["outcome"], "Here's the final wrap-up.")
+
+    def test_real_line_numbers_in_ids(self):
+        """Event ids must use the true 1-based line number of the user
+        record in the file, including non-user/junk lines interspersed."""
+        records = [
+            {"type": "mode", "mode": "normal"},
+            self.user_rec("First"),
+            self.assistant_rec(["ok1"]),
+            {"type": "system", "subtype": "noise"},
+            self.user_rec("Second"),
+            self.assistant_rec(["ok2"]),
+        ]
+        self.write_session_jsonl(records, filename="session.jsonl")
+
+        events = sessions_from_transcripts(Path(self.REPO), self.sessions_dir)
+        self.assertEqual(len(events), 2)
+        # "First" is on line 2 (1-based), "Second" is on line 5
+        self.assertEqual(events[0]["id"], "session:session.jsonl:2")
+        self.assertEqual(events[1]["id"], "session:session.jsonl:5")
+
+    def test_title_is_last_ai_title_in_file(self):
+        records = [
+            self.user_rec("Q1"),
+            self.assistant_rec(["A1"]),
+            {"type": "ai-title", "aiTitle": "First title"},
+            self.user_rec("Q2"),
+            self.assistant_rec(["A2"]),
+            {"type": "ai-title", "aiTitle": "Final title"},
+        ]
+        self.write_session_jsonl(records)
+
+        events = sessions_from_transcripts(Path(self.REPO), self.sessions_dir)
+        self.assertEqual(len(events), 2)
+        # Both turns get the last aiTitle in the whole file
+        self.assertEqual(events[0]["title"], "Final title")
+        self.assertEqual(events[1]["title"], "Final title")
 
 
 class TestMergeAndSort(unittest.TestCase):
@@ -256,6 +404,46 @@ class TestMergeAndSort(unittest.TestCase):
         # Git comes first when ts is equal
         self.assertEqual(merged[0]["source"], "git")
         self.assertEqual(merged[1]["source"], "session")
+
+
+SCRIPT_ROOT = str(Path(__file__).resolve().parents[1])
+
+
+class TestTsFormat(unittest.TestCase):
+    """Output ts must be an ISO8601 UTC string ending in Z, not an epoch float."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+
+        subprocess.run(["git", "init"], cwd=self.repo, check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=self.repo, check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.name", "Test User"], cwd=self.repo, check=True, capture_output=True)
+        (self.repo / "file.txt").write_text("content")
+        subprocess.run(["git", "add", "file.txt"], cwd=self.repo, check=True, capture_output=True)
+        env = os.environ.copy()
+        env["GIT_AUTHOR_DATE"] = "2026-01-15 10:00:00 +0100"
+        env["GIT_COMMITTER_DATE"] = "2026-01-15 10:00:00 +0100"
+        subprocess.run(["git", "commit", "-m", "Test commit"], cwd=self.repo, check=True, capture_output=True, env=env)
+
+    def test_ts_ends_with_z(self):
+        out = Path(tempfile.gettempdir()) / "events_ts_format.jsonl"
+        try:
+            subprocess.run(
+                ["uv", "run", "skills/backfill/scripts/okf_backfill_events.py",
+                 str(self.repo), "--out", str(out), "--no-sessions"],
+                cwd=SCRIPT_ROOT, check=True, capture_output=True,
+            )
+            lines = out.read_text().strip().split("\n")
+            self.assertEqual(len(lines), 1)
+            event = json.loads(lines[0])
+            self.assertTrue(event["ts"].endswith("Z"), event["ts"])
+            # Local offset +01:00 in the commit must be normalized to UTC:
+            # 10:00 +01:00 == 09:00 Z
+            self.assertEqual(event["ts"], "2026-01-15T09:00:00Z")
+        finally:
+            out.unlink(missing_ok=True)
 
 
 class TestDeterminism(unittest.TestCase):

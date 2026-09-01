@@ -44,6 +44,17 @@
   two ways out (add a `type`, or move the file outside the bundle). Exempting
   convention filenames was rejected: §11.1 covers every non-reserved `.md` in the
   tree, so a skip-list would make the checker itself non-conformant (v0.7.3).
+* **Bugfix**: The backfill skill's session-transcript extractor
+  (`skills/backfill/scripts/okf_backfill_events.py`) was written against an
+  invented transcript schema and its tests matched the bug instead of real
+  files. Rewrote `sessions_from_transcripts` against the real envelope
+  (`message.content`, `timestamp`, `gitBranch`, `aiTitle`), added the missing
+  `cwd` filter, fixed outcome pairing to take the last assistant text block
+  per turn, used real 1-based line numbers in event ids, fixed
+  `truncate_text`'s bound and multi-`--branch` union/dedup, and switched
+  output `ts` to ISO8601 UTC (`...Z`). Tests rewritten against the real
+  schema; dogfooded on this repo: 148 events (44 git, 104 session),
+  byte-identical across two runs.
 
 * **MCP server**: added [`okf_mcp.py`](/components/mcp-server.md), a read-only
   stdio server over a bundle (`search_concepts`, `read_concept`, `get_neighbors`),
