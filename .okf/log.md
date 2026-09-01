@@ -1,6 +1,18 @@
 # Update Log
 
 ## 2026-09-01
+* **Trust benchmark, the corpus**: the 48 candidates of §6 are authored — six
+  supersession shapes (limit changed, default flipped, renamed identifier,
+  reversed recommendation, removed capability, changed precedence), eight items
+  each, over invented systems so no answer can come from pretraining. Every pair
+  obeys §4 by construction: the superseded document is the *more* attractive
+  answer (longer, more specific on the fact under test, in the question's exact
+  terminology) and the replacement mentions the fact in passing, so the only
+  signal separating them is the frontmatter. 192/192 calibration trials pass
+  preflight, which also caught the one authoring defect worth recording: an item
+  whose question named both candidate answers, i.e. leaked the contrast into a
+  channel present in every arm. Still nothing has been run — the runner needs
+  Anthropic API credentials this environment does not have.
 * **Fix**: [backfill](/skills/backfill.md) `repo_slug()` now maps every
   non-alphanumeric character to a dash, matching Claude Code's real transcript
   dir naming (`p-045_ekar_skills` -> `p-045-ekar-skills`); underscores in the
