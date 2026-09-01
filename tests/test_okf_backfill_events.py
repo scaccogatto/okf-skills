@@ -20,7 +20,7 @@ import os
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills" / "backfill" / "scripts"))
 from okf_backfill_events import (  # noqa: E402
     apply_skip_rules, git_log, normalize_ts, repo_slug,
-    sessions_from_transcripts, merge_and_sort, truncate_text,
+    sessions_from_transcripts, merge_and_sort, truncate_text, check_coverage,
 )
 
 
@@ -532,6 +532,109 @@ class TestDeterminism(unittest.TestCase):
         finally:
             out1.unlink(missing_ok=True)
             out2.unlink(missing_ok=True)
+
+
+class TestCheckCoverage(unittest.TestCase):
+    """Test --check-coverage mode: verify all live events are mapped in bundle."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.scratch = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+
+    def write_events(self, events: list[dict], filename: str = "events.jsonl") -> Path:
+        """Write events to a JSONL file."""
+        events_file = self.scratch / filename
+        with open(events_file, "w") as f:
+            for event in events:
+                f.write(json.dumps(event) + "\n")
+        return events_file
+
+    def write_bundle(self, concepts: dict[str, str]) -> Path:
+        """Write a minimal bundle with given concepts.
+
+        concepts: dict of {filename: content}
+        """
+        bundle_dir = self.scratch / "bundle"
+        bundle_dir.mkdir(exist_ok=True)
+        for fname, content in concepts.items():
+            fpath = bundle_dir / fname
+            fpath.parent.mkdir(parents=True, exist_ok=True)
+            fpath.write_text(content)
+        return bundle_dir
+
+    def test_all_git_events_mapped_by_sha(self):
+        """All live git events must be found by full or short sha in bundle."""
+        events = [
+            {"id": "git:abc1234567890", "source": "git", "skip": None},
+            {"id": "git:def9876543210", "source": "git", "skip": None},
+        ]
+        events_file = self.write_events(events)
+        bundle = self.write_bundle({
+            "concept1.md": "sources:\n  - resource: git:abc1234567890\n",
+            "concept2.md": "def98765",  # Short sha should match
+        })
+
+        unmapped = check_coverage(events_file, bundle)
+        self.assertEqual(unmapped, [])
+
+    def test_unmapped_git_events_listed(self):
+        """Unmapped git events are returned and cause exit 1."""
+        events = [
+            {"id": "git:abc1234567890", "source": "git"},
+            {"id": "git:def9876543210", "source": "git"},
+        ]
+        events_file = self.write_events(events)
+        bundle = self.write_bundle({
+            "concept1.md": "sources:\n  - resource: git:abc1234567890\n",
+        })
+
+        unmapped = check_coverage(events_file, bundle)
+        self.assertEqual(unmapped, ["git:def9876543210"])
+
+    def test_skipped_events_ignored(self):
+        """Events with 'skip' field must be ignored (not checked)."""
+        events = [
+            {"id": "git:abc1234567890", "source": "git"},
+            {"id": "git:def9876543210", "source": "git", "skip": "merge-no-files"},
+        ]
+        events_file = self.write_events(events)
+        bundle = self.write_bundle({
+            "concept1.md": "abc1234",  # Only first event is in bundle
+        })
+
+        unmapped = check_coverage(events_file, bundle)
+        # Second event should not be listed even though it's unmapped
+        self.assertEqual(unmapped, [])
+
+    def test_session_events_by_literal_id(self):
+        """Session events must be found by their literal id (with colons)."""
+        events = [
+            {"id": "session:file.jsonl:42", "source": "session"},
+            {"id": "session:file.jsonl:99", "source": "session"},
+        ]
+        events_file = self.write_events(events)
+        bundle = self.write_bundle({
+            "concept1.md": "sources:\n  - resource: session:file.jsonl:42\n",
+        })
+
+        unmapped = check_coverage(events_file, bundle)
+        self.assertEqual(unmapped, ["session:file.jsonl:99"])
+
+    def test_mixed_git_and_session_events(self):
+        """Coverage check handles a mix of git and session events."""
+        events = [
+            {"id": "git:abc1234567890", "source": "git"},
+            {"id": "session:file.jsonl:42", "source": "session"},
+            {"id": "git:def9876543210", "source": "git"},
+        ]
+        events_file = self.write_events(events)
+        bundle = self.write_bundle({
+            "concept1.md": "abc1234\nsession:file.jsonl:42",
+        })
+
+        unmapped = check_coverage(events_file, bundle)
+        self.assertEqual(unmapped, ["git:def9876543210"])
 
 
 if __name__ == "__main__":
