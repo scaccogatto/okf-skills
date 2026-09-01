@@ -8,8 +8,8 @@
 `test_okf_mcp.py` dispatches tools in-process, so it never touches the two things
 that decide whether the plugin actually works for a user: the stdio transport,
 and the command in `.mcp.json`. This one spawns the server exactly as Claude Code
-would — the command and args are read from `.mcp.json`, not restated here, so a
-typo in the wiring fails the build — and drives it with the SDK's own client.
+would (the command and args are read from `.mcp.json`, not restated here, so a
+typo in the wiring fails the build), and drives it with the SDK's own client.
 
 The bundle under test is this repository's own `.okf/`, reached the way the
 shipped config reaches it: no argument, cwd at the plugin root.

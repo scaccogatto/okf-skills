@@ -3,7 +3,7 @@
 # requires-python = ">=3.11"
 # dependencies = ["mcp>=2", "pyyaml>=6"]
 # ///
-"""Unit tests for okf_mcp.py — the read-only MCP server (issue #41).
+"""Unit tests for okf_mcp.py, the read-only MCP server (issue #41).
 
 Tools are exercised through FastMCP's own dispatch, so a rename or a signature
 that the SDK cannot expose fails here rather than at connect time.

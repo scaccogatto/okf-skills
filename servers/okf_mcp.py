@@ -8,7 +8,7 @@
 Three tools, the shape every other OKF toolkit converged on:
 `search_concepts`, `read_concept`, `get_neighbors`. Nothing writes.
 
-For an agent that already has file tools this duplicates Grep and Read — that
+For an agent that already has file tools this duplicates Grep and Read, which
 is the whole reason the July 2026 map declined to build it. It ships anyway for
 category parity, and the reasoning is recorded verbatim in
 `.okf/decisions/mcp-server.md` rather than left to be rediscovered.
@@ -88,7 +88,7 @@ def source_resources(meta: dict):
 def concepts(bundle: Path):
     """Every non-reserved concept, as (id, path, meta, body)."""
     if not bundle.is_dir():
-        raise ToolError(f"no OKF bundle at {bundle} — set OKF_BUNDLE to one")
+        raise ToolError(f"no OKF bundle at {bundle}; set OKF_BUNDLE to one")
     for p in sorted(bundle.rglob("*.md")):
         if not p.is_file() or p.name in RESERVED:
             continue

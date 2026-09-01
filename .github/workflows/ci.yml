@@ -24,10 +24,10 @@ jobs:
       - name: Unit tests — okf_validate internals
         run: uv run tests/test_okf_validate.py
 
-      - name: Unit tests — okf_mcp server tools
+      - name: Unit tests for the okf_mcp server tools
         run: uv run tests/test_okf_mcp.py
 
-      - name: End-to-end — spawn the MCP server from .mcp.json over stdio
+      - name: End-to-end spawn of the MCP server from .mcp.json over stdio
         run: uv run tests/test_okf_mcp_e2e.py
 
       - name: Validate example bundle (strict)
@@ -284,7 +284,7 @@ jobs:
       - name: Unit tests — okf_validate internals
         run: uv run tests/test_okf_validate.py
 
-      - name: Unit tests — okf_mcp server tools
+      - name: Unit tests for the okf_mcp server tools
         run: uv run tests/test_okf_mcp.py
 
       - name: Validate example bundle (strict, native cp1252 console)

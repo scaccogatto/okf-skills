@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: Ship a read-only MCP server, for parity and not for capability
-description: The July 2026 "no MCP" call, re-read against a category that converged on one — reversed on positioning, with the original argument left intact.
+description: The July 2026 "no MCP" call, re-read against a category that converged on one: reversed on positioning, with the original argument left intact.
 tags: [adr, ecosystem, mcp]
 status: stable
 generated: { by: "agent:claude-opus-5", at: "2026-09-01T00:00:00Z" }
@@ -35,7 +35,7 @@ server within a month:
 
 None of that touches the audience clause, and none of it is a user need. The
 falsifying cases would be a bundle the agent has no checkout of, a team bundle
-fronted by a service, or a host with no file tools at all — the first is the only
+fronted by a service, or a host with no file tools at all. The first is the only
 one inside this project's perimeter, and it does not come up in practice
 (`git clone` answers it).
 
@@ -52,7 +52,7 @@ Scope is the minimum that buys parity:
   `search_concepts`, `read_concept`, `get_neighbors`.
 * Wired into the plugin by `.mcp.json` at the plugin root; bundle from `$OKF_BUNDLE`,
   a CLI argument, or `./.okf`.
-* A missing bundle is a readable tool error, not a startup failure — the plugin
+* A missing bundle is a readable tool error, not a startup failure: the plugin
   installs into projects that have no bundle yet.
 
 # Consequences

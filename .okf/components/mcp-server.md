@@ -1,7 +1,7 @@
 ---
 type: Tool
 title: okf_mcp.py
-description: Read-only MCP server over a bundle — search_concepts, read_concept, get_neighbors.
+description: Read-only MCP server over a bundle: search_concepts, read_concept, get_neighbors.
 resource: https://github.com/scaccogatto/okf-skills/blob/main/servers/okf_mcp.py
 tags: [python, mcp, consumer]
 status: stable
@@ -26,7 +26,7 @@ that have no bundle.
 |---|---|
 | `search_concepts(query, limit=20)` | Cards (`id`, `type`, `title`, `description`, `status`, `stale_after`) for concepts matching `query`, case-insensitively. Metadata hits (id, title, description, tags) rank above body-only hits. |
 | `read_concept(concept_id)` | The file verbatim, frontmatter included. `concept_id` is the bundle-relative path without `.md`; the reserved `index` and `log` are reachable too. |
-| `get_neighbors(concept_id)` | `outgoing` and `incoming` cards — markdown links plus bundle-internal `sources[].resource`, resolved with the same rule as the [visualizer](/components/visualizer.md). External URLs are not neighbours. |
+| `get_neighbors(concept_id)` | `outgoing` and `incoming` cards, from markdown links plus bundle-internal `sources[].resource`, resolved with the same rule as the [visualizer](/components/visualizer.md). External URLs are not neighbours. |
 
 Nothing writes, and no tool takes a path outside the bundle: `concept_id` is
 resolved and rejected unless it lands under the bundle root.

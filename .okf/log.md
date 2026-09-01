@@ -4,7 +4,7 @@
 * **MCP server**: added [`okf_mcp.py`](/components/mcp-server.md), a read-only
   stdio server over a bundle (`search_concepts`, `read_concept`, `get_neighbors`),
   wired into the plugin by `.mcp.json`. It reverses the July 2026 "no MCP" call on
-  positioning grounds only — the original audience argument is intact and recorded
+  positioning grounds only; the original audience argument is intact and recorded
   in the [MCP server decision](/decisions/mcp-server.md). Plugin 0.7.2 → 0.8.0.
 
 ## 2026-08-15
