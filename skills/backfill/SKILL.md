@@ -28,14 +28,15 @@ Git commits and session turns become events (JSONL, one per line, sorted by
 timestamp then source):
 
 ```json
-{"id":"git:<sha>","source":"git","ts":<epoch>,"sha":"...","author":"...","subject":"...","body":"...","files":[{"path":"...","add":N,"del":N}]}
-{"id":"session:<file>:<lineno>","source":"session","ts":<epoch>,"user":"...","outcome":"...","title":"...","branch":"...","skip":"..."}
+{"id":"git:<sha>","source":"git","ts":"<ISO8601 Z>","sha":"...","author":"...","subject":"...","body":"...","files":[{"path":"...","add":N,"del":N}]}
+{"id":"session:<file>:<lineno>","source":"session","ts":"<ISO8601 Z>","user":"...","outcome":"...","title":"...","branch":"...","skip":"..."}
 ```
 
 - **Git events** come from `git log --first-parent --numstat`.
-- **Session events** pair user message → next assistant text, extracted from
+- **Session events** pair each user message with the **last** assistant text
+  block of that turn (the wrap-up), extracted from
   `~/.claude/projects/<repo-slug>/*.jsonl` and worktree subdirs.
-- **Timestamps** are normalized to UTC epoch (floats).
+- **Timestamps** are normalized to UTC ISO 8601 strings ending in `Z`.
 - **Skip field** (optional, added by extraction): marks low-signal events —
   see §3, never overridden by replay.
 
@@ -130,10 +131,11 @@ On crash/resume, the loop restarts from `last_id`; events before it are skipped.
 
 ### Finalize: validate and clean up
 
-1. **Generate `index.md` per directory:**
-   ```bash
-   uv run "${CLAUDE_SKILL_DIR}/../okf/scripts/okf_init.py" .okf --force --index-only
-   ```
+1. **Write `index.md` per directory by hand** (do NOT run `okf_init.py` — it
+   would scaffold placeholder files): one `# Section` per directory, one
+   bullet per concept, `* [Title](file.md) - description` taken from each
+   concept's frontmatter (SPEC §8). The root `index.md` keeps its
+   `okf_version: "0.2"` frontmatter and links every subdirectory.
 
 2. **Add final log entry** (today's date):
    ```

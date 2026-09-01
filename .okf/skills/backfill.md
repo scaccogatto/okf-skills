@@ -5,7 +5,7 @@ description: Reconstruct an OKF bundle from git history and session transcripts 
 resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/backfill/SKILL.md
 tags: [skill, bundle-reconstruction, history, event-sourcing]
 status: stable
-generated: { by: okf-backfill/0.1, at: "2026-09-01T00:00:00Z" }
+generated: { by: claude/fable-5, at: "2026-09-01T12:00:00Z" }
 sources:
   - id: spec-§5.2
     resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/okf/reference/SPEC.md#52-trust-generated-and-verified
@@ -16,7 +16,7 @@ sources:
 
 Replays a repository's decision history — git commits and Claude session
 transcripts — to reconstruct its OKF bundle as if the [stop hook](/components/stop-hook.md)
-had been active from the start. Extracts events deterministicly (same repo →
+had been active from the start. Extracts events deterministically (same repo →
 byte-identical stream); replays via LLM interpretation with drift-aware metadata.
 
 The skill bridges the gap for repos created before OKF adoption: instead of
@@ -36,8 +36,9 @@ decided, why, and when.
 # Key behaviors
 
 - **Deterministic extraction**: git (first-parent, reverse, numstat) and session
-  turn pairing (user → next assistant text) produce byte-identical events.jsonl.
-- **Skip rules**: four types of events are marked as low-signal and skipped during
+  turn pairing (user → last assistant text of the turn) produce byte-identical
+  events.jsonl.
+- **Skip rules**: three kinds of events are marked as low-signal and skipped during
   replay — lockfile-only commits, merge-only commits, slash-command chatter.
   Rules are explicit and unit-tested; no LLM discretion over what counts.
 - **Trust metadata**: concepts inherit `generated.by: okf-backfill/0.1` (not
