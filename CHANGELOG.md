@@ -28,6 +28,21 @@ OKF spec version it supports.
   new one, so the set of required status checks does not change, and both take
   that job's `skip-version-check` label as their bypass.
 
+### Docs
+- **Every documented claim re-checked against the code it describes**, across
+  the three shipped `SKILL.md` files. Five were wrong rather than stale:
+  `--strict` was documented as never blocking on warnings, beside two commands
+  that pass `--strict` (it exits 1 on any warning); the visualizer's bundle
+  argument was documented as optional and is a required positional; nodes were
+  documented as sized by type and are sized by body length; "no data leaves the
+  page" omitted the three CDN libraries the rendered page loads at view time
+  (bundle content does stay local, the viewer still needs network). `validate`
+  now also lists the checks it had omitted (unreadable UTF-8, a missing
+  `runtime`, frontmatter in a reserved file, §12), `okf` documents
+  `usage_window`, and `visualize` gains a full flag table and the deep-link
+  parameters. Two shipped assets had no concept in this repo's own bundle and
+  now do: `ci.yml` and `action.yml`.
+
 ## [0.7.3] — 2026-09-01
 
 ### Fixed
