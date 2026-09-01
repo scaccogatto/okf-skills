@@ -42,6 +42,17 @@ A bundle turns this on by adding `upkeep: enforced` to `.okf/index.md`'s
 frontmatter. A user force-disables it regardless of bundle settings by
 setting `OKF_HOOK=off` in their environment.
 
+# The CI mirror
+
+The hook only reaches people running the plugin. A contributor sending a PR from
+a plain checkout gets nothing from it, so the same two obligations are enforced
+again in `ci.yml`'s `version-bump` job, on the PR diff rather than on the working
+tree: a PR touching `skills/*/scripts/**` or `hooks/**` must also touch `.okf/`,
+and a PR that bumps the plugin version must add the matching `## [version]`
+heading to `CHANGELOG.md`. Both share the job's `skip-version-check` label as the
+bypass, and both live as steps inside that job rather than as new jobs, so the
+set of required status checks does not change.
+
 # Known limits
 
 * Gate 5 counts any *tracked* modification, not just this session's — a tree

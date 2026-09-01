@@ -11,6 +11,13 @@
   warned `§12 root index.md frontmatter may only carry \`okf_version\``, so any
   enforced-mode bundle failed its own `--strict` run. `upkeep` is now allowed
   next to `okf_version`.
+* **Enforcement**: Mirrored the [Stop hook](/components/stop-hook.md)'s two
+  obligations into CI, as steps on the existing `version-bump` job. A PR that
+  touches `skills/*/scripts/**` or `hooks/**` must also touch `.okf/`, and a PR
+  that bumps the version must add the matching `CHANGELOG.md` heading. The hook
+  only reaches people running the plugin; a contributor on a plain checkout had
+  no obligation at all, which is how the changelog drifted three releases behind
+  `plugin.json` unnoticed.
 * **Message**: The §11.1 error now names its fix. A third-party bundle shipping
   an `AGENTS.md` next to its concepts was told only "no parseable YAML
   frontmatter block", which is true and useless to someone who never meant that
