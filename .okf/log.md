@@ -79,9 +79,9 @@
   cursor-based resume-safe replay loop. Bumped version to 0.9.0.
 
 * **Backfill enhancement**: Deep semantic replay via dedicated agents. New
-  [`okf:event-analyzer`](/agents/event-analyzer.md) (map phase, parallel)
+  `agents/event-analyzer.md` (map phase, parallel)
   extracts domain rationale from git diffs and session outcomes. New
-  [`okf:bundle-weaver`](/agents/bundle-weaver.md) (reduce phase, sequential)
+  `agents/bundle-weaver.md` (reduce phase, sequential)
   folds analyses into the bundle while enforcing anti-degeneration rules
   (entity-based naming, kebab-case, intent-driven log). Finalize now includes
   deterministic `--check-coverage` to guarantee every live event is mapped in

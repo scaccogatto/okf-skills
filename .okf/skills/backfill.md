@@ -30,10 +30,10 @@ decided, why, and when.
    sessions.
 3. **Bootstrap** (fresh only): initialize `.okf/index.md` and `log.md`.
 4. **Replay** (two-phase):
-   - **Map** (parallel): [`okf:event-analyzer`](/agents/event-analyzer.md)
+   - **Map** (parallel): `agents/event-analyzer.md`
      reads each commit diff or session turn to extract domain rationale and
      candidate concept names; outputs `analyses/<event-id>.md`.
-   - **Reduce** (sequential): [`okf:bundle-weaver`](/agents/bundle-weaver.md)
+   - **Reduce** (sequential): `agents/bundle-weaver.md`
      folds analyses into the bundle in chronological order, enforcing
      anti-degeneration rules and managing cursor state.
 5. **Finalize**: generate directory indices, validate, check coverage, and clean up.
