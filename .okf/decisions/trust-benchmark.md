@@ -56,6 +56,14 @@ adversarial review before being cleared as executable.
   positive result demonstrates a **mechanism** — the consumer uses the channel
   when it exists — and does not estimate what trust metadata is worth in a real
   corpus. The writeup must lead with that, not bury it.
+* A pre-registration can only freeze parameters that exist. Revision 3 froze
+  `temperature: 1.0` and "seeds recorded per trial" as the concrete values that
+  were supposed to remove the section's placeholders — but `claude-opus-5`
+  rejects `temperature` with a 400, and the Messages API has no seed parameter at
+  all. Checking §8 against the API instead of against memory is now part of
+  clearing a revision, because the tag would have frozen an impossible
+  configuration and the reproducibility package would have promised seeds it
+  could never publish.
 * Two questions are left open and named rather than quietly avoided: whether a
   supersession *link* would beat the trust fields (v0.2 defines no such field, so
   that would be a gap in the spec), and whether read-side metadata beats a

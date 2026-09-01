@@ -1,0 +1,25 @@
+# One item = one fact, stated differently by two documents.
+#
+# `filename` is what the document is called in the delivered trial directory.
+# §6 requires those names to be neutral and non-orderable: they must not let a
+# model rank the pair without reading the frontmatter. Revision 1 of the protocol
+# used `<topic>-<successor>.md` and leaked the succession through a channel
+# present in *every* arm, control included.
+#
+# `superseded` / `current` are authoring labels. They never reach the model.
+
+id: limit-changed-01
+shape: limit-changed
+
+question: >-
+  What is the maximum payload size a single Halyard relay frame may carry?
+
+f_old: "384 KiB"
+f_new: "112 KiB"
+
+superseded:
+  source: superseded.md
+  filename: halyard-frame-payload.md
+current:
+  source: current.md
+  filename: relay-transport-notes.md

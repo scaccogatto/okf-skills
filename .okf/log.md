@@ -11,6 +11,15 @@
   the tests use a real resolvable temp path plus a `__file__`-derived cwd
   instead of a hardcoded machine-local worktree path (which broke CI on both
   runners).
+* **Trust benchmark, revision 4 and the first executable pieces**: the
+  [protocol](/decisions/trust-benchmark.md) gained a harness, a grader, an
+  analysis script and a frozen item format; still nothing has been run. The
+  revision was forced by checking §8 against the API rather than against memory:
+  `claude-opus-5` rejects `temperature` with a 400 and the Messages API has no
+  seed parameter, so the section written specifically to remove placeholders had
+  frozen two values that do not exist. `effort` and `thinking` are pinned in
+  their place, and per-trial response ids replace the seeds §13 promised to
+  publish.
 * **Dogfooding**: Armed the [dormant Stop hook](/decisions/dormant-hooks.md) on
   this repo. `.okf/index.md` now carries `upkeep: enforced`, so the plugin's own
   hook blocks a session that changed tracked files without touching
@@ -70,13 +79,24 @@
   stdio server over a bundle (`search_concepts`, `read_concept`, `get_neighbors`),
   wired into the plugin by `.mcp.json`. It reverses the July 2026 "no MCP" call on
   positioning grounds only; the original audience argument is intact and recorded
-  in the [MCP server decision](/decisions/mcp-server.md). Plugin 0.7.4 to 0.8.0.* **Skill**: Shipped the `backfill` skill — event-sourcing reconstruction of OKF
+  in the [MCP server decision](/decisions/mcp-server.md). Plugin 0.7.4 to 0.8.0.
+* **Skill**: Shipped the `backfill` skill, event-sourcing reconstruction of OKF
   bundles from git history and Claude session transcripts. Extracts events
-  deterministically (same repo → byte-identical events.jsonl); replays via LLM
+  deterministically (same repo -> byte-identical events.jsonl); replays via LLM
   interpretation with drift-aware metadata. Designed for repos created before OKF
   adoption to capture their actual decision narrative. Includes a deterministic
   skip-rule classifier (lockfiles, merge-only commits, slash-command noise) and
   cursor-based resume-safe replay loop. Bumped version to 0.9.0.
+
+## 2026-08-16
+* **Benchmark returns, measuring something else**: `benchmark/trust/` adds a
+  protocol for the one claim the spec leads with and nobody has tested —
+  trustability. See [the decision](/decisions/trust-benchmark.md) for why this is
+  not what #32 removed. Nothing has been run; the protocol was rejected twice in
+  adversarial review (an underpowered criterion, a grader that broke on the most
+  likely answer shape, a power analysis whose input did not exist in its own
+  calibration data, and a metric undefined exactly where the treatment arm
+  concentrates refusals) before being cleared as executable.
 
 ## 2026-08-15
 * **Distribution**: Published the composite action to the GitHub Marketplace.
@@ -188,16 +208,6 @@
   large bundles to a linear layout, warns past 5k concepts, batches/debounces
   filtering, and gains `--max-nodes` — see the
   [scale guardrails decision](/decisions/scale-guardrails.md).
-
-## 2026-08-16
-* **Benchmark returns, measuring something else**: `benchmark/trust/` adds a
-  protocol for the one claim the spec leads with and nobody has tested —
-  trustability. See [the decision](/decisions/trust-benchmark.md) for why this is
-  not what #32 removed. Nothing has been run; the protocol was rejected twice in
-  adversarial review (an underpowered criterion, a grader that broke on the most
-  likely answer shape, a power analysis whose input did not exist in its own
-  calibration data, and a metric undefined exactly where the treatment arm
-  concentrates refusals) before being cleared as executable.
 
 ## 2026-06-28
 * **Creation**: Documented okf-skills in its own format — the three

@@ -1,7 +1,7 @@
 # Trust benchmark — protocol
 
-**Status:** draft, revision 3. Nothing has been run. Revisions 1 and 2 were
-rejected in adversarial review; §15 records the history.
+**Status:** draft, revision 4. Nothing has been run. Revisions 1, 2 and 3 were
+each corrected before any run; §15 records the history.
 
 **Spec under test:** OKF **v0.2**, as vendored at `skills/okf/reference/SPEC.md`,
 okf-skills commit `c68f9f2` (2026-07-27). Every spec claim below is checkable
@@ -238,9 +238,22 @@ that something would be decided later.
 
 - **Model:** `claude-opus-5`, version string recorded per trial; named in the
   writeup, not anonymised.
-- **Temperature:** 1.0, the deployment default. **Not 0** — the quantity being
-  measured is a *rate* over the model's answer distribution, and near-deterministic
-  sampling would make repetitions redundant. Seeds recorded per trial.
+- **Sampling: not configurable, and that is the correct condition.** `claude-opus-5`
+  rejects `temperature`, `top_p` and `top_k` with a 400; the Messages API exposes
+  no seed parameter on any model. Revision 3 specified "temperature 1.0" and
+  "seeds recorded per trial" — neither is implementable, and a pre-registration
+  freezing two impossible values would have been discovered at the first API call,
+  after the tag. What the removed knobs were there to guarantee still holds: the
+  quantity measured is a *rate* over the model's answer distribution, and the
+  deployment default is not near-deterministic, so repetitions are not redundant.
+- **Frozen instead, because these do change behaviour and are settable:**
+  `output_config.effort` and the `thinking` configuration, pinned in `harness.yaml`
+  and identical across arms. Leaving `effort` implicit would let its default drift
+  between the calibration and measurement runs without a diff to show for it.
+- **Reproducibility is statistical, not bit-exact,** and the protocol says so
+  rather than promising a determinism the API does not offer. Recorded per trial:
+  the response `id`, the resolved model version string, `usage`, and the full
+  request body.
 - **Corpus delivery:** each trial exposes a directory containing the item's two
   documents plus **6 distractor documents** drawn from other items, read through
   a file-read tool. File order and directory position randomised per trial.
@@ -332,7 +345,8 @@ without this package is indefensible against "you adjusted it afterwards".
 - Protocol, item set, `harness.yaml`, power formula and analysis script are
   **committed and tagged before the measurement run begins**.
 - Published with the result, favourable or not: the full corpus, the questions,
-  the grader, every transcript, and the seeds.
+  the grader, and every transcript with its per-trial response `id`, model
+  version string and request body (§8 — there are no seeds to publish).
 
 ## 14. Open questions this protocol does not answer
 
@@ -348,6 +362,14 @@ without this package is indefensible against "you adjusted it afterwards".
   harness section, hiding the inert-`stale_after` failure; degenerate win via
   refusal. Plus matched instructions, supersession link removed, reproducibility
   package, neutral filenames, 6×8 shapes.
+- **Rev 3 → 4.** One blocker, found by checking §8 against the API instead of
+  against memory: revision 3 froze two harness values that do not exist.
+  `claude-opus-5` rejects `temperature` with a 400, and the Messages API has no
+  seed parameter — so the section revision 3 added specifically to remove
+  placeholders had itself specified an impossible configuration, and the
+  reproducibility package in §13 promised seeds it could never publish. Replaced
+  with the settable knobs that actually change behaviour (`effort`, `thinking`)
+  and with per-trial response ids in place of seeds.
 - **Rev 2 → 3.** Two blockers, both created by the rev-2 patches: the power
   analysis estimated a quantity absent from its own input data (§3.6), and the
   conditional metric was undefined precisely where the treatment arm concentrates
