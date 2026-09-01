@@ -3,7 +3,7 @@ type: Skill
 title: backfill skill
 description: Reconstruct an OKF bundle from git history and session transcripts — event-sourcing for repos that predate this toolchain.
 resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/backfill/SKILL.md
-tags: [skill, bundle-reconstruction, history, event-sourcing]
+tags: [skill, bundle-reconstruction, history, event-sourcing, deep-replay]
 status: stable
 generated: { by: claude/fable-5, at: "2026-09-01T12:00:00Z" }
 sources:
@@ -29,9 +29,14 @@ decided, why, and when.
 2. **Extract**: generate a deterministic event stream (events.jsonl) from git and
    sessions.
 3. **Bootstrap** (fresh only): initialize `.okf/index.md` and `log.md`.
-4. **Replay**: loop over events, creating concepts and log entries; cursor
-   checkpoints after each event (crash-safe resume).
-5. **Finalize**: generate directory indices, validate, and clean up.
+4. **Replay** (two-phase):
+   - **Map** (parallel): [`okf:event-analyzer`](/agents/event-analyzer.md)
+     reads each commit diff or session turn to extract domain rationale and
+     candidate concept names; outputs `analyses/<event-id>.md`.
+   - **Reduce** (sequential): [`okf:bundle-weaver`](/agents/bundle-weaver.md)
+     folds analyses into the bundle in chronological order, enforcing
+     anti-degeneration rules and managing cursor state.
+5. **Finalize**: generate directory indices, validate, check coverage, and clean up.
 
 # Key behaviors
 
@@ -41,11 +46,23 @@ decided, why, and when.
 - **Skip rules**: three kinds of events are marked as low-signal and skipped during
   replay — lockfile-only commits, merge-only commits, slash-command chatter.
   Rules are explicit and unit-tested; no LLM discretion over what counts.
-- **Trust metadata**: concepts inherit `generated.by: okf-backfill/0.1` (not
+- **Deep semantic replay**: Map phase analyzes each event's content (full diff,
+  session outcome) to extract rationale and domain entities; reduce phase
+  folds analyses into the bundle. Together they enable deep understanding of
+  *why* changes were made, not just mechanical change listing.
+- **Anti-degeneration rules**: concepts are named for domain entities
+  (e.g., `presales-pipeline.md`), never for change types or commit subjects.
+  Log bullets explain intent, not restate subjects. Rules are enforced by the
+  weaver and validated in finalize.
+- **Coverage guarantee**: deterministic `--check-coverage` verifies every live
+  event appears in the bundle's `sources` or log before declaring the backfill
+  complete. Unmapped events cause finalize to fail.
+- **Trust metadata**: concepts inherit `generated.by: okf-backfill/0.9.2` (not
   claimed as human-reviewed); they are correctly `unverified` under §5.3. Each
   commit becomes a source with its timestamp.
 - **Privacy**: events.jsonl is scratchpad-only, never committed. Session turn
-  text is truncated (head+tail) before extraction.
+  text is truncated (head+tail) before extraction. Map-phase analyses are
+  working artifacts, retained for auditability during reduce.
 
 # Usage
 

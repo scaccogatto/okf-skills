@@ -4,6 +4,40 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.9.2] — 2026-09-01
+
+### Added
+- **Two dedicated agents for deep semantic replay:** `okf:event-analyzer` (map phase,
+  parallel) reads each git commit diff or session turn to extract domain rationale and
+  candidate concept names. `okf:bundle-weaver` (reduce phase, sequential) folds analyses
+  into the bundle while enforcing anti-degeneration rules and managing cursor state.
+  Together they replace the single-pass replay loop, enabling deep understanding of *why*
+  changes were made (from diffs and session outcomes) instead of mechanical concept
+  listing.
+
+### Changed
+- **Replay protocol is now two-phase (map/reduce).** Map phase is massively parallel
+  (~64 analyzers per wave); reduce is sequential but much cheaper (analysis done, weaving
+  is binding). Both phases support resume via cursor. See §2 of SKILL.md for orchestration
+  details and fallback patterns for hosts without Workflow support.
+- **Finalize now includes deterministic coverage check.** A new `--check-coverage`
+  subcommand to the extractor verifies that every live event (no `skip` field) appears
+  in the bundle's `sources` or log, exiting 1 if any are unmapped. This guarantee is
+  constructive (the weaver proves coverage as it works) and auditable (the cursor tracks
+  which events were processed).
+
+### Added
+- **Anti-degeneration rules with enforcement.** Concepts must be named for domain
+  entities (`presales-pipeline.md`, not `feat:-add-presales-pipeline.md` or
+  `merge-pull-request-#2.md`). Filenames must be kebab-case. Log bullets must explain
+  intent, not restate subjects. No consecutive identical bullets. The analyzer and weaver
+  are responsible for proposing and enforcing these; the finalize step validates via bash.
+
+### Added
+- **Cost transparency and Lore protocol support.** Documented the cost of deep replay
+  (reads ~1 diff per commit; ~500-event sweet spot). Noted support for git trailers
+  (Lore protocol) as primary source of "why" on repos that adopt structured metadata.
+
 ## [0.9.1] — 2026-09-01
 
 ### Fixed
