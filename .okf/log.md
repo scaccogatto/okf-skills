@@ -23,6 +23,13 @@
   which is what motivated the CI gate below. Two shipped assets turned out to
   have no concept at all and now do: [ci.yml](/components/ci-workflow.md) and
   [action.yml](/components/github-action.md).
+* **Release**: The floating `v1` tag now follows every release
+  ([release.yml](/components/release-workflow.md)). It had been created by hand
+  on a docs commit and never moved, so the README's own action example ran a
+  validator from 0.6.0, one that rejects the `upkeep` flag the README tells
+  adopters to add. Pinning the README to an exact tag was the alternative and
+  was rejected: it is another thing someone has to remember, which is precisely
+  how this drifted.
 * **Enforcement**: Mirrored the [Stop hook](/components/stop-hook.md)'s two
   obligations into CI, as steps on the existing `version-bump` job. A PR that
   touches `skills/*/scripts/**` or `hooks/**` must also touch `.okf/`, and a PR
