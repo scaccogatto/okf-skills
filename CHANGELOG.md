@@ -28,6 +28,15 @@ OKF spec version it supports.
   new one, so the set of required status checks does not change, and both take
   that job's `skip-version-check` label as their bypass.
 
+### Fixed
+- **The floating `v1` tag follows every release.** It had been created by hand
+  on a docs commit and never moved, so `uses: scaccogatto/okf-skills@v1`, the
+  form the README shows, ran the validator from 0.6.0: the one that rejects the
+  `upkeep` flag the README tells adopters to add, failing their CI on our
+  instructions. `release.yml` now force-moves it onto each release commit. The
+  repo is pre-1.0, so `v1` tracks the latest release rather than a major line,
+  stated in the README beside the example. Pin `@okf--v<version>` to freeze.
+
 ### Docs
 - **Every documented claim re-checked against the code it describes**, across
   the three shipped `SKILL.md` files. Five were wrong rather than stale:

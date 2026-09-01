@@ -98,6 +98,10 @@ uv run skills/validate/scripts/okf_validate.py .okf --max-warnings 5
     strict: "true"      # or: max-warnings: "5"
 ```
 
+`@v1` follows every release (the repo is pre-1.0, so it tracks the latest one
+rather than a major line). Pin an exact `@okf--v<version>` tag instead if you
+want the action frozen.
+
 The step also exposes a `report` output: the validator's JSON report
 (`--json`), for a later step to post or parse via `${{ steps.<id>.outputs.report }}`.
 
