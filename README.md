@@ -175,6 +175,7 @@ records that as the reason instead of inventing a user need.
 |-----------|--------------|
 | `/okf:okf` skill | Produce / maintain / consume bundles, applying the spec and templates. Auto-triggers when a repo has an OKF bundle. |
 | `/okf:validate` skill | Deterministic §11 conformance check (not an eyeball pass). |
+| `/okf:backfill` skill | Reconstruct an OKF bundle from git history and Claude session transcripts for repos that predate this toolchain. |
 | `/okf:visualize` skill | Render a bundle to a self-contained interactive HTML graph (`viz.html`). |
 | `skills/okf/scripts/okf_init.py` | Scaffold a conformant starter bundle in one shot. |
 | `skills/validate/scripts/okf_validate.py` | Standalone, zero-config validator (`uv run`, PyYAML via PEP 723). |
