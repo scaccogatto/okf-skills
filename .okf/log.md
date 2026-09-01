@@ -49,7 +49,14 @@
   stdio server over a bundle (`search_concepts`, `read_concept`, `get_neighbors`),
   wired into the plugin by `.mcp.json`. It reverses the July 2026 "no MCP" call on
   positioning grounds only; the original audience argument is intact and recorded
-  in the [MCP server decision](/decisions/mcp-server.md). Plugin 0.7.4 to 0.8.0.
+  in the [MCP server decision](/decisions/mcp-server.md). Plugin 0.7.4 to 0.8.0.* **Skill**: Shipped the `backfill` skill — event-sourcing reconstruction of OKF
+  bundles from git history and Claude session transcripts. Extracts events
+  deterministically (same repo → byte-identical events.jsonl); replays via LLM
+  interpretation with drift-aware metadata. Designed for repos created before OKF
+  adoption to capture their actual decision narrative. Includes a deterministic
+  skip-rule classifier (lockfiles, merge-only commits, slash-command noise) and
+  cursor-based resume-safe replay loop. Bumped version to 0.9.0.
+
 ## 2026-08-15
 * **Distribution**: Published the composite action to the GitHub Marketplace.
   The listing form rejected the shipped metadata — the name `Validate OKF

@@ -4,6 +4,17 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.9.0] — 2026-09-01
+
+### Added
+- **`backfill` skill reconstructs an OKF bundle from history.** Event-sources a
+  repository's decision log (git commits + Claude session transcripts) to rebuild
+  its `.okf/` bundle as if the stop hook had been active from the start. Extraction
+  is deterministic (same repo → byte-identical events.jsonl); replay is an LLM loop
+  (replayable and auditable, with drift-aware trust metadata). Designed for repos
+  that predate this toolchain and want their OKF bundle to reflect the actual
+  history of decisions.
+
 ## [0.8.0] - 2026-09-01
 
 ### Added
