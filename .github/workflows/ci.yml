@@ -19,10 +19,13 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Validate plugin & marketplace manifests
-        run: jq empty .claude-plugin/plugin.json .claude-plugin/marketplace.json
+        run: jq empty .claude-plugin/plugin.json .claude-plugin/marketplace.json .mcp.json
 
       - name: Unit tests — okf_validate internals
         run: uv run tests/test_okf_validate.py
+
+      - name: Unit tests — okf_mcp server tools
+        run: uv run tests/test_okf_mcp.py
 
       - name: Validate example bundle (strict)
         run: uv run skills/validate/scripts/okf_validate.py examples/sample-bundle --strict
@@ -277,6 +280,9 @@ jobs:
 
       - name: Unit tests — okf_validate internals
         run: uv run tests/test_okf_validate.py
+
+      - name: Unit tests — okf_mcp server tools
+        run: uv run tests/test_okf_mcp.py
 
       - name: Validate example bundle (strict, native cp1252 console)
         run: uv run skills/validate/scripts/okf_validate.py examples/sample-bundle --strict

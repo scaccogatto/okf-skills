@@ -5,3 +5,4 @@
 * [okf_visualize.py](visualizer.md) — the graph renderer.
 * [okf-stop-check.sh](stop-hook.md) — the dormant Stop hook.
 * [release.yml](release-workflow.md) — auto-release on version bump.
+* [okf_mcp.py](mcp-server.md) — the read-only MCP server.

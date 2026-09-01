@@ -115,6 +115,19 @@ tier (*unverified* / *machine-confirmed* / *human-reviewed*) and staleness once
 `stale_after` is past. OKF stores neither (a stored tier is a stored opinion, and
 it goes stale), so both are computed at render time.
 
+**Read a bundle over MCP.** The plugin also exposes any bundle through a
+read-only MCP server (`search_concepts`, `read_concept`, `get_neighbors`), so hosts
+and agents that speak MCP can consume one without file tools:
+
+```shell
+uv run servers/okf_mcp.py .okf          # stdio; OKF_BUNDLE also works
+```
+
+Inside Claude Code the server starts with the plugin and reads `./.okf` by default.
+Claude Code reaches those files with Read and Grep anyway, so this buys parity with
+the rest of the ecosystem rather than new capability for that host: the reasoning is
+recorded in [decisions/mcp-server.md](.okf/decisions/mcp-server.md).
+
 **Keep it up to date.** Two opt-in ways to make upkeep automatic:
 
 - **Soft mode:** paste [`templates/CLAUDE-okf.md`](templates/CLAUDE-okf.md) into
@@ -136,6 +149,7 @@ it goes stale), so both are computed at render time.
 | `skills/okf/scripts/okf_init.py` | Scaffold a conformant starter bundle in one shot. |
 | `skills/validate/scripts/okf_validate.py` | Standalone, zero-config validator (`uv run`, PyYAML via PEP 723). |
 | `skills/visualize/scripts/okf_visualize.py` | Standalone bundle→`viz.html` renderer. |
+| `servers/okf_mcp.py` | Read-only MCP server over a bundle: `search_concepts`, `read_concept`, `get_neighbors`. Ships with the plugin via `.mcp.json`. |
 | `skills/okf/reference/SPEC.md` | The OKF v0.2 spec, vendored verbatim: the source of truth. |
 | `templates/CLAUDE-okf.md` | Snippet that turns on automatic consume/maintain in your project. |
 | `action.yml` | Composite GitHub Action to gate a bundle in any repo's CI, no Claude Code needed. |
@@ -206,6 +220,7 @@ okf-skills/
 ├── .claude-plugin/{plugin.json, marketplace.json}
 ├── skills/{okf, validate, visualize}/{SKILL.md, scripts/}
 ├── hooks/                         # the dormant Stop hook
+├── servers/okf_mcp.py             # the read-only MCP server (.mcp.json wires it)
 ├── examples/sample-bundle/        # the live-demo bundle
 ├── docs/                          # GitHub Pages: the live interactive demo
 ├── templates/CLAUDE-okf.md

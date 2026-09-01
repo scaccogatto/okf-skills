@@ -19,6 +19,7 @@ described as an OKF bundle — the toolkit eating its own dog food. Render it wi
 * [okf_init.py](components/okf_init.md) — the starter bundle scaffolder.
 * [okf_validate.py](components/validator.md) — the conformance checker.
 * [okf_visualize.py](components/visualizer.md) — the graph renderer.
+* [okf_mcp.py](components/mcp-server.md) — the read-only MCP server.
 
 # Reference
 
@@ -31,3 +32,4 @@ described as an OKF bundle — the toolkit eating its own dog food. Render it wi
 * [Self-contained skills via CLAUDE_SKILL_DIR](decisions/self-contained-skills.md)
 * [Scale guardrails in the visualizer](decisions/scale-guardrails.md)
 * [Target OKF v0.2, keep reading v0.1](decisions/okf-v02-dual-read.md)
+* [Ship a read-only MCP server](decisions/mcp-server.md)

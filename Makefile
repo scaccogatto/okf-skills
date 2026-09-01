@@ -18,6 +18,7 @@ docs:
 
 test:
 	uv run tests/test_okf_validate.py
+	uv run tests/test_okf_mcp.py
 
 validate:
 	uv run skills/validate/scripts/okf_validate.py examples/sample-bundle --strict
