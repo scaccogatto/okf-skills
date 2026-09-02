@@ -3,8 +3,9 @@ type: Decision
 title: Benchmark trustability, not the adoption pitch
 description: Bring back a benchmark after #32 removed one, measuring the one claim the spec actually makes and nobody has tested.
 tags: [adr, benchmark, trust, evidence]
-status: draft
-generated: { by: agent:claude-opus-5, at: "2026-08-16T00:00:00Z" }
+status: stable
+generated: { by: agent:claude-opus-5, at: "2026-09-02T00:00:00Z" }
+verified: { by: agent:claude-opus-5, at: "2026-09-02T00:00:00Z" }
 ---
 
 # Context
@@ -37,11 +38,37 @@ tier derived from `verified` (§5.3) — reduce how often a consumer asserts the
 superseded fact?
 
 Protocol in [`benchmark/trust/PROTOCOL.md`](https://github.com/scaccogatto/okf-skills/blob/main/benchmark/trust/PROTOCOL.md),
-tracked in [#40](https://github.com/scaccogatto/okf-skills/issues/40). Nothing has been run.
+tracked in [#40](https://github.com/scaccogatto/okf-skills/issues/40). It has now
+been run: pre-registration frozen at `trust-benchmark-prereg-rev8`, 946
+measurement trials, result in
+[`benchmark/trust/RESULTS.md`](https://github.com/scaccogatto/okf-skills/blob/main/benchmark/trust/RESULTS.md).
 
 The call to measure trust rather than re-run sufficiency was made by
 `human:scaccogatto`; the protocol was drafted by an agent and rejected twice in
 adversarial review before being cleared as executable.
+
+# Outcome
+
+**The primary result is invalid under the protocol's own §3.2 rule** — 16.3% of
+items have no committed answer in a primary arm against a 10% ceiling — and the
+effect it would otherwise have reported is at the ceiling: a 97.7pp reduction in
+conditional stale rate, 93.7pp under the punitive worst case. Both facts have
+one cause: the control does not answer. 116 of its 123 `neither` are the literal
+token `unknown`.
+
+Two descriptive readings carry more than the headline. **The instruction alone
+does nothing** (B1 − B0 = 0.0pp): telling a consumer to prefer current
+information, with no metadata to act on, changed nothing. **The metadata alone
+does everything** (A0 − B0 = −97.7pp): the fields are read without being
+explained. On this corpus the frontmatter carries the whole effect and the
+wording carries none of it.
+
+The scoping is not a footnote. The control has no recency channel by
+construction — the corpus was rebuilt twice to remove the ones the first draft
+leaked — and items were selected for trapping the control, so "100% → 0%" means
+*on items where the control was already known to fail*, not *the control fails
+everywhere*. This is a mechanism demonstration, not an estimate of what trust
+metadata is worth in a real corpus.
 
 # Consequences
 

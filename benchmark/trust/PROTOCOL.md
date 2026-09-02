@@ -1,8 +1,11 @@
 # Trust benchmark — protocol
 
-**Status:** revision 8, tagged before the measurement run. Revisions 1 through 5
-were corrected before anything ran; 6 and 7 were corrected by things that ran.
-§15 records the history.
+**Status:** revision 9. Revision 8 is the pre-registration tagged before the
+measurement run (`trust-benchmark-prereg-rev8`); revision 9 is a **post-run
+correction to the analysis code**, not a pre-registered change, and is
+deliberately untagged as one. Revisions 1 through 5 were corrected before
+anything ran; 6 through 9 were corrected by things that ran. §15 records the
+history, and `RESULTS.md` reports the outcome.
 
 **Spec under test:** OKF **v0.2**, as vendored at `skills/okf/reference/SPEC.md`,
 okf-skills commit `c68f9f2` (2026-07-27). Every spec claim below is checkable
@@ -391,6 +394,24 @@ without this package is indefensible against "you adjusted it afterwards".
   kind? Probably the more important question, and a different experiment.
 
 ## 15. Revision history
+
+- **Rev 8 → 9, after the measurement run, and the only change here that the
+  pre-registration does not cover.** The first real result exposed a sign error
+  in the committed `analyze.py`: the primary contrast is `A1 − B1` on the
+  conditional *stale* rate, so the claim of §2 predicts a **negative** number,
+  while §3.7's floor ("the point estimate is below 15pp") is a floor on the
+  **reduction**. The script compared the signed contrast against `+15pp`, so a
+  treatment that removed every wrong answer would have been reported as a
+  failure. No test exercised the direction, which is why reading the code did
+  not find it and a run did.
+
+  The reduction is now reported as `effect_pp` and thresholded, with tests for a
+  treatment that helps, one that harms and one that does nothing; the signed
+  contrast is left untouched so both remain on the record. **This changes no
+  verdict on this run**: §3.2 invalidates the primary result before any
+  threshold is consulted, which is the only reason a post-run change to the
+  analysis is defensible at all. It is recorded here, in `RESULTS.md`, and in
+  the code comment rather than quietly applied.
 
 - **Rev 7 → 8. A second model was taking a turn inside the consumer.** The first
   measurement attempt was read before it was analysed, and its trial records

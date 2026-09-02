@@ -1,6 +1,21 @@
 # Update Log
 
 ## 2026-09-02
+* **Trust benchmark, the result**: it ran. Pre-registration frozen at
+  `trust-benchmark-prereg-rev8`, 946 measurement trials, writeup in
+  `benchmark/trust/RESULTS.md`, every trial record published. **The primary
+  result is invalid by the protocol's own §3.2 rule** (16.3% of items have no
+  committed answer in a primary arm, against a 10% ceiling), and the effect it
+  would have reported is at the ceiling: 97.7pp, 93.7pp under the punitive worst
+  case. One cause for both, and it is the interesting part — the control does
+  not answer wrongly, it declines: 116 of its 123 `neither` are the literal
+  token `unknown`. The two readings worth more than the headline: the
+  instruction alone does nothing (B1 − B0 = 0.0pp) and the metadata alone does
+  everything (A0 − B0 = −97.7pp). Recorded with it: a sign error in the
+  committed analysis that would have called a perfect result a failure, found by
+  the first real result rather than by reading, corrected post-run only because
+  §3.2 had already invalidated the verdict it could have flipped. See the
+  [decision](/decisions/trust-benchmark.md).
 * **Trust benchmark, two defects the results would never have shown**: the
   first calibration ran, and the first thing it produced was evidence against
   the harness rather than about the spec. Asked to quote what preceded its
