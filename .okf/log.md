@@ -1,5 +1,26 @@
 # Update Log
 
+## 2026-09-02
+* **Trust benchmark, two defects the results would never have shown**: the
+  first calibration ran, and the first thing it produced was evidence against
+  the harness rather than about the spec. Asked to quote what preceded its
+  prompt, a trial read back this machine's SessionStart hook, its persona
+  instruction and the maintainer's global `CLAUDE.md`: `--settings '{"hooks":
+  {}}'` merges rather than clears, so revision 6's isolation claim was false
+  while every trial ran identically contaminated. `--safe-mode` is the flag that
+  holds, and those 192 trials were discarded rather than reused. The second
+  defect was in the corpus: 0 of 48 items trapped, and a control trial explained
+  why — *"every `*-notes.md` file is an update layer reporting current state"*.
+  The replacements announced their own recency in prose, and shared a filename
+  convention that ranked every pair in all four arms, which is the revision-1
+  defect of §6 reappearing as a naming convention. Corpus v2 puts the
+  replacement in a document about an adjacent topic with no temporal prose and
+  balanced filenames; one rewritten item went from 1/4 to 4/4 stale in B0.
+  Also §9: the forced field now demands a bare value and offers
+  `ANSWER: unknown`, because "The higher-priority task (priority descending)"
+  asserts the value and grades `neither`, losing an item for a reason that has
+  nothing to do with what it measures.
+
 ## 2026-09-01
 * **Trust benchmark, the corpus**: the 48 candidates of §6 are authored — six
   supersession shapes (limit changed, default flipped, renamed identifier,

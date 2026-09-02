@@ -16,3 +16,6 @@ __pycache__/
 
 # Local tooling caches
 .impeccable/
+
+# Benchmark run outputs (published deliberately, never by `git add -A`)
+benchmark/trust/runs/
