@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: changed-precedence-11
+shape: changed-precedence
+
+question: >-
+  When a Hollowmere document and its template both define a field default, which default is used?
+
+f_old: "template default"
+f_new: "document default"
+
+superseded:
+  source: superseded.md
+  filename: hollowmere-defaults-resolution.md
+current:
+  source: current.md
+  filename: hollowmere-authoring-templates.md

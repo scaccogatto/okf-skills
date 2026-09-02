@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: default-flipped-12
+shape: default-flipped
+
+question: >-
+  How does a Cobble collector handle a malformed event by default?
+
+f_old: "reject"
+f_new: "quarantine"
+
+superseded:
+  source: superseded.md
+  filename: cobble-malformed-events.md
+current:
+  source: current.md
+  filename: cobble-schema-evolution.md

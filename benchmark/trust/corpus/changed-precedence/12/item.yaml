@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: changed-precedence-12
+shape: changed-precedence
+
+question: >-
+  What does Ashgrove decide when a request matches rules of both kinds?
+
+f_old: "deny"
+f_new: "allow"
+
+superseded:
+  source: superseded.md
+  filename: ashgrove-conflict-resolution.md
+current:
+  source: current.md
+  filename: ashgrove-delegation-model.md

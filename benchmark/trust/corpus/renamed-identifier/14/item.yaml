@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: renamed-identifier-14
+shape: renamed-identifier
+
+question: >-
+  Which table stores Hollowmere document revisions?
+
+f_old: "hm_revisions"
+f_new: "hollowmere_doc_versions"
+
+superseded:
+  source: superseded.md
+  filename: hollowmere-schema.md
+current:
+  source: current.md
+  filename: hollowmere-backup-restore.md

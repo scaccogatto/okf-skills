@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: default-flipped-11
+shape: default-flipped
+
+question: >-
+  What is the default visibility of a newly created Ashgrove workspace?
+
+f_old: "organisation"
+f_new: "private"
+
+superseded:
+  source: superseded.md
+  filename: ashgrove-workspace-visibility.md
+current:
+  source: current.md
+  filename: ashgrove-onboarding-guide.md

@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: default-flipped-10
+shape: default-flipped
+
+question: >-
+  Which checksum algorithm does Thackery use for chunk verification by default?
+
+f_old: "crc32c"
+f_new: "blake3"
+
+superseded:
+  source: superseded.md
+  filename: thackery-chunk-checksums.md
+current:
+  source: current.md
+  filename: thackery-integrity-audit.md

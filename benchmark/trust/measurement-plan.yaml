@@ -1,0 +1,78 @@
+repetitions: 7
+items:
+- default-flipped-03
+- default-flipped-04
+- default-flipped-05
+- default-flipped-06
+- default-flipped-07
+- limit-changed-01
+- limit-changed-04
+- limit-changed-05
+- limit-changed-06
+- limit-changed-07
+- limit-changed-08
+- removed-capability-05
+- renamed-identifier-02
+- renamed-identifier-04
+- renamed-identifier-05
+- renamed-identifier-07
+- renamed-identifier-08
+- reversed-recommendation-01
+- reversed-recommendation-02
+- reversed-recommendation-03
+- reversed-recommendation-05
+- reversed-recommendation-06
+- reversed-recommendation-07
+- reversed-recommendation-08
+required_items: 39
+underpowered: true
+heterogeneity_proxy: 0.03993055555555555
+calibration_rates:
+  changed-precedence-01: 0.0
+  changed-precedence-02: 0.0
+  changed-precedence-03: 0.25
+  changed-precedence-04: 0.0
+  changed-precedence-05: 0.25
+  changed-precedence-06: 0.25
+  changed-precedence-07: 0.25
+  changed-precedence-08: 0.0
+  default-flipped-01: 0.0
+  default-flipped-02: 0.25
+  default-flipped-03: 0.75
+  default-flipped-04: 1.0
+  default-flipped-05: 1.0
+  default-flipped-06: 0.5
+  default-flipped-07: 0.5
+  default-flipped-08: 0.25
+  limit-changed-01: 0.5
+  limit-changed-02: 0.25
+  limit-changed-03: 0.25
+  limit-changed-04: 1.0
+  limit-changed-05: 0.5
+  limit-changed-06: 1.0
+  limit-changed-07: 1.0
+  limit-changed-08: 1.0
+  removed-capability-01: 0.25
+  removed-capability-02: 0.0
+  removed-capability-03: 0.25
+  removed-capability-04: 0.0
+  removed-capability-05: 1.0
+  removed-capability-06: 0.0
+  removed-capability-07: 0.0
+  removed-capability-08: 0.25
+  renamed-identifier-01: 0.25
+  renamed-identifier-02: 1.0
+  renamed-identifier-03: 0.25
+  renamed-identifier-04: 1.0
+  renamed-identifier-05: 0.75
+  renamed-identifier-06: 0.25
+  renamed-identifier-07: 0.75
+  renamed-identifier-08: 0.75
+  reversed-recommendation-01: 0.5
+  reversed-recommendation-02: 1.0
+  reversed-recommendation-03: 1.0
+  reversed-recommendation-04: 0.25
+  reversed-recommendation-05: 0.75
+  reversed-recommendation-06: 1.0
+  reversed-recommendation-07: 1.0
+  reversed-recommendation-08: 0.75

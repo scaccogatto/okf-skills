@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: default-flipped-09
+shape: default-flipped
+
+question: >-
+  What isolation level does a Wrenfield transaction use by default?
+
+f_old: "read committed"
+f_new: "repeatable read"
+
+superseded:
+  source: superseded.md
+  filename: wrenfield-isolation-levels.md
+current:
+  source: current.md
+  filename: wrenfield-application-patterns.md

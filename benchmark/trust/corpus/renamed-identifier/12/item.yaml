@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: renamed-identifier-12
+shape: renamed-identifier
+
+question: >-
+  Which HTTP header carries the tenant identifier into an Ashgrove API request?
+
+f_old: "X-Ashgrove-Tenant"
+f_new: "ashgrove-org-id"
+
+superseded:
+  source: superseded.md
+  filename: ashgrove-api-headers.md
+current:
+  source: current.md
+  filename: ashgrove-sdk-guide.md

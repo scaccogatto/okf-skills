@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: renamed-identifier-13
+shape: renamed-identifier
+
+question: >-
+  Which command-line flag makes Wrenfield print its query plan?
+
+f_old: "--explain"
+f_new: "--plan"
+
+superseded:
+  source: superseded.md
+  filename: wrenfield-cli-flags.md
+current:
+  source: current.md
+  filename: wrenfield-query-optimisation.md

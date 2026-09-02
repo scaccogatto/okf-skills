@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: renamed-identifier-10
+shape: renamed-identifier
+
+question: >-
+  What is the name of the Cobble metric counting dropped events?
+
+f_old: "cobble.drops"
+f_new: "cobble_events_dropped_total"
+
+superseded:
+  source: superseded.md
+  filename: cobble-metrics.md
+current:
+  source: current.md
+  filename: cobble-dashboards.md

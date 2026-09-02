@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: removed-capability-10
+shape: removed-capability
+
+question: >-
+  What is the supported way to change an Ashgrove rule's position within a set?
+
+f_old: "move"
+f_new: "republish the set"
+
+superseded:
+  source: superseded.md
+  filename: ashgrove-rule-ordering.md
+current:
+  source: current.md
+  filename: ashgrove-change-review.md

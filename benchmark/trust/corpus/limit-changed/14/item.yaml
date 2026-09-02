@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: limit-changed-14
+shape: limit-changed
+
+question: >-
+  What is the maximum depth of a Hollowmere document tree?
+
+f_old: "400"
+f_new: "120"
+
+superseded:
+  source: superseded.md
+  filename: hollowmere-document-depth.md
+current:
+  source: current.md
+  filename: hollowmere-renderer-notes.md

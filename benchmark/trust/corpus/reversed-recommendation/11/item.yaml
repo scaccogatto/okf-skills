@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: reversed-recommendation-11
+shape: reversed-recommendation
+
+question: >-
+  What does the guidance recommend for the structure of Ashgrove policy sets?
+
+f_old: "one large set"
+f_new: "several small sets"
+
+superseded:
+  source: superseded.md
+  filename: ashgrove-set-structure-guidance.md
+current:
+  source: current.md
+  filename: ashgrove-policy-organisation.md

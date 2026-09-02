@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: renamed-identifier-09
+shape: renamed-identifier
+
+question: >-
+  Which environment variable points a Thackery client at its workspace root?
+
+f_old: "THACKERY_ROOT"
+f_new: "TCK_WORKSPACE_DIR"
+
+superseded:
+  source: superseded.md
+  filename: thackery-client-environment.md
+current:
+  source: current.md
+  filename: thackery-ci-integration.md

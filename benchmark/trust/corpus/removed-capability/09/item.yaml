@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: removed-capability-09
+shape: removed-capability
+
+question: >-
+  How does a Thackery client resume an interrupted upload?
+
+f_old: "resume token"
+f_new: "restart"
+
+superseded:
+  source: superseded.md
+  filename: thackery-upload-resume.md
+current:
+  source: current.md
+  filename: thackery-reliability-notes.md

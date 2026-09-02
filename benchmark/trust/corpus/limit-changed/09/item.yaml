@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: limit-changed-09
+shape: limit-changed
+
+question: >-
+  How many concurrent uploads may a single Thackery workspace run?
+
+f_old: "128"
+f_new: "104"
+
+superseded:
+  source: superseded.md
+  filename: thackery-upload-concurrency.md
+current:
+  source: current.md
+  filename: thackery-bandwidth-planning.md

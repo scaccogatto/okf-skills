@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: default-flipped-14
+shape: default-flipped
+
+question: >-
+  In which order does a Hollowmere query return results without an explicit sort?
+
+f_old: "insertion order"
+f_new: "relevance order"
+
+superseded:
+  source: superseded.md
+  filename: hollowmere-result-ordering.md
+current:
+  source: current.md
+  filename: hollowmere-search-tuning.md

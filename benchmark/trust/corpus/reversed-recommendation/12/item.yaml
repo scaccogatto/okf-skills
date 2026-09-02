@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: reversed-recommendation-12
+shape: reversed-recommendation
+
+question: >-
+  Where does the guidance say Thackery chunk deduplication should happen?
+
+f_old: "uploader"
+f_new: "receiver"
+
+superseded:
+  source: superseded.md
+  filename: thackery-dedup-guidance.md
+current:
+  source: current.md
+  filename: thackery-storage-architecture.md

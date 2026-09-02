@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: default-flipped-13
+shape: default-flipped
+
+question: >-
+  What does a Netherby client do by default when it cannot reach a coordinator?
+
+f_old: "fail fast"
+f_new: "block"
+
+superseded:
+  source: superseded.md
+  filename: netherby-client-behaviour.md
+current:
+  source: current.md
+  filename: netherby-service-integration.md

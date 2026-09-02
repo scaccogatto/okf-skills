@@ -1,0 +1,19 @@
+# One item = one fact, stated differently by two documents (§6).
+# `filename` is the neutral, non-orderable name used in the trial directory;
+# `superseded` / `current` are authoring labels that never reach the model.
+
+id: reversed-recommendation-13
+shape: reversed-recommendation
+
+question: >-
+  What does the guidance recommend a Hollowmere renderer do with an unknown node type?
+
+f_old: "skip"
+f_new: "fail"
+
+superseded:
+  source: superseded.md
+  filename: hollowmere-unknown-nodes.md
+current:
+  source: current.md
+  filename: hollowmere-renderer-conformance.md
