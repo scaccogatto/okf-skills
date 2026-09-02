@@ -28,9 +28,13 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import shlex
+import subprocess
+import threading
 import zlib
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -62,6 +66,20 @@ READ_FILE_TOOL = {
         "required": ["filename"],
     },
 }
+
+
+# The `claude` CLI backend (§8, rev 6). The session's own model access stands in
+# for API credentials this environment does not have; `Read` stands in for
+# `read_file`. The consumer's framing is stated here rather than left to the
+# CLI's default so it is frozen in the pre-registration package like everything
+# else, `--settings '{"hooks": {}}'` keeps a developer machine's hooks out of a
+# trial, and one allowed tool plus `--permission-mode dontAsk` keeps a trial from
+# touching anything but the corpus directory it was handed.
+CLI_TOOL_NAME = "Read"
+CLI_SYSTEM_PROMPT = (
+    "You answer questions from a corpus of documents. Read the documents you are "
+    "given and answer only from them."
+)
 
 
 class PreflightError(Exception):
@@ -265,7 +283,8 @@ def choose_distractors(item: Item, other_items: list[Item], rng: random.Random, 
     return chosen
 
 
-def render_base_prompt(today: str, question: str, instruction: str | None, order: list[str]) -> str:
+def render_base_prompt(today: str, question: str, instruction: str | None, order: list[str],
+                       tool_name: str = "read_file") -> str:
     """§8 base prompt: identical across arms, answer only from the corpus,
     states the injected date, forces the `ANSWER: <value>` schema. The arm
     instruction (harness.yaml `instructions`) is appended for B1/A1 only.
@@ -277,7 +296,7 @@ def render_base_prompt(today: str, question: str, instruction: str | None, order
     listing = "\n".join(f"- {name}" for name in order)
     parts = [
         "Answer the question below using only the documents in this corpus, "
-        "which you can read with the read_file tool. Available documents:",
+        f"which you can read with the {tool_name} tool. Available documents:",
         listing,
         f"Today's date is {today}.",
     ]
@@ -300,7 +319,8 @@ def trial_seed(run_seed: int, arm: str, item_id: str, rep: int) -> int:
 
 
 def assemble_trial(item: Item, other_items: list[Item], arm: str, rep: int, harness: dict,
-                    rng: random.Random | None = None, run_seed: int = 0) -> Trial:
+                    rng: random.Random | None = None, run_seed: int = 0,
+                    backend: str = "api") -> Trial:
     seed = trial_seed(run_seed, arm, item.id, rep)
     rng = rng if rng is not None else random.Random(seed)
     full_frontmatter_arms = harness["full_frontmatter_arms"]
@@ -326,12 +346,19 @@ def assemble_trial(item: Item, other_items: list[Item], arm: str, rep: int, harn
     order = [d.filename for d in docs]
     rng.shuffle(order)  # §8: file order and directory position randomised per trial
 
-    root = Path(tempfile.mkdtemp(prefix=f"trust-{item.id}-{arm}-{rep}-"))
+    # Neutral directory name (§6, rev 6): the CLI backend hands this path to the
+    # model, and a path spelling out the item and the arm would leak the
+    # experiment's design through a channel the API backend never had.
+    root = Path(tempfile.mkdtemp(prefix="okf-corpus-"))
     for doc in docs:
         (root / doc.filename).write_text(doc.rendered_text, encoding="utf-8")
 
     instruction = harness["instructions"].get(arm)
-    prompt = render_base_prompt(today, item.question, instruction, order)
+    # The CLI's Read tool takes absolute paths, so the listing names them there;
+    # the API backend's read_file takes a bare filename and keeps one.
+    listing = [str(root / name) for name in order] if backend == "cli" else order
+    tool_name = CLI_TOOL_NAME if backend == "cli" else "read_file"
+    prompt = render_base_prompt(today, item.question, instruction, listing, tool_name)
 
     return Trial(item=item, arm=arm, rep=rep, root=root, docs=docs, order=order,
                  prompt=prompt, seed=seed)
@@ -485,6 +512,62 @@ def run_one_trial(client, harness: dict, trial: Trial) -> dict:
     }
 
 
+def build_cli_command(harness: dict, trial: Trial) -> list[str]:
+    """The `claude` invocation for one trial (§8, rev 6).
+
+    Pure, so the frozen flags are checkable in the test suite rather than only
+    by spending a trial on them.
+    """
+    return [
+        "claude", "-p",
+        "--model", harness["model"],
+        "--effort", harness["effort"],
+        "--output-format", "json",
+        "--allowedTools", CLI_TOOL_NAME,
+        "--permission-mode", "dontAsk",
+        "--system-prompt", CLI_SYSTEM_PROMPT,
+        "--settings", '{"hooks": {}}',
+        trial.prompt,
+    ]
+
+
+def run_one_trial_cli(harness: dict, trial: Trial) -> dict:
+    """One fresh `claude -p` process per trial: the process boundary is what
+    carries §10's independence requirement here, in place of a fresh Messages
+    conversation. Recorded fields mirror the API backend's row so grade.py and
+    analyze.py read either run without knowing which produced it."""
+    from grade import extract_answer, grade
+
+    command = build_cli_command(harness, trial)
+    completed = subprocess.run(
+        command, cwd=trial.root, capture_output=True, text=True,
+        stdin=subprocess.DEVNULL, timeout=900,
+    )
+    if completed.returncode != 0:
+        raise PreflightError(f"claude exited {completed.returncode}: {completed.stderr[-500:]}")
+    payload = json.loads(completed.stdout)
+    final_text = payload.get("result") or ""
+    if payload.get("is_error"):
+        raise PreflightError(f"claude reported an error: {final_text[:500]}")
+
+    return {
+        "item": trial.item.id,
+        "shape": trial.item.shape,
+        "arm": trial.arm,
+        "rep": trial.rep,
+        "assembly_seed": trial.seed,
+        "answer": extract_answer(final_text) or "",
+        "grade": grade(final_text, trial.item.f_old, trial.item.f_new),
+        "response_id": payload.get("session_id"),
+        "stop_reason": payload.get("stop_reason"),
+        "model": harness["model"],
+        "usage": payload.get("usage"),
+        "cost_usd": payload.get("total_cost_usd"),
+        "backend": "cli",
+        "request": {"command": shlex.join(command), "cwd": str(trial.root)},
+    }
+
+
 # --------------------------------------------------------------------------
 # CLI
 # --------------------------------------------------------------------------
@@ -533,6 +616,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--phase", choices=["calibration", "measurement"], required=True)
     parser.add_argument("--dry-run", action="store_true", help="assemble + preflight everything, call no API")
     parser.add_argument("--seed", type=int, default=0, help="trial-assembly RNG seed")
+    parser.add_argument("--jobs", type=int, default=1, help="trials to run concurrently (§10: they are independent)")
+    parser.add_argument("--backend", choices=["api", "cli"], default="api",
+                        help="api: the Messages API (needs credentials); cli: the `claude` CLI (§8, rev 6)")
     args = parser.parse_args(argv)
 
     harness = load_harness()
@@ -556,21 +642,25 @@ def main(argv: list[str] | None = None) -> int:
         done = _completed_trials(outdir)
         if done:
             print(f"resuming: {len(done)} trial(s) already recorded", file=sys.stderr)
-        import anthropic
+        client = None
+        if args.backend == "api":
+            import anthropic
 
-        client = anthropic.Anthropic()
+            client = anthropic.Anthropic()
 
     selected = config.get("items")
     if selected:
         items = [i for i in items if i.id in set(selected)]
 
+    ready: list[Trial] = []
     for arm in config["arms"]:
         for item in items:
             for rep in range(config["repetitions"]):
                 if (arm, item.id, rep) in done:
                     continue
                 try:
-                    trial = assemble_trial(item, items, arm, rep, harness, run_seed=args.seed)
+                    trial = assemble_trial(item, items, arm, rep, harness, run_seed=args.seed,
+                                           backend=args.backend)
                 except PreflightError as exc:
                     print(f"ABORT (assembly) {item.id} {arm} rep{rep}: {exc}", file=sys.stderr)
                     aborted += 1
@@ -586,12 +676,38 @@ def main(argv: list[str] | None = None) -> int:
                 if args.dry_run:
                     print(f"OK {item.id} {arm} rep{rep}: would send {len(trial.docs)} docs, prompt {len(trial.prompt)} chars")
                     continue
-                row = run_one_trial(client, harness, trial)
-                outfile = outdir / f"{arm}.jsonl"
-                with outfile.open("a", encoding="utf-8") as f:
-                    f.write(json.dumps(row) + "\n")
+                ready.append(trial)
 
-    print(f"\n{planned} trial(s) planned, {aborted} aborted.", file=sys.stderr)
+    # Trials are independent by construction (§10), so they run concurrently.
+    # The only shared state is the append to the arm's file, which the lock
+    # serializes; a failed trial is left unrecorded and the next run's resume
+    # logic picks it up rather than the run dying on it.
+    failed = 0
+    if ready:
+        lock = threading.Lock()
+
+        def execute(trial: Trial) -> None:
+            nonlocal failed
+            try:
+                if args.backend == "cli":
+                    row = run_one_trial_cli(harness, trial)
+                else:
+                    row = run_one_trial(client, harness, trial)
+            except Exception as exc:  # noqa: BLE001 - one trial must not end the run
+                with lock:
+                    failed += 1
+                print(f"FAILED {trial.item.id} {trial.arm} rep{trial.rep}: {exc}", file=sys.stderr)
+                return
+            line = json.dumps(row) + "\n"
+            with lock:
+                with (outdir / f"{trial.arm}.jsonl").open("a", encoding="utf-8") as f:
+                    f.write(line)
+
+        with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+            for _ in pool.map(execute, ready):
+                pass
+
+    print(f"\n{planned} trial(s) planned, {aborted} aborted, {failed} failed.", file=sys.stderr)
     return 1 if aborted else 0
 
 

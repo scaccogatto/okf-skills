@@ -279,6 +279,49 @@ class TestPromptRendering(unittest.TestCase):
             self.assertIn(doc.filename, trial.prompt)
 
 
+class TestCliBackend(unittest.TestCase):
+    """§8, rev 6: the CLI backend has to deliver the same trial the API backend
+    would, through a different execution surface."""
+
+    def test_command_pins_every_settable_harness_value(self):
+        from run import CLI_SYSTEM_PROMPT, build_cli_command
+
+        corpus = make_corpus(8)
+        trial = assemble_trial(corpus[0], corpus, "A1", 0, HARNESS, random.Random(3), backend="cli")
+        command = build_cli_command(HARNESS, trial)
+        self.assertEqual(command[:2], ["claude", "-p"])
+        for flag, value in (("--model", HARNESS["model"]), ("--effort", HARNESS["effort"]),
+                            ("--output-format", "json"), ("--allowedTools", "Read"),
+                            ("--permission-mode", "dontAsk"),
+                            ("--system-prompt", CLI_SYSTEM_PROMPT)):
+            self.assertEqual(command[command.index(flag) + 1], value)
+        self.assertEqual(command[-1], trial.prompt)
+
+    def test_listing_is_absolute_because_the_read_tool_needs_it(self):
+        corpus = make_corpus(8)
+        trial = assemble_trial(corpus[0], corpus, "B0", 0, HARNESS, random.Random(4), backend="cli")
+        for doc in trial.docs:
+            self.assertIn(str(trial.root / doc.filename), trial.prompt)
+        self.assertIn("Read tool", trial.prompt)
+
+    def test_trial_directory_name_leaks_neither_item_nor_arm(self):
+        # The CLI backend puts this path in the prompt, so a directory named
+        # after the item and the arm would hand the model the design.
+        corpus = make_corpus(8)
+        trial = assemble_trial(corpus[0], corpus, "A1", 2, HARNESS, random.Random(5), backend="cli")
+        name = trial.root.name
+        self.assertNotIn(trial.item.id, name)
+        self.assertNotIn("A1", name)
+
+    def test_api_backend_prompt_is_unchanged_by_the_addition(self):
+        corpus = make_corpus(8)
+        trial = assemble_trial(corpus[0], corpus, "B0", 0, HARNESS, random.Random(6))
+        self.assertIn("read_file tool", trial.prompt)
+        for doc in trial.docs:
+            self.assertIn(doc.filename, trial.prompt)
+            self.assertNotIn(str(trial.root / doc.filename), trial.prompt)
+
+
 class TestDiscoverItems(unittest.TestCase):
     def test_discovers_real_corpus_item(self):
         real_corpus = Path(__file__).resolve().parents[1] / "corpus"

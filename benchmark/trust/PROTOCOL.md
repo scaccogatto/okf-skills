@@ -1,7 +1,7 @@
 # Trust benchmark — protocol
 
-**Status:** draft, revision 5. Nothing has been run. Revisions 1 through 4 were
-each corrected before any run; §15 records the history.
+**Status:** draft, revision 6. Revisions 1 through 5 were each corrected before
+any run; §15 records the history.
 
 **Spec under test:** OKF **v0.2**, as vendored at `skills/okf/reference/SPEC.md`,
 okf-skills commit `c68f9f2` (2026-07-27). Every spec claim below is checkable
@@ -238,6 +238,20 @@ that something would be decided later.
 
 - **Model:** `claude-opus-5`, version string recorded per trial; named in the
   writeup, not anonymised.
+- **Execution surface: the `claude` CLI in headless mode** (`--backend cli`,
+  revision 6), one process per trial, because the machine running this has no
+  Anthropic API credentials and the protocol will not pretend otherwise. The
+  Messages-API backend stays in `run.py` and is still the reference path. What
+  changes, stated rather than buried: the file-read tool is the CLI's `Read`
+  (absolute paths, so the trial directory is named in the prompt and its name is
+  therefore neutral, §6), the per-trial identifier published under §13 is the
+  CLI's `session_id` rather than a response `id`, and `usage` is the CLI's
+  accounting including its own cached system prompt, which makes per-trial token
+  counts a property of the harness and not of the item. Frozen and identical
+  across arms as before: model, `effort`, one allowed tool, `--permission-mode
+  dontAsk`, hooks disabled, and a fixed system prompt committed in `run.py`
+  instead of the CLI's default, so a developer machine's configuration cannot
+  enter a trial.
 - **Sampling: not configurable, and that is the correct condition.** `claude-opus-5`
   rejects `temperature`, `top_p` and `top_k` with a 400; the Messages API exposes
   no seed parameter on any model. Revision 3 specified "temperature 1.0" and
@@ -367,6 +381,18 @@ without this package is indefensible against "you adjusted it afterwards".
   kind? Probably the more important question, and a different experiment.
 
 ## 15. Revision history
+
+- **Rev 5 → 6.** No blocker, one honest substitution: the environment has no
+  Anthropic API credentials, so trials run through the `claude` CLI in headless
+  mode instead of the Messages API. This is an execution-surface change and it
+  is recorded here rather than treated as configuration, because §13's
+  reproducibility package promises specific per-trial artefacts and two of them
+  now have a different shape (`session_id` for the response `id`; CLI-side
+  `usage`, which counts the harness's own cached prompt). The rest of §8 is
+  pinned harder than before, not looser: a fixed system prompt in place of the
+  CLI's default, hooks disabled, one allowed tool, and a trial directory name
+  that no longer spells out the item and the arm, since the CLI backend puts
+  that path in the prompt where the API backend never did.
 
 - **Rev 1 → 2.** Five blockers: ambiguous primary contrast; no analysis plan and
   an underpowered criterion; grader undefined on the most likely answer shape; no
