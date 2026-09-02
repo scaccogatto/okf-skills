@@ -2,18 +2,18 @@
 # `filename` is the neutral, non-orderable name used in the trial directory;
 # `superseded` / `current` are authoring labels that never reach the model.
 
-id: reversed-recommendation-04
+id: reversed-recommendation-17
 shape: reversed-recommendation
 
 question: >-
-  At which layer does the guidance say retries for idempotent Wexford routes belong?
+  Where does the guidance say a Vireo relabeling ruleset should be applied?
 
-f_old: "perimeter"
-f_new: "caller"
+f_old: "at ingest"
+f_new: "at query"
 
 superseded:
   source: superseded.md
-  filename: wexford-retry-guidance.md
+  filename: vireo-relabeling-guidance.md
 current:
   source: current.md
-  filename: wexford-integration-guidelines.md
+  filename: vireo-storage-pipeline.md

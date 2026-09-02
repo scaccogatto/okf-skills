@@ -18,7 +18,7 @@ listener offers exactly one entry.
 | Listener config | ALPN offered | Negotiated |
 |---|---|---|
 | unconfigured | http/1.1 | http/1.1 |
-| `protocols: [h2, http/1.1]` | both | client's choice |
+| `protocols: [http/2, http/1.1]` | both | client's choice |
 
 A single-entry list makes the negotiated protocol a property of configuration
 rather than of client behaviour, which is what makes a packet capture on the

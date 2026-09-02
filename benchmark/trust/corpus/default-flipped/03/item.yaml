@@ -9,7 +9,7 @@ question: >-
   Which protocol does a Dunlin proxy listener negotiate by default?
 
 f_old: "http/1.1"
-f_new: "h2"
+f_new: "http/2"
 
 superseded:
   source: superseded.md

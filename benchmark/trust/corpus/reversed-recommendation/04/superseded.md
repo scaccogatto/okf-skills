@@ -9,7 +9,7 @@ stale_after: 2026-07-15
 ---
 # Wexford retry placement guidance
 
-**Recommended layer: edge.** Retries for idempotent routes belong at the edge,
+**Recommended layer: perimeter.** Retries for idempotent routes belong at the perimeter,
 which already knows the route's idempotency declaration and can retry without
 the caller having to.
 
@@ -17,10 +17,10 @@ the caller having to.
 
 | Layer | Retry cost | Budget scope |
 |---|---|---|
-| edge | one hop | shared, enforced |
+| perimeter | one hop | shared, enforced |
 | caller | full round trip | per caller, unenforced |
 
-The edge sees the failure closest to the origin, so its retry costs one hop
+The perimeter sees the failure closest to the origin, so its retry costs one hop
 instead of a full round trip, and it applies one budget across everyone rather
 than trusting every integration to implement backoff correctly.
 

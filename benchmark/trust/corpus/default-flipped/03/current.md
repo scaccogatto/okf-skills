@@ -21,6 +21,6 @@ than served with the default.
 
 ## Handing off
 
-The listener negotiates h2 without an explicit `protocols` list, so the handoff
+The listener negotiates http/2 without an explicit `protocols` list, so the handoff
 is to the multiplexed handler and one connection carries many streams. Stream
 limits are per connection and are set on the listener.

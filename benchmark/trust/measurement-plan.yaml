@@ -1,22 +1,33 @@
 repetitions: 7
 items:
+- changed-precedence-10
 - default-flipped-03
 - default-flipped-04
 - default-flipped-05
 - default-flipped-06
 - default-flipped-07
+- default-flipped-09
 - limit-changed-01
 - limit-changed-04
 - limit-changed-05
 - limit-changed-06
 - limit-changed-07
 - limit-changed-08
+- limit-changed-09
+- limit-changed-10
+- limit-changed-11
+- limit-changed-12
+- limit-changed-13
+- limit-changed-14
 - removed-capability-05
+- removed-capability-10
+- removed-capability-11
 - renamed-identifier-02
 - renamed-identifier-04
 - renamed-identifier-05
 - renamed-identifier-07
 - renamed-identifier-08
+- renamed-identifier-11
 - reversed-recommendation-01
 - reversed-recommendation-02
 - reversed-recommendation-03
@@ -24,9 +35,13 @@ items:
 - reversed-recommendation-06
 - reversed-recommendation-07
 - reversed-recommendation-08
-required_items: 39
+- reversed-recommendation-09
+- reversed-recommendation-10
+- reversed-recommendation-12
+- reversed-recommendation-14
+required_items: 40
 underpowered: true
-heterogeneity_proxy: 0.03993055555555555
+heterogeneity_proxy: 0.04224194608809993
 calibration_rates:
   changed-precedence-01: 0.0
   changed-precedence-02: 0.0
@@ -36,6 +51,10 @@ calibration_rates:
   changed-precedence-06: 0.25
   changed-precedence-07: 0.25
   changed-precedence-08: 0.0
+  changed-precedence-09: 0.0
+  changed-precedence-10: 0.75
+  changed-precedence-11: 0.0
+  changed-precedence-12: 0.25
   default-flipped-01: 0.0
   default-flipped-02: 0.25
   default-flipped-03: 0.75
@@ -44,6 +63,12 @@ calibration_rates:
   default-flipped-06: 0.5
   default-flipped-07: 0.5
   default-flipped-08: 0.25
+  default-flipped-09: 0.5
+  default-flipped-10: 0.25
+  default-flipped-11: 0.0
+  default-flipped-12: 0.0
+  default-flipped-13: 0.0
+  default-flipped-14: 0.0
   limit-changed-01: 0.5
   limit-changed-02: 0.25
   limit-changed-03: 0.25
@@ -52,6 +77,12 @@ calibration_rates:
   limit-changed-06: 1.0
   limit-changed-07: 1.0
   limit-changed-08: 1.0
+  limit-changed-09: 0.5
+  limit-changed-10: 1.0
+  limit-changed-11: 0.75
+  limit-changed-12: 1.0
+  limit-changed-13: 1.0
+  limit-changed-14: 0.75
   removed-capability-01: 0.25
   removed-capability-02: 0.0
   removed-capability-03: 0.25
@@ -60,6 +91,10 @@ calibration_rates:
   removed-capability-06: 0.0
   removed-capability-07: 0.0
   removed-capability-08: 0.25
+  removed-capability-09: 0.25
+  removed-capability-10: 0.5
+  removed-capability-11: 0.75
+  removed-capability-12: 0.0
   renamed-identifier-01: 0.25
   renamed-identifier-02: 1.0
   renamed-identifier-03: 0.25
@@ -68,6 +103,12 @@ calibration_rates:
   renamed-identifier-06: 0.25
   renamed-identifier-07: 0.75
   renamed-identifier-08: 0.75
+  renamed-identifier-09: 0.25
+  renamed-identifier-10: 0.0
+  renamed-identifier-11: 0.5
+  renamed-identifier-12: 0.0
+  renamed-identifier-13: 0.25
+  renamed-identifier-14: 0.25
   reversed-recommendation-01: 0.5
   reversed-recommendation-02: 1.0
   reversed-recommendation-03: 1.0
@@ -76,3 +117,9 @@ calibration_rates:
   reversed-recommendation-06: 1.0
   reversed-recommendation-07: 1.0
   reversed-recommendation-08: 0.75
+  reversed-recommendation-09: 1.0
+  reversed-recommendation-10: 0.75
+  reversed-recommendation-11: 0.0
+  reversed-recommendation-12: 1.0
+  reversed-recommendation-13: 0.25
+  reversed-recommendation-14: 0.5
