@@ -1,6 +1,6 @@
 # Trust benchmark — protocol
 
-**Status:** revision 7, tagged before the measurement run. Revisions 1 through 5
+**Status:** revision 8, tagged before the measurement run. Revisions 1 through 5
 were corrected before anything ran; 6 and 7 were corrected by things that ran.
 §15 records the history.
 
@@ -391,6 +391,27 @@ without this package is indefensible against "you adjusted it afterwards".
   kind? Probably the more important question, and a different experiment.
 
 ## 15. Revision history
+
+- **Rev 7 → 8. A second model was taking a turn inside the consumer.** The first
+  measurement attempt was read before it was analysed, and its trial records
+  showed an `advisor_message` iteration served by a *different* model
+  (`claude-fable-5`): this machine's settings enable an advisor, and `--safe-mode`
+  does not disable it. It appears in 72 of the 320 calibration rows and in 8 of
+  10 probe trials. §8 names one model; a second one intervening is not a
+  declared condition, and its trigger plausibly correlates with hedging, which
+  is precisely what the arms are supposed to differ on — so this is not a
+  constant nuisance that cancels across arms.
+
+  `--settings '{"advisorModel": "none", "advisor": false}'` is now part of the
+  frozen invocation, asserted in the test suite. `advisorModel: null` alone was
+  tried first and did not work (8 of 10 trials still advised), which is why the
+  fix is a measured value rather than a plausible one.
+
+  The 19 recorded measurement trials were discarded. The calibration is **not**
+  re-run: it selects items and never enters a result (§7), and the advisor's
+  presence there makes the selection noisier rather than the comparison wrong.
+  That is a deliberate cost decision and it is stated here rather than left for
+  a reader to infer from timestamps.
 
 - **Rev 6 → 7, everything calibration found.** Revisions 1 to 5 were corrected by
   reading; this one was corrected by running, and every item below is a defect

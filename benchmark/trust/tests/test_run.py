@@ -299,8 +299,12 @@ class TestCliBackend(unittest.TestCase):
             self.assertEqual(command[command.index(flag) + 1], value)
         self.assertEqual(command[-1], trial.prompt)
         # Verified empirically, not from the flag list: without safe mode this
-        # machine's hooks, CLAUDE.md and skills reach the trial.
+        # machine's hooks, CLAUDE.md and skills reach the trial, and safe mode
+        # alone still let an advisor model take a turn inside it.
         self.assertIn("--safe-mode", command)
+        settings = json.loads(command[command.index("--settings") + 1])
+        self.assertEqual(settings["advisorModel"], "none")
+        self.assertIs(settings["advisor"], False)
 
     def test_listing_is_absolute_because_the_read_tool_needs_it(self):
         corpus = make_corpus(8)

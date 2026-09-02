@@ -85,6 +85,14 @@ READ_FILE_TOOL = {
 # deferred-tool and agent-type reminders), identical in every arm and declared
 # in §8 rather than assumed away.
 CLI_TOOL_NAME = "Read"
+# Rev 8, and safe mode did not cover it: this machine's settings enable an
+# advisor model, and the recorded trials show a second model (fable) taking a
+# turn inside the consumer under test — 72 of 320 calibration rows, and 8 of 10
+# in a probe. A second model is not in §8, and its trigger plausibly correlates
+# with hedging, which is exactly what the arms differ on. Both keys are passed
+# because the probe fixed the behaviour with both set and the flag is cheap;
+# `advisorModel: null` alone did not (8 of 10 still advised).
+CLI_SETTINGS = '{"advisorModel": "none", "advisor": false}'
 CLI_SYSTEM_PROMPT = (
     "You answer questions from a corpus of documents. Read the documents you are "
     "given and answer only from them."
@@ -546,6 +554,7 @@ def build_cli_command(harness: dict, trial: Trial) -> list[str]:
         "--permission-mode", "dontAsk",
         "--system-prompt", CLI_SYSTEM_PROMPT,
         "--safe-mode",
+        "--settings", CLI_SETTINGS,
         trial.prompt,
     ]
 
