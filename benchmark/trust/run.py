@@ -72,9 +72,18 @@ READ_FILE_TOOL = {
 # for API credentials this environment does not have; `Read` stands in for
 # `read_file`. The consumer's framing is stated here rather than left to the
 # CLI's default so it is frozen in the pre-registration package like everything
-# else, `--settings '{"hooks": {}}'` keeps a developer machine's hooks out of a
-# trial, and one allowed tool plus `--permission-mode dontAsk` keeps a trial from
+# else, and one allowed tool plus `--permission-mode dontAsk` keeps a trial from
 # touching anything but the corpus directory it was handed.
+#
+# `--safe-mode` is load-bearing and was arrived at by measurement, not by
+# reading the flag list: an earlier `--settings '{"hooks": {}}'` did *not* stop
+# this machine's SessionStart hooks, its user-level CLAUDE.md or its skill
+# listing from entering a trial. Asked to quote what preceded its prompt, a
+# trial under that configuration read back a persona instruction and the
+# maintainer's global coding rules. Safe mode removes hooks, CLAUDE.md, plugins,
+# skills and MCP servers; what remains is the CLI's own boilerplate (the
+# deferred-tool and agent-type reminders), identical in every arm and declared
+# in §8 rather than assumed away.
 CLI_TOOL_NAME = "Read"
 CLI_SYSTEM_PROMPT = (
     "You answer questions from a corpus of documents. Read the documents you are "
@@ -526,7 +535,7 @@ def build_cli_command(harness: dict, trial: Trial) -> list[str]:
         "--allowedTools", CLI_TOOL_NAME,
         "--permission-mode", "dontAsk",
         "--system-prompt", CLI_SYSTEM_PROMPT,
-        "--settings", '{"hooks": {}}',
+        "--safe-mode",
         trial.prompt,
     ]
 

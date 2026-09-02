@@ -249,9 +249,18 @@ that something would be decided later.
   accounting including its own cached system prompt, which makes per-trial token
   counts a property of the harness and not of the item. Frozen and identical
   across arms as before: model, `effort`, one allowed tool, `--permission-mode
-  dontAsk`, hooks disabled, and a fixed system prompt committed in `run.py`
-  instead of the CLI's default, so a developer machine's configuration cannot
-  enter a trial.
+  dontAsk`, and a fixed system prompt committed in `run.py` instead of the CLI's
+  default.
+- **The consumer runs in safe mode, and that was established by asking it.** A
+  headless CLI session inherits the machine it runs on. `--settings '{"hooks":
+  {}}'` looked like enough and was not: a probe trial, asked to quote what
+  preceded its prompt, read back this machine's SessionStart hook output, its
+  user-level `CLAUDE.md` and its skill listing. `--safe-mode` disables hooks,
+  `CLAUDE.md`, plugins, skills, MCP servers and custom agents. What survives it
+  is the CLI's own boilerplate — a deferred-tool reminder and an agent-type
+  listing — which is identical in every arm and is declared here rather than
+  described as absent. The first calibration run was executed before this was
+  checked and was discarded rather than reused (§15).
 - **Sampling: not configurable, and that is the correct condition.** `claude-opus-5`
   rejects `temperature`, `top_p` and `top_k` with a 400; the Messages API exposes
   no seed parameter on any model. Revision 3 specified "temperature 1.0" and
@@ -393,6 +402,24 @@ without this package is indefensible against "you adjusted it afterwards".
   CLI's default, hooks disabled, one allowed tool, and a trial directory name
   that no longer spells out the item and the arm, since the CLI backend puts
   that path in the prompt where the API backend never did.
+
+  Two defects in rev 6's own first draft, both found by checking rather than
+  reasoning, both fixed before the tag:
+
+  1. **The isolation claim was false.** The draft asserted that hooks were
+     disabled and that a developer machine's configuration could not enter a
+     trial. A probe trial asked to quote what preceded its prompt returned a
+     persona instruction from a SessionStart hook and the maintainer's global
+     `CLAUDE.md`. `--safe-mode` is the flag that actually holds, and the 192
+     calibration trials already run under the false configuration were
+     discarded rather than reused — they were contaminated identically in every
+     arm, which makes them defensible and still not what the protocol says.
+  2. **An answer that a filesystem path could contain.** One item's values were
+     `3` and `5`; the CLI backend names the trial directory in the prompt, so
+     §10's leakage check saw the answer in the path and aborted all four of its
+     trials. Loud rather than silent, which is the design working, but the
+     authoring rule (no bare one- or two-digit answer) is now a test over the
+     corpus, and two further items were widened from two digits to three.
 
 - **Rev 1 → 2.** Five blockers: ambiguous primary contrast; no analysis plan and
   an underpowered criterion; grader undefined on the most likely answer shape; no

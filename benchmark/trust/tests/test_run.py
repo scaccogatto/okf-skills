@@ -296,6 +296,9 @@ class TestCliBackend(unittest.TestCase):
                             ("--system-prompt", CLI_SYSTEM_PROMPT)):
             self.assertEqual(command[command.index(flag) + 1], value)
         self.assertEqual(command[-1], trial.prompt)
+        # Verified empirically, not from the flag list: without safe mode this
+        # machine's hooks, CLAUDE.md and skills reach the trial.
+        self.assertIn("--safe-mode", command)
 
     def test_listing_is_absolute_because_the_read_tool_needs_it(self):
         corpus = make_corpus(8)
