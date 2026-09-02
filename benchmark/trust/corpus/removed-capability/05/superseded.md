@@ -1,7 +1,7 @@
 ---
 type: Reference
-title: Talisker index rebuild modes
-description: Rebuild modes a Talisker index supports, including rebuilding a single key range.
+title: "Talisker index rebuild modes"
+description: "Rebuild modes a Talisker index supports, including rebuilding a single key range."
 tags: [talisker, index, rebuild]
 status: deprecated
 generated: { by: human:okf-bench, at: 2026-02-19T09:00:00Z }
@@ -20,11 +20,11 @@ queries.
 | partial | one key range | served outside the range |
 | full | whole index | served from the old index |
 
-## How the partial rebuild works
+## How a partial rebuild works
 
 The range is copied into a shadow extent, verified against the base table, then
-swapped in under the index lock. Only the affected range is unavailable, and only
-for the duration of the swap.
+swapped in under the index lock. Only the affected range is unavailable, and
+only for the duration of the swap.
 
-This is the mode to reach for after a range-scoped corruption or a bulk delete: a
-full rebuild of a large index costs hours where a partial costs minutes.
+This is the mode to reach for after a range-scoped corruption or a bulk delete:
+a full rebuild of a large index costs hours where a partial costs minutes.

@@ -1,17 +1,25 @@
 ---
 type: Reference
-title: Scheduler admission notes
-description: Operational notes on Bramble admission control after the descriptor rework.
-tags: [bramble, scheduler, admission]
+title: "Draining a Bramble worker"
+description: "How a Bramble worker is drained for maintenance and how long a drain takes."
+tags: [bramble, scheduler, drain]
 status: stable
 generated: { by: human:okf-bench, at: 2026-09-15T09:00:00Z }
 verified: { by: human:okf-bench, at: 2026-09-15T09:00:00Z }
 stale_after: 2027-10-31
 ---
-# Scheduler admission notes
+# Draining a Bramble worker
 
-Descriptors are now allocated from a shared arena, and each worker lane queues
-at most 384 tasks. Backfill lanes that used to park at full depth need either
-more lanes or an external work list.
+A drain stops admission to the worker's lanes and lets the queued tasks finish
+where they are.
 
-Rejection stays synchronous, with the same `BR_LANE_FULL` code.
+## How long a drain takes
+
+A lane holds at most 384 tasks, so a worker with four lanes finishes at most
+1536 queued tasks before it is idle. At a typical 20 tasks per second that is
+about eighty seconds, and the drain timeout defaults to five minutes.
+
+## Cancelling a drain
+
+A cancelled drain reopens admission immediately. Tasks that completed during the
+drain are not replayed.

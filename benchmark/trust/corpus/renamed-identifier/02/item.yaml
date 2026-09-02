@@ -16,4 +16,4 @@ superseded:
   filename: vireo-metric-catalogue.md
 current:
   source: current.md
-  filename: observability-notes.md
+  filename: vireo-alerting-cookbook.md

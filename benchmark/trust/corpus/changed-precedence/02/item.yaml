@@ -8,12 +8,12 @@ shape: changed-precedence
 question: >-
   When two Wexford routes both match a request path, which route is selected?
 
-f_old: "the longest prefix"
-f_new: "the first declared"
+f_old: "longest prefix"
+f_new: "first declared"
 
 superseded:
   source: superseded.md
   filename: wexford-route-matching.md
 current:
   source: current.md
-  filename: gateway-routing-notes.md
+  filename: wexford-route-authoring.md

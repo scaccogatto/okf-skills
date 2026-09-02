@@ -16,4 +16,4 @@ superseded:
   filename: orbis-schema-reference.md
 current:
   source: current.md
-  filename: identity-storage-notes.md
+  filename: orbis-session-metrics.md

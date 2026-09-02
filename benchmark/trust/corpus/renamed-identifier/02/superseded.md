@@ -1,7 +1,7 @@
 ---
 type: Reference
-title: Vireo metric catalogue
-description: Metrics published by Vireo, including the one reporting ingest lag.
+title: "Vireo metric catalogue"
+description: "Metrics published by Vireo, including the one reporting ingest lag."
 tags: [vireo, metrics, catalogue]
 status: deprecated
 generated: { by: human:okf-bench, at: 2026-02-06T09:00:00Z }
@@ -22,10 +22,13 @@ every 10 seconds at the ingest head.
 
 ## Reading the lag metric
 
-`vireo.queue.lag` is the age of the oldest unacknowledged record, not a moving
+The lag gauge is the age of the oldest unacknowledged record, not a moving
 average, so it steps rather than drifts. Alerting on it should use a duration
 condition rather than a single sample: a one-sample spike is a flush boundary,
 not an incident.
 
-Dashboards built before the sampler rewrite may still chart it as a counter
-delta, which reads roughly right and is wrong at restarts.
+## Cardinality
+
+Every metric carries `tenant` and `shard` labels, which is the whole cardinality
+budget; adding a third label per series is what turns a dashboard into an
+incident.

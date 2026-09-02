@@ -1,7 +1,7 @@
 ---
 type: Reference
-title: Merrowbank API error codes
-description: Error codes returned by the Merrowbank API, including the absent-state case.
+title: "Merrowbank API error codes"
+description: "Error codes returned by the Merrowbank API, including the absent-state case."
 tags: [merrowbank, api, errors]
 status: deprecated
 generated: { by: human:okf-bench, at: 2026-02-21T09:00:00Z }
@@ -22,10 +22,9 @@ When the requested state record is absent, the Merrowbank API returns
 
 ## Handling the absent case
 
-`MB_ENOSTATE` is the only code a first-write path should treat as success: it
-means the record does not exist yet and the create can proceed. Clients that
-retry on it instead of creating will loop until their budget is exhausted, which
-is the most common integration bug against this API.
+The absent-state code is the only one a first-write path should treat as
+success: it means the record does not exist yet and the create can proceed.
+Clients that retry on it instead of creating loop until their budget is
+exhausted, which is the most common integration bug against this API.
 
-Codes are stable strings and are safe to match on; the HTTP status is not, and
-may be narrowed in a future release.
+Codes are stable strings and are safe to match on; the HTTP status is not.

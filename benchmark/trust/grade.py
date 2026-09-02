@@ -20,13 +20,6 @@ import re
 # appear, so every match is collected rather than short-circuiting on the first.
 ANSWER_LINE = re.compile(r"^ANSWER:[ \t]*(.*?)[ \t]*$", re.M)
 
-# A digit immediately followed by whitespace then a letter is a unit boundary
-# ("384 KiB" / "384KiB" / "384 kib"): collapsing that one gap, after casefold,
-# makes the documented formatting variants compare equal without building a
-# unit parser (out of scope per the task: "keep it simple").
-UNIT_GAP = re.compile(r"(?<=\d)\s+(?=[a-z])")
-
-
 def extract_answer(response_text: str) -> str | None:
     """Return the value of the LAST `ANSWER: <value>` line, or None if absent."""
     matches = ANSWER_LINE.findall(response_text)
@@ -51,9 +44,37 @@ def normalize(value: str) -> str:
         prev = v
         v = v.strip("`'\"")
         v = v.rstrip(".")
+    # "higher-priority task" and "higher priority" differ by a hyphen the model
+    # adds when it uses the value attributively; the hyphen is never what
+    # separates two values in an item.
+    v = v.replace("-", " ")
     v = re.sub(r"\s+", " ", v).strip()
-    v = UNIT_GAP.sub("", v)
+    # "the client" and "client" assert the same thing; the article is never the
+    # difference between two values in an item.
+    if v.startswith("the "):
+        v = v[4:]
     return v
+
+
+def _matches(answer: str, value: str) -> bool:
+    """Exact after normalization, or the value plus ONE trailing word.
+
+    Observed in calibration: the field carries "1024 tasks" where the item's
+    value is "1024", and "the client" where it is "client". Both assert exactly
+    the value and nothing else. The trailing word is capped at one, and the
+    leading article is stripped in `normalize`, because a looser rule would
+    start matching answers that assert the value *and something about the other
+    one* ("1024 tasks, though the limit is 384"), which is the ambiguity the
+    forced field exists to remove (§9).
+    """
+    if answer == value:
+        return True
+    # "384 KiB" / "384KiB": the digit-unit gap is formatting, not a difference.
+    if answer.replace(" ", "") == value.replace(" ", ""):
+        return True
+    if answer.startswith(value + " "):
+        return " " not in answer[len(value) + 1:]
+    return False
 
 
 def grade(response_text: str, f_old: str, f_new: str) -> str:
@@ -62,11 +83,12 @@ def grade(response_text: str, f_old: str, f_new: str) -> str:
     if answer is None:
         return "neither"
     normalized = normalize(answer)
-    if normalized == normalize(f_old):
-        return "stale"
-    if normalized == normalize(f_new):
-        return "fresh"
-    return "neither"
+    old, new = normalize(f_old), normalize(f_new)
+    # An answer that matches both (possible when one value is a prefix of the
+    # other) asserts neither unambiguously, and the grader says so rather than
+    # letting declaration order decide.
+    hits = [name for name, value in (("stale", old), ("fresh", new)) if _matches(normalized, value)]
+    return hits[0] if len(hits) == 1 else "neither"
 
 
 if __name__ == "__main__":

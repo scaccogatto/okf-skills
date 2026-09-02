@@ -8,12 +8,12 @@ shape: changed-precedence
 question: >-
   When two Bramble tasks are eligible in the same lane, which one is dispatched first?
 
-f_old: "the higher priority"
-f_new: "the earlier submission"
+f_old: "higher priority"
+f_new: "earlier submission"
 
 superseded:
   source: superseded.md
   filename: bramble-dispatch-order.md
 current:
   source: current.md
-  filename: dispatch-fairness-notes.md
+  filename: bramble-task-submission.md

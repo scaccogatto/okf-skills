@@ -16,4 +16,4 @@ superseded:
   filename: orbis-session-continuity.md
 current:
   source: current.md
-  filename: session-failover-notes.md
+  filename: orbis-client-reconnect.md

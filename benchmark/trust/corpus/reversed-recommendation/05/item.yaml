@@ -16,4 +16,4 @@ superseded:
   filename: marlowe-group-sizing.md
 current:
   source: current.md
-  filename: consumer-scaling-notes.md
+  filename: marlowe-autoscaling.md

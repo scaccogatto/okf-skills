@@ -16,4 +16,4 @@ superseded:
   filename: halcyon-daemon-environment.md
 current:
   source: current.md
-  filename: daemon-startup-notes.md
+  filename: halcyon-socket-permissions.md

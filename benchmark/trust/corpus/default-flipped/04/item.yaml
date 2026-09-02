@@ -16,4 +16,4 @@ superseded:
   filename: selkie-bucket-storage-class.md
 current:
   source: current.md
-  filename: store-tiering-notes.md
+  filename: selkie-cost-reporting.md

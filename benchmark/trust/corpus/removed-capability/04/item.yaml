@@ -16,4 +16,4 @@ superseded:
   filename: larkspur-interactive-mode.md
 current:
   source: current.md
-  filename: cli-surface-notes.md
+  filename: larkspur-connection-handling.md

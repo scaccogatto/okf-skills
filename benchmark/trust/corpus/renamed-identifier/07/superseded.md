@@ -1,7 +1,7 @@
 ---
 type: Reference
-title: Orbis schema reference
-description: Tables in the Orbis schema, including the one holding session state.
+title: "Orbis schema reference"
+description: "Tables in the Orbis schema, including the one holding session state."
 tags: [orbis, schema, sessions]
 status: deprecated
 generated: { by: human:okf-bench, at: 2026-02-11T09:00:00Z }
@@ -22,9 +22,9 @@ id as the first column of the covering index.
 
 ## Querying session state
 
-`orbis_sessions` is written on every request that touches a session, so analytic
-queries against it should run on a replica. The covering index makes tenant-first
-lookups cheap and session-id-first lookups a scan, which is the opposite of what
-most new queries assume.
+The session table is written on every request that touches a session, so
+analytic queries against it belong on a replica. The covering index makes
+tenant-first lookups cheap and session-id-first lookups a scan, which is the
+opposite of what most new queries assume.
 
 Rows are soft-deleted at close and removed by the retention job.

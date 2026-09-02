@@ -312,7 +312,17 @@ def render_base_prompt(today: str, question: str, instruction: str | None, order
     if instruction:
         parts.append(instruction)
     parts.append(f"Question: {question}")
-    parts.append("End your response with a line of the exact form: ANSWER: <value>")
+    # Rev 7. "ANSWER: <value>" alone produced "The higher-priority task (priority
+    # descending; submission time breaks ties)" — an answer that asserts the
+    # value and grades `neither`, which loses the item for a reason that has
+    # nothing to do with what it measures. The refusal token is the other half:
+    # without somewhere to put "I cannot tell", a hedge lands in the value field
+    # and is indistinguishable from a verbose commitment.
+    parts.append(
+        "End your response with a line of the exact form: ANSWER: <value>\n"
+        "<value> must be the bare value and nothing else: no explanation, no "
+        "citation, no parenthesis. If you cannot commit to a single value, "
+        "write: ANSWER: unknown")
     return "\n\n".join(parts)
 
 

@@ -16,4 +16,4 @@ superseded:
   filename: corvid-topology-guidance.md
 current:
   source: current.md
-  filename: mesh-topology-notes.md
+  filename: corvid-deployment-patterns.md

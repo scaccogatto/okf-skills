@@ -1,17 +1,27 @@
 ---
 type: Reference
-title: Runtime memory notes
-description: Current memory behaviour of the Fennec runtime.
-tags: [fennec, runtime, memory]
+title: "Troubleshooting a Fennec OOM"
+description: "Diagnosing a Fennec process killed for memory, from the kill record back to the allocation."
+tags: [fennec, runtime, troubleshooting]
 status: stable
 generated: { by: human:okf-bench, at: 2026-10-02T09:00:00Z }
 verified: { by: human:okf-bench, at: 2026-10-02T09:00:00Z }
 stale_after: 2027-09-30
 ---
-# Runtime memory notes
+# Troubleshooting a Fennec OOM
 
-Processes now start in adaptive heap mode, returning pages at collection time.
-Placement planning that assumed a constant footprint should pin `heap.mode`
-instead.
+Start from the kill record, which names the resident size at kill and the last
+collection before it.
 
-The mode is still read once at start and cannot be switched on a live process.
+## Reading the resident size
+
+The runtime sizes its heap adaptively unless told otherwise, so resident size
+tracks live data rather than the ceiling: a process killed well under its
+ceiling was growing between collections, and the collection interval is the
+first thing to look at.
+
+## Capturing a heap profile
+
+`fennec profile heap --pid` writes a profile without stopping the process. The
+profile is safe to take under memory pressure; it allocates from a reserved
+arena outside the heap.

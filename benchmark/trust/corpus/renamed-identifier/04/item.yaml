@@ -16,4 +16,4 @@ superseded:
   filename: merrowbank-error-codes.md
 current:
   source: current.md
-  filename: api-error-notes.md
+  filename: merrowbank-client-retries.md

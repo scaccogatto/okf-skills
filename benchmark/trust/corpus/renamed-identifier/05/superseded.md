@@ -1,7 +1,7 @@
 ---
 type: Reference
-title: Quillon request headers
-description: Headers a Quillon service reads and propagates, including the trace identifier.
+title: "Quillon request headers"
+description: "Headers a Quillon service reads and propagates, including the trace identifier."
 tags: [quillon, headers, tracing]
 status: deprecated
 generated: { by: human:okf-bench, at: 2026-03-09T09:00:00Z }
@@ -23,7 +23,12 @@ one is assigned a fresh identifier at the edge.
 
 ## Propagation rules
 
-`X-Quillon-Trace` is copied without parsing, so a client may use any opaque value
-its own tooling understands. Services must not regenerate it on internal hops:
-a regenerated identifier splits one trace into several and is invisible in the
-resulting graph, which is why the propagation is verbatim rather than structured.
+The trace header is copied without parsing, so a client may use any opaque value
+its own tooling understands. Services must not regenerate it on internal hops: a
+regenerated identifier splits one trace into several and is invisible in the
+resulting graph.
+
+## Deadlines
+
+The deadline header is decremented by measured service time, not by a fixed
+budget, so a slow hop shortens what its callees get.

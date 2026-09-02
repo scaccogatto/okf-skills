@@ -8,12 +8,12 @@ shape: reversed-recommendation
 question: >-
   At which layer does the guidance say retries for idempotent Wexford routes belong?
 
-f_old: "gateway"
-f_new: "client"
+f_old: "edge"
+f_new: "caller"
 
 superseded:
   source: superseded.md
   filename: wexford-retry-guidance.md
 current:
   source: current.md
-  filename: failure-handling-notes.md
+  filename: wexford-integration-guidelines.md

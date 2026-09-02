@@ -19,7 +19,7 @@ f_new: "112 KiB"
 
 superseded:
   source: superseded.md
-  filename: halyard-frame-payload.md
+  filename: relay-frame-notes.md
 current:
   source: current.md
-  filename: relay-transport-notes.md
+  filename: halyard-backpressure.md

@@ -16,4 +16,4 @@ superseded:
   filename: selkie-transaction-scope.md
 current:
   source: current.md
-  filename: transaction-notes.md
+  filename: selkie-consistency-model.md

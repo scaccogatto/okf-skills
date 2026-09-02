@@ -16,4 +16,4 @@ superseded:
   filename: halcyon-config-reload.md
 current:
   source: current.md
-  filename: daemon-lifecycle-notes.md
+  filename: halcyon-change-management.md

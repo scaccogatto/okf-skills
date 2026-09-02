@@ -16,4 +16,4 @@ superseded:
   filename: marlowe-ack-modes.md
 current:
   source: current.md
-  filename: queue-delivery-notes.md
+  filename: marlowe-consumer-tutorial.md

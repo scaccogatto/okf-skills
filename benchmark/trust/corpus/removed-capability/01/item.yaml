@@ -16,4 +16,4 @@ superseded:
   filename: juniper-shard-operations.md
 current:
   source: current.md
-  filename: stream-topology-notes.md
+  filename: juniper-stream-lifecycle.md

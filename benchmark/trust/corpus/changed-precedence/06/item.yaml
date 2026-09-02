@@ -6,14 +6,14 @@ id: changed-precedence-06
 shape: changed-precedence
 
 question: >-
-  When a Pellworm entry is covered by both a tag rule and a key rule, which rule governs its invalidation?
+  When a Pellworm entry is covered by two invalidation rules of different kinds, which one governs?
 
-f_old: "the tag rule"
-f_new: "the key rule"
+f_old: "tag rule"
+f_new: "key rule"
 
 superseded:
   source: superseded.md
   filename: pellworm-invalidation-rules.md
 current:
   source: current.md
-  filename: invalidation-notes.md
+  filename: pellworm-cache-invalidation-api.md

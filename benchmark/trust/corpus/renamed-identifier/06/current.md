@@ -1,17 +1,26 @@
 ---
 type: Reference
-title: Write command notes
-description: Current flag surface of the Peregrine write command.
-tags: [peregrine, cli, flags]
+title: "Bulk loading into Peregrine"
+description: "Loading a large record set into Peregrine, and how to keep the staging area from becoming the bottleneck."
+tags: [peregrine, loading, bulk]
 status: stable
 generated: { by: human:okf-bench, at: 2026-07-15T09:00:00Z }
 verified: { by: human:okf-bench, at: 2026-07-15T09:00:00Z }
 stale_after: 2027-05-31
 ---
-# Write command notes
+# Bulk loading into Peregrine
 
-The unstaged path is now spelled `--direct-commit`, chosen to say what it does
-rather than how fast it is. The old spelling is not accepted and fails argument
-parsing.
+A bulk load validates once, up front, and then writes without paying the staging
+hook per record.
 
-Composition rules are unchanged: it works with `--wait`, not with `--dry-run`.
+## The load
+
+Validate the file with `peregrine validate`, then write each batch with
+`--direct-commit`, which puts records into the committed set without staging.
+Batches of a few thousand records keep the commit log readable; larger batches
+buy nothing.
+
+## Verifying
+
+`peregrine count --since` after the load compares against the input record
+count. A mismatch means a batch failed and its error is in the load log.

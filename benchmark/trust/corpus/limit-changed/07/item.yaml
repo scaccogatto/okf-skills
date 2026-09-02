@@ -16,4 +16,4 @@ superseded:
   filename: pellworm-entry-ttl.md
 current:
   source: current.md
-  filename: cache-expiry-notes.md
+  filename: cache-eviction-reference.md

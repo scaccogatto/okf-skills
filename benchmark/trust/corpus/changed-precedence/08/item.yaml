@@ -8,12 +8,12 @@ shape: changed-precedence
 question: >-
   When a Vireo relabeling ruleset contains both kinds of rule and they conflict on a series, which kind is applied?
 
-f_old: "the drop rules"
-f_new: "the keep rules"
+f_old: "drop rules"
+f_new: "keep rules"
 
 superseded:
   source: superseded.md
   filename: vireo-relabeling-order.md
 current:
   source: current.md
-  filename: metric-pipeline-notes.md
+  filename: vireo-cardinality-control.md

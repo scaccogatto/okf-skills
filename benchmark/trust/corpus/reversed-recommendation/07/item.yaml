@@ -16,4 +16,4 @@ superseded:
   filename: selkie-snapshot-guidance.md
 current:
   source: current.md
-  filename: snapshot-handling-notes.md
+  filename: selkie-snapshot-restore.md

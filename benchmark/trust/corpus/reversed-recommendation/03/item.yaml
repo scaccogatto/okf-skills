@@ -16,4 +16,4 @@ superseded:
   filename: fennec-image-guidance.md
 current:
   source: current.md
-  filename: image-build-notes.md
+  filename: fennec-image-pipeline.md

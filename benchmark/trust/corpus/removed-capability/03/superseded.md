@@ -1,7 +1,7 @@
 ---
 type: Reference
-title: Halcyon configuration reload
-description: How the Halcyon daemon picks up a changed configuration file.
+title: "Halcyon configuration reload"
+description: "How the Halcyon daemon picks up a changed configuration file."
 tags: [halcyon, configuration, reload]
 status: deprecated
 generated: { by: human:okf-bench, at: 2026-03-04T09:00:00Z }
@@ -23,9 +23,9 @@ parse succeeds; a bad file leaves the running configuration in place.
 
 ## Reload semantics
 
-The swap is atomic per subsystem, not global: a reload that changes both limits
-and routes applies each as its subsystem picks it up, within a few milliseconds
-of each other. In-flight requests keep the configuration they started with.
+The swap is atomic per subsystem, not global: a reload changing both limits and
+routes applies each as its subsystem picks it up, within a few milliseconds of
+each other. In-flight requests keep the configuration they started with.
 
-Sending `SIGHUP` twice in quick succession is safe; the second reload sees the
+Sending the signal twice in quick succession is safe; the second reload sees the
 same file and is a no-op.

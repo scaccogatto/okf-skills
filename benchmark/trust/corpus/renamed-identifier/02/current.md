@@ -1,17 +1,27 @@
 ---
 type: Reference
-title: Observability notes
-description: Current metric names and conventions for Vireo.
-tags: [vireo, observability, naming]
+title: "Vireo alerting cookbook"
+description: "Alert rules for Vireo ingest, with the conditions and durations each rule uses."
+tags: [vireo, alerting, rules]
 status: stable
 generated: { by: human:okf-bench, at: 2026-08-17T09:00:00Z }
 verified: { by: human:okf-bench, at: 2026-08-17T09:00:00Z }
 stale_after: 2027-09-30
 ---
-# Observability notes
+# Vireo alerting cookbook
 
-Metric names moved to the underscore convention with an explicit unit suffix, so
-ingest lag is published as `vireo_ingest_lag_seconds`. Dashboards and alert rules
-carrying the old dotted name silently match nothing.
+Three rules cover the ingest path: lag, depth and flush failure.
 
-The sampling interval and the step behaviour of the gauge are unchanged.
+## Lag
+
+    alert: IngestLagHigh
+    expr: vireo_ingest_lag_seconds > 300
+    for: 10m
+
+The duration matters more than the threshold: the gauge steps at flush
+boundaries, and a rule without `for` fires on every boundary.
+
+## Depth and flushes
+
+Depth alerts on absolute backlog and pairs with the lag rule; a depth alert
+without a lag alert usually means a stuck consumer rather than slow ingest.

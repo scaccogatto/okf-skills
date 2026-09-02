@@ -1,16 +1,25 @@
 ---
 type: Reference
-title: CLI usage notes
-description: Current behaviour of the Larkspur CLI in scripts and terminals.
-tags: [larkspur, cli, usage]
+title: "Scripting against Larkspur"
+description: "Driving Larkspur from scripts: exit codes, streaming output and pagination."
+tags: [larkspur, cli, scripting]
 status: stable
 generated: { by: human:okf-bench, at: 2026-05-28T09:00:00Z }
 verified: { by: human:okf-bench, at: 2026-05-28T09:00:00Z }
 stale_after: 2027-04-30
 ---
-# CLI usage notes
+# Scripting against Larkspur
 
-Commands now emit ndjson by default, which makes piping the common case and
-removes the parse-the-table trap. Interactive users pass `--format table`.
+A script drives the CLI through exit codes and its output stream; there is no
+separate scripting API.
 
-`--format` and `LARKSPUR_FORMAT` are unchanged.
+## Output
+
+Commands print ndjson without an explicit `--format`, one object per line, so a
+script pipes straight into `jq` and needs no parsing. Keys are additive between
+releases: a new key may appear, an existing key does not change meaning.
+
+## Exit codes
+
+`0` success, `2` usage error, `3` the server refused, `4` the request timed out.
+A script that retries should retry only on `4`.

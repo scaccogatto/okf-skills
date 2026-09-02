@@ -16,4 +16,4 @@ superseded:
   filename: fennec-plugin-loading.md
 current:
   source: current.md
-  filename: runtime-extension-notes.md
+  filename: fennec-extension-packaging.md

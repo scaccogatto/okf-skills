@@ -1,17 +1,25 @@
 ---
 type: Reference
-title: Edge listener notes
-description: Operational notes on the Wexford edge listener after the staging block split.
-tags: [wexford, gateway, listener]
+title: "Wexford audit logging"
+description: "What a Wexford gateway writes to the audit log per request, and how large those records get."
+tags: [wexford, gateway, audit]
 status: stable
 generated: { by: human:okf-bench, at: 2026-07-21T09:00:00Z }
 verified: { by: human:okf-bench, at: 2026-07-21T09:00:00Z }
 stale_after: 2027-06-30
 ---
-# Edge listener notes
+# Wexford audit logging
 
-Staging is now split per concern rather than shared, so a route accepts a request
-body of at most 2 MiB. Bulk upload routes are expected to move to chunked submit.
+Every request produces one audit record: route, principal, decision, and a
+digest of the body rather than the body itself.
 
-The refusal path is unchanged: `413` with `WX_BODY_LIMIT`, still before the
-handler runs.
+## Record sizing
+
+Because a route accepts a request body of at most 2 MiB, the digest is computed
+in a single pass without spilling, and an audit record stays under 2 KiB
+regardless of the request that produced it.
+
+## Retention
+
+Records are retained for 400 days in the audit store and are never mutated: a
+correction is a second record referencing the first.

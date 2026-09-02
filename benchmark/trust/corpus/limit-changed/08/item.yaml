@@ -16,4 +16,4 @@ superseded:
   filename: juniper-stream-shards.md
 current:
   source: current.md
-  filename: stream-coordination-notes.md
+  filename: stream-consumer-reference.md

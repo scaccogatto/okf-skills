@@ -16,4 +16,4 @@ superseded:
   filename: sparrow-tooling.md
 current:
   source: current.md
-  filename: cluster-operations-notes.md
+  filename: sparrow-node-replacement.md

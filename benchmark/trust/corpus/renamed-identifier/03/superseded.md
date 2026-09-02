@@ -1,7 +1,7 @@
 ---
 type: Reference
-title: Index service configuration keys
-description: Configuration keys accepted by the index service, including the warm pool sizing key.
+title: "Index service configuration keys"
+description: "Configuration keys accepted by the index service, including the warm pool sizing key."
 tags: [index, configuration, pools]
 status: deprecated
 generated: { by: human:okf-bench, at: 2026-01-30T09:00:00Z }
@@ -20,11 +20,11 @@ segments held resident before the first query arrives.
 | `index.query_workers` | concurrent query workers | at start |
 | `index.merge_interval` | background merge cadence | live |
 
-## Sizing the warm pool
+## Sizing the pool
 
-`index.warm_pool` costs memory proportional to segment size and buys first-query
-latency. A value of 0 is legal and means the service starts cold, which is the
-right setting for a node that only serves background merges.
+The pool costs memory proportional to segment size and buys first-query latency.
+A value of 0 is legal and means the service starts cold, which is the right
+setting for a node that only serves background merges.
 
-The key is read at start only. Changing it on a live node has no effect until
-restart, and no warning is logged.
+Unknown keys are ignored rather than rejected, so a typo produces a node running
+with the default and no warning.

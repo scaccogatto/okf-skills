@@ -16,4 +16,4 @@ superseded:
   filename: pellworm-warming-guidance.md
 current:
   source: current.md
-  filename: deployment-cache-notes.md
+  filename: pellworm-deploy-checklist.md

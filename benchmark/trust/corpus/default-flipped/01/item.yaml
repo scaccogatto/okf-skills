@@ -16,4 +16,4 @@ superseded:
   filename: kestrel-agent-compression.md
 current:
   source: current.md
-  filename: agent-defaults-notes.md
+  filename: kestrel-agent-install.md

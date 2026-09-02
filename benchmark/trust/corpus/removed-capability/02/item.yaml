@@ -16,4 +16,4 @@ superseded:
   filename: marlowe-dead-letter-handling.md
 current:
   source: current.md
-  filename: dlq-recovery-notes.md
+  filename: marlowe-operations-runbook.md

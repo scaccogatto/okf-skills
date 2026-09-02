@@ -1,7 +1,7 @@
 ---
 type: Reference
-title: Halcyon settings resolution
-description: How Halcyon resolves a setting given in more than one place, including flags and environment.
+title: "Halcyon settings resolution"
+description: "How Halcyon resolves a setting given in more than one place, including flags and environment."
 tags: [halcyon, settings, resolution]
 status: deprecated
 generated: { by: human:okf-bench, at: 2026-01-16T09:00:00Z }
@@ -25,8 +25,8 @@ overwritten by the environment value before the daemon starts.
 ## Why the environment ranks first
 
 The daemon is supervised, and the supervisor owns the environment while the unit
-file's command line is templated and shared across hosts. Ranking the environment
-first is what lets one host be adjusted without editing a template that every
+file's command line is templated and shared across hosts. Ranking the
+environment first lets one host be adjusted without editing a template every
 other host also reads.
 
 The consequence is worth stating plainly: a flag on the command line can be

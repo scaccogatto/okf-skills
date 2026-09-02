@@ -16,4 +16,4 @@ superseded:
   filename: selkie-ingest-guidance.md
 current:
   source: current.md
-  filename: ingest-client-notes.md
+  filename: selkie-client-library.md

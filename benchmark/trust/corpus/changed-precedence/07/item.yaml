@@ -8,12 +8,12 @@ shape: changed-precedence
 question: >-
   When a Larkspur setting is defined in more than one profile, which profile is applied?
 
-f_old: "the project profile"
-f_new: "the user profile"
+f_old: "project profile"
+f_new: "user profile"
 
 superseded:
   source: superseded.md
   filename: larkspur-profile-resolution.md
 current:
   source: current.md
-  filename: profile-notes.md
+  filename: larkspur-profiles-howto.md

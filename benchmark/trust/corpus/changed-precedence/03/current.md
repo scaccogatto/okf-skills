@@ -1,16 +1,24 @@
 ---
 type: Reference
-title: Access control notes
-description: Current policy resolution for Selkie access decisions.
-tags: [selkie, access, policy]
+title: "Auditing Selkie access"
+description: "Answering who can read a bucket, and what an audit has to read to answer it."
+tags: [selkie, audit, access]
 status: stable
 generated: { by: human:okf-bench, at: 2026-09-13T09:00:00Z }
 verified: { by: human:okf-bench, at: 2026-09-13T09:00:00Z }
 stale_after: 2027-09-30
 ---
-# Access control notes
+# Auditing Selkie access
 
-Resolution now makes the account policy decisive: a bucket may narrow it but not
-depart from it, so an account-wide deny holds everywhere.
+## Scope of an audit
 
-Auditing an account's exposure therefore no longer requires reading every bucket.
+Where both apply, **the account policy** is decisive: a bucket may narrow it but
+not depart from it. An audit therefore starts from the account policy, which
+bounds the answer, and reads bucket policies only to find where access is
+narrower than the baseline.
+
+## Running one
+
+`selkie access explain --principal --bucket` evaluates both policies for a
+principal and prints which rule decided. Batch mode takes a principal list and
+writes one row per principal and bucket.

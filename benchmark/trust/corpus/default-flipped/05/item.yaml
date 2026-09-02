@@ -16,4 +16,4 @@ superseded:
   filename: fennec-heap-sizing.md
 current:
   source: current.md
-  filename: runtime-memory-notes.md
+  filename: fennec-oom-troubleshooting.md

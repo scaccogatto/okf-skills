@@ -68,7 +68,44 @@ class TestGraderFidelity(unittest.TestCase):
 
     def test_normalize_strips_quotes_backticks_and_trailing_period(self):
         self.assertEqual(normalize('"384 KiB".'), normalize("384 kib"))
-        self.assertEqual(normalize("`384 KiB`"), normalize("384KiB"))
+        # The digit-unit gap is no longer collapsed in `normalize` (rev 7: that
+        # collapse hid the "1024 tasks" case); the equivalence is asserted where
+        # it is now decided, at the grade.
+        self.assertEqual(grade("ANSWER: `384 KiB`", "384KiB", "112 KiB"), "stale")
+
+
+class TestGraderUnitAndArticleTolerance(unittest.TestCase):
+    """§9, rev 7. Calibration produced answers that assert the value exactly and
+    grade `neither` on wording: "1024 tasks" against a value of "1024", "the
+    client" against "client". The tolerance is one trailing word and a leading
+    article, and no more than that."""
+
+    def test_one_trailing_unit_word_still_matches(self):
+        self.assertEqual(grade("ANSWER: 1024 tasks", "1024", "384"), "stale")
+        self.assertEqual(grade("ANSWER: 104 shards", "192", "104"), "fresh")
+
+    def test_attributive_hyphen_is_not_a_difference(self):
+        self.assertEqual(
+            grade("ANSWER: the higher-priority task", "higher priority", "earlier submission"),
+            "stale")
+
+    def test_leading_article_is_not_a_difference(self):
+        self.assertEqual(grade("ANSWER: the client", "gateway", "client"), "fresh")
+
+    def test_two_trailing_words_do_not_match(self):
+        # "1024 tasks per lane" is a sentence starting to explain, and an
+        # explanation is where the other value tends to appear.
+        self.assertEqual(grade("ANSWER: 1024 tasks per lane", "1024", "384"), "neither")
+
+    def test_a_hedge_naming_both_values_is_still_neither(self):
+        self.assertEqual(
+            grade("ANSWER: 1024 tasks, though the current limit is 384", "1024", "384"),
+            "neither")
+
+    def test_an_answer_matching_both_values_is_neither(self):
+        # One value being a prefix of the other must not be resolved by
+        # whichever the grader happens to test first.
+        self.assertEqual(grade("ANSWER: 384 KiB", "384", "384 KiB"), "neither")
 
 
 class TestPerItemRates(unittest.TestCase):

@@ -1,18 +1,26 @@
 ---
 type: Reference
-title: Ledger storage notes
-description: Operational notes on Fenwick ledger storage after the header table rework.
-tags: [fenwick, ledger, storage]
+title: "Fenwick ledger compaction"
+description: "How Fenwick compaction merges sealed ledger segments and what it costs per pass."
+tags: [fenwick, ledger, compaction]
 status: stable
 generated: { by: human:okf-bench, at: 2026-06-28T09:00:00Z }
 verified: { by: human:okf-bench, at: 2026-06-28T09:00:00Z }
 stale_after: 2027-08-31
 ---
-# Ledger storage notes
+# Fenwick ledger compaction
 
-The header table rework moved slot metadata off the mapped page and widened each
-slot, so a segment now holds 3072 entries. Import jobs that checkpoint on
-segment boundaries need their checkpoint interval adjusted.
+Compaction merges sealed segments into a single output segment and drops
+entries superseded by a later write to the same key.
 
-Sealing behaviour is unchanged: the writer that fills a segment seals it and
-opens the successor in the same operation.
+## Cost of a pass
+
+A segment holds 3072 entries, so a pass over sixteen sealed segments reads
+49152 entries and writes however many survive deduplication. The pass is
+scheduled off the append path and holds no lock on the open segment.
+
+## Scheduling
+
+Compaction runs when the sealed-segment count crosses `compaction.trigger`,
+default sixteen. A pass may be cancelled mid-way; its output is discarded and
+the input segments are untouched.

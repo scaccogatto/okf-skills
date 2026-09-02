@@ -1,7 +1,7 @@
 ---
 type: Reference
-title: Orbis session continuity
-description: What happens to an Orbis session when the node holding it fails.
+title: "Orbis session continuity"
+description: "What happens to an Orbis session when the node holding it fails."
 tags: [orbis, sessions, failover]
 status: deprecated
 generated: { by: human:okf-bench, at: 2026-02-24T09:00:00Z }
@@ -25,7 +25,7 @@ sees a reconnect rather than a logout.
 
 The session record carries a lease. When the lease expires unrenewed, any node
 may claim it by writing a higher fencing token, and exactly one claim wins. The
-winner replays the session's grant set from the identity store before serving the
-first request, so a taken-over session never runs on stale authorisation.
+winner replays the session's grant set from the identity store before serving
+the first request, so a taken-over session never runs on stale authorisation.
 
 Clients notice takeover only as a connection reset.

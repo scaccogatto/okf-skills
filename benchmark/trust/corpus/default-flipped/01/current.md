@@ -1,17 +1,26 @@
 ---
 type: Reference
-title: Agent defaults notes
-description: Current defaults applied by a freshly installed Kestrel agent.
-tags: [kestrel, agent, defaults]
+title: "Installing a Kestrel agent"
+description: "Installing a Kestrel agent on a host and the configuration a fresh install starts from."
+tags: [kestrel, agent, install]
 status: stable
 generated: { by: human:okf-bench, at: 2026-07-06T09:00:00Z }
 verified: { by: human:okf-bench, at: 2026-07-06T09:00:00Z }
 stale_after: 2027-07-31
 ---
-# Agent defaults notes
+# Installing a Kestrel agent
 
-Hosts are now CPU-bound more often than egress-bound, so a fresh agent ships with
-payload compression disabled. Fleets that want the old behaviour set it
-explicitly in the agent block.
+The installer places the binary, writes a unit file and starts the agent with an
+empty configuration block.
 
-The collector still accepts both shapes on the same port.
+## What a fresh install runs with
+
+A freshly installed agent has payload compression disabled and a 30-second flush
+interval. Fleets that want other values ship an agent block through
+configuration management rather than editing the file on the host.
+
+## Verifying the install
+
+`kestrel agent status` prints the resolved configuration and the collector it
+reached. An agent that started but never reached a collector is reported as
+`connecting`, not as an error.

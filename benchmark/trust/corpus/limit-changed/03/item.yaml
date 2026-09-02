@@ -16,4 +16,4 @@ superseded:
   filename: corvid-channel-subscriptions.md
 current:
   source: current.md
-  filename: mesh-fanout-notes.md
+  filename: mesh-capacity-planning.md

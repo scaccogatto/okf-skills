@@ -1,7 +1,7 @@
 ---
 type: Reference
-title: Sparrow cluster tooling
-description: Command-line tooling shipped with Sparrow, including the cluster administration tool.
+title: "Sparrow cluster tooling"
+description: "Command-line tooling shipped with Sparrow, including the cluster administration tool."
 tags: [sparrow, cluster, tooling]
 status: deprecated
 generated: { by: human:okf-bench, at: 2026-03-22T09:00:00Z }
@@ -23,7 +23,7 @@ refusing client traffic.
 
 ## Why the admin socket matters
 
-`sparrowctl` is the only tool that can drain a node whose public listener is
-already saturated, because the admin socket has its own accept queue. Any runbook
-that reaches for the public API to drain a hot node is describing a step that
-will time out exactly when it is needed.
+The administration tool is the only one that can drain a node whose public
+listener is saturated, because the admin socket has its own accept queue. A
+runbook that reaches for the public API to drain a hot node describes a step
+that times out exactly when it is needed.

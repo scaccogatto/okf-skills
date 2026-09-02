@@ -1,7 +1,7 @@
 ---
 type: Reference
-title: Vireo relabeling order
-description: Which relabeling rule kind is applied when a Vireo ruleset conflicts on a series.
+title: "Vireo relabeling order"
+description: "Which relabeling rule kind is applied when a Vireo ruleset conflicts on a series."
 tags: [vireo, relabeling, rules]
 status: deprecated
 generated: { by: human:okf-bench, at: 2026-01-12T09:00:00Z }
@@ -23,9 +23,8 @@ rule also matches it.
 ## Why drop wins
 
 Drop rules are how a cardinality incident is stopped: an operator adds one rule
-and the offending series stop arriving. If a keep rule elsewhere in the ruleset
-could reinstate them, that emergency stop would depend on auditing every other
-rule first, which is exactly what nobody has time for during the incident.
+and the offending series stop arriving. If a keep rule elsewhere could reinstate
+them, that emergency stop would depend on auditing every other rule first.
 
 Conflicts are common in generated rulesets and are not reported: a keep rule
-shadowed by a drop rule looks identical to one that simply never matched.
+shadowed by a drop rule looks identical to one that never matched.

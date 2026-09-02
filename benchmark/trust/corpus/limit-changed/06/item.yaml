@@ -16,4 +16,4 @@ superseded:
   filename: wexford-route-bodies.md
 current:
   source: current.md
-  filename: edge-listener-notes.md
+  filename: gateway-audit-logging.md

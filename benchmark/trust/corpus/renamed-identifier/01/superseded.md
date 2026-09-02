@@ -1,7 +1,7 @@
 ---
 type: Reference
-title: Halcyon daemon environment
-description: Environment variables read by the Halcyon daemon at start, including the socket path.
+title: "Halcyon daemon environment"
+description: "Environment variables read by the Halcyon daemon at start, including the socket path."
 tags: [halcyon, daemon, environment]
 status: deprecated
 generated: { by: human:okf-bench, at: 2026-01-19T09:00:00Z }
@@ -23,10 +23,10 @@ where the daemon looks for a stale socket to clean up.
 
 ## Ordering consequences
 
-Because `HALCYON_SOCK` is read before the config file, a socket path in the
-config cannot override it: the daemon has already bound by then. A unit file that
-sets the variable and a config that sets the path will silently disagree, and the
-environment wins.
+Because the socket variable is read before the configuration file, a socket path
+in the config cannot override it: the daemon has already bound by then. A unit
+file that sets the variable and a config that sets the path disagree silently,
+and the environment wins.
 
 ## Client side
 

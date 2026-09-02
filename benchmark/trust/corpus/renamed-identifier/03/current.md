@@ -1,17 +1,26 @@
 ---
 type: Reference
-title: Search tier notes
-description: Current configuration surface of the search tier.
-tags: [index, search, configuration]
+title: "Index node bootstrap"
+description: "What an index node does between process start and serving its first query."
+tags: [index, bootstrap, startup]
 status: stable
 generated: { by: human:okf-bench, at: 2026-06-24T09:00:00Z }
 verified: { by: human:okf-bench, at: 2026-06-24T09:00:00Z }
 stale_after: 2027-06-30
 ---
-# Search tier notes
+# Index node bootstrap
 
-The pool key was renamed to `index.prefetch_pool` when prefetching stopped being
-limited to start-up. Unknown keys are ignored rather than rejected, so a config
-still carrying the old name starts a node with a pool of zero.
+A node opens its segment set, fills its pools and only then joins the query
+ring.
 
-The key is still read at start only.
+## Filling the pools
+
+`index.prefetch_pool` sets how many segments are resident before the node joins;
+the node reads them in segment order and reports progress on the admin socket.
+A node with the pool set to zero joins immediately and serves its first queries
+from disk.
+
+## Joining the ring
+
+Joining is a single write to the ring record. A node that fails to join retries
+with jitter and keeps its pools warm meanwhile.

@@ -6,14 +6,14 @@ id: changed-precedence-04
 shape: changed-precedence
 
 question: >-
-  When a Corvid channel filter and a subscriber filter disagree about a message, which filter decides delivery?
+  When the two filters on a Corvid delivery path disagree about a message, which one decides delivery?
 
-f_old: "the channel filter"
-f_new: "the subscriber filter"
+f_old: "channel filter"
+f_new: "subscriber filter"
 
 superseded:
   source: superseded.md
   filename: corvid-filter-resolution.md
 current:
   source: current.md
-  filename: delivery-filtering-notes.md
+  filename: corvid-subscription-api.md

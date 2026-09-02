@@ -1,7 +1,7 @@
 ---
 type: Reference
-title: Fennec plugin loading
-description: Where the Fennec runtime loads plugins from and how they are discovered.
+title: "Fennec plugin loading"
+description: "Where the Fennec runtime loads plugins from and how they are discovered."
 tags: [fennec, plugins, loading]
 status: deprecated
 generated: { by: human:okf-bench, at: 2026-03-11T09:00:00Z }
@@ -20,13 +20,12 @@ the configured plugin path is discovered at start and loaded in lexical order.
 | Order | lexical by filename |
 | Failure | one plugin failing aborts start |
 
-## Why directory loading is convenient and what it costs
+## What directory loading costs
 
 Dropping a file in a directory is the whole deployment step, which is why
-sidecar-style extensions were built this way. The cost is that the runtime's
+sidecar-style extensions are built this way. The cost is that the runtime's
 executable surface is whatever the filesystem holds at start, so the plugin set
-is not visible in any manifest and cannot be reconstructed from the deployment
-record alone.
+is not visible in any manifest.
 
-Load order matters when two plugins register the same hook: the first one wins
-and the second logs a warning at start.
+Load order matters when two plugins register the same hook: the first wins and
+the second logs a warning.

@@ -1,17 +1,26 @@
 ---
 type: Reference
-title: Scheduler retry notes
-description: Current retry behaviour for Osprey scheduler jobs.
-tags: [osprey, scheduler, backoff]
+title: "Osprey incident runbook"
+description: "What to do when an Osprey dependency is down and jobs are piling up on retry."
+tags: [osprey, scheduler, runbook]
 status: stable
 generated: { by: human:okf-bench, at: 2026-08-04T09:00:00Z }
 verified: { by: human:okf-bench, at: 2026-08-04T09:00:00Z }
 stale_after: 2027-07-31
 ---
-# Scheduler retry notes
+# Osprey incident runbook
 
-Jobs now back off exponentially by default, which behaves better against a
-dependency that is down rather than slow. Jobs wanting the old ramp set
-`retry.backoff` explicitly.
+When a dependency is down, jobs pile up in retry rather than failing outright.
 
-`retry.base` is unchanged and still per-job.
+## What the queue does on its own
+
+Jobs back off exponentially unless `retry.backoff` says otherwise, so the retry
+pressure on a downed dependency halves roughly every attempt and the queue does
+not need to be paused for the dependency's sake. Pause it only if the retries
+themselves are the problem.
+
+## Draining after recovery
+
+`osprey queue release --job` releases held attempts immediately rather than
+waiting out the current delay. Release in batches: a full release re-creates the
+thundering herd the backoff prevented.

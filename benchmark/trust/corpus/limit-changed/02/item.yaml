@@ -13,7 +13,7 @@ f_new: "3072"
 
 superseded:
   source: superseded.md
-  filename: fenwick-segment-sizing.md
+  filename: fenwick-segment-reference.md
 current:
   source: current.md
-  filename: ledger-storage-notes.md
+  filename: ledger-compaction-notes.md

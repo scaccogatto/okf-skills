@@ -1,16 +1,25 @@
 ---
 type: Reference
-title: Invalidation notes
-description: Current precedence between Pellworm invalidation rule kinds.
-tags: [pellworm, cache, rules]
+title: "The Pellworm invalidation API"
+description: "Invalidating Pellworm entries from an application, by key and by tag."
+tags: [pellworm, cache, api]
 status: stable
 generated: { by: human:okf-bench, at: 2026-09-04T09:00:00Z }
 verified: { by: human:okf-bench, at: 2026-09-04T09:00:00Z }
 stale_after: 2027-11-30
 ---
-# Invalidation notes
+# The Pellworm invalidation API
 
-Precedence now favours the narrower rule: where both cover an entry, the key rule
-governs, which is what makes a targeted correction survive a release flush.
+Two calls: `invalidate_key(key)` and `invalidate_tag(tag)`, both asynchronous
+and both idempotent.
 
-Shadowed rules are still reported by `pellworm rules explain`.
+## Overlap
+
+Where an entry is covered by both kinds, **the key rule** governs, which is what
+lets a targeted correction survive a release-wide flush. Write the key rule
+after the tag rule or before it; ordering does not matter, only scope does.
+
+## Propagation
+
+An invalidation reaches every node within one gossip round, typically under 200
+ms, and `pellworm rules explain` shows which rule governs a given entry.

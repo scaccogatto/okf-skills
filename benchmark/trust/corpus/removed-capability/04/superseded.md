@@ -1,7 +1,7 @@
 ---
 type: Reference
-title: Larkspur interactive mode
-description: The Larkspur CLI subcommand that opens an interactive session and what it offers.
+title: "Larkspur interactive mode"
+description: "The Larkspur interactive session, what it offers and when to use it."
 tags: [larkspur, cli, interactive]
 status: deprecated
 generated: { by: human:okf-bench, at: 2026-01-29T09:00:00Z }
@@ -22,12 +22,11 @@ the profile directory.
 | Connection | one, reused across commands |
 | History | per profile, 5000 entries |
 
-## Why the session exists
+## Why it exists
 
-The one-shot commands pay connection setup per invocation, which is noticeable
-when an operator runs twenty of them while investigating. The shell amortises
-that setup and keeps completion warm, which is most of the interactive
-experience.
+One-shot commands pay connection setup per invocation, which is noticeable when
+an operator runs twenty of them while investigating. The session amortises that
+setup and keeps completion warm.
 
-Scripts should not drive the shell: it is line-oriented and its prompt is not a
-stable interface.
+Scripts should not drive the session: it is line-oriented and its prompt is not
+a stable interface.

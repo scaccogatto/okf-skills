@@ -1,17 +1,26 @@
 ---
 type: Reference
-title: Daemon startup notes
-description: Current startup inputs for the Halcyon daemon after the variable prefix cleanup.
-tags: [halcyon, daemon, startup]
+title: "Halcyon socket permissions"
+description: "Ownership and mode of the Halcyon control socket, and how to grant access to an operator group."
+tags: [halcyon, daemon, permissions]
 status: stable
 generated: { by: human:okf-bench, at: 2026-07-27T09:00:00Z }
 verified: { by: human:okf-bench, at: 2026-07-27T09:00:00Z }
 stale_after: 2027-08-31
 ---
-# Daemon startup notes
+# Halcyon socket permissions
 
-The prefix cleanup renamed the socket variable to `HCY_SOCKET_PATH`. Unit files
-and client sessions that export the old name reach a daemon listening somewhere
-else, which presents as a connection refusal rather than an error.
+The control socket is created mode `0660`, owned by the daemon user and the
+`halcyon-ops` group.
 
-Read ordering is unchanged: the variable is still read before the config file.
+## Granting access
+
+Add the operator to `halcyon-ops`; do not widen the mode. A client reaches the
+socket by exporting `HCY_SOCKET_PATH`, which both the daemon and the client
+library read, so an operator with group membership and the right variable needs
+nothing else.
+
+## Stale sockets
+
+A socket left by a killed daemon is removed at the next start, after a liveness
+check on the recorded pid. A socket whose pid is alive is never removed.
