@@ -19,6 +19,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from run import (  # noqa: E402
     Item,
@@ -323,6 +325,20 @@ class TestCliBackend(unittest.TestCase):
         for doc in trial.docs:
             self.assertIn(doc.filename, trial.prompt)
             self.assertNotIn(str(trial.root / doc.filename), trial.prompt)
+
+
+class TestArmWeighting(unittest.TestCase):
+    def test_descriptive_arms_are_weighted_below_the_primary_pair(self):
+        """§11: A0 and B0 carry no criterion, so they get fewer repetitions.
+        The primary pair is read from the §3.1 contrast rather than named
+        twice, so the weighting cannot drift away from the analysis."""
+        harness = yaml.safe_load((Path(__file__).resolve().parents[1] / "harness.yaml").read_text())
+        primary = set(harness["analysis"]["primary_contrast"])
+        self.assertEqual(primary, {"A1", "B1"})
+        self.assertLess(harness["measurement"]["descriptive_repetitions"], 7)
+        for arm in harness["measurement"]["arms"]:
+            if arm not in primary:
+                self.assertIn(arm, ("A0", "B0"))
 
 
 class TestCorpusAuthoringRules(unittest.TestCase):

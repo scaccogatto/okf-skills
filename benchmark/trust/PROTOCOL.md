@@ -1,7 +1,8 @@
 # Trust benchmark — protocol
 
-**Status:** draft, revision 6. Revisions 1 through 5 were each corrected before
-any run; §15 records the history.
+**Status:** revision 7, tagged before the measurement run. Revisions 1 through 5
+were corrected before anything ran; 6 and 7 were corrected by things that ran.
+§15 records the history.
 
 **Spec under test:** OKF **v0.2**, as vendored at `skills/okf/reference/SPEC.md`,
 okf-skills commit `c68f9f2` (2026-07-27). Every spec claim below is checkable
@@ -390,6 +391,54 @@ without this package is indefensible against "you adjusted it afterwards".
   kind? Probably the more important question, and a different experiment.
 
 ## 15. Revision history
+
+- **Rev 6 → 7, everything calibration found.** Revisions 1 to 5 were corrected by
+  reading; this one was corrected by running, and every item below is a defect
+  that no amount of further reading would have produced.
+
+  1. **The corpus trapped nothing.** 0 of 48 items reached the §7 threshold.
+     Asked why it preferred the replacement, a control trial answered that
+     "every `*-notes.md` file is an update layer reporting current state": the
+     replacements shared a filename convention, which ranked every pair through
+     a channel present in all four arms — §6's revision-1 defect, back as a
+     convention rather than a filename. They also announced their recency in
+     prose, and where they did not, they explained a mechanism that voided the
+     superseded document's arithmetic, which dates the pair just as loudly.
+     Corpus v2 puts the replacement in a document about an **adjacent** topic
+     that needs the value for its own reasoning, with no temporal prose and
+     balanced naming. One rewritten item went from 1/4 to 4/4 stale in B0.
+  2. **The control does not choose wrongly, it declines to choose.** Across 192
+     v2 trials: 95 stale, 96 `neither`, 1 fresh. This is a finding about the
+     model, and it is also what the surviving items are selected against, so it
+     belongs in the writeup rather than in a footnote here.
+  3. **§9's forced field was not forced enough.** "The higher-priority task
+     (priority descending; submission time breaks ties)" asserts the value and
+     grades `neither`, losing an item for a reason unrelated to what it
+     measures. The prompt now demands a bare value and offers `ANSWER: unknown`
+     for a genuine refusal, so a hedge is recorded as a hedge instead of hiding
+     in the value field. The grader tolerates one trailing unit word, a leading
+     article and an attributive hyphen — each from an observed answer — and an
+     answer matching both values grades `neither` rather than letting
+     declaration order decide it.
+  4. **An answer a filename can contain.** §10 compares the answer against the
+     whole prompt, which under the CLI backend includes the trial directory and
+     the eight filenames. `3`, `h2` and `edge` all appear there — `edge` inside
+     `ledger-compaction-notes.md` — so those items aborted rather than being
+     quietly wrong. The authoring rule is now a test over the corpus.
+  5. **§7 fired, and was followed.** 24 of 48 items survived against 40
+     required. The threshold was not lowered; 38 candidates were authored and
+     calibrated, 86 in total, and 43 survive. Per-shape survival is uneven
+     enough to report with the result: limit-changed 12/14, changed-precedence
+     1/12.
+  6. **§11's weighting was pre-registered and not implemented.** The runner
+     applied one k to all four arms, which would have spent a third of the
+     measurement on arms carrying no criterion. `descriptive_repetitions: 4` in
+     `harness.yaml`, primary arms read from the §3.1 contrast so the weighting
+     cannot drift from the analysis.
+
+  Two calibration runs, 384 trials, were discarded rather than reused: the
+  first was contaminated (rev 6, §8), the second measured a corpus that no
+  longer exists.
 
 - **Rev 5 → 6.** No blocker, one honest substitution: the environment has no
   Anthropic API credentials, so trials run through the `claude` CLI in headless

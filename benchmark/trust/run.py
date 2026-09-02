@@ -671,10 +671,17 @@ def main(argv: list[str] | None = None) -> int:
     if selected:
         items = [i for i in items if i.id in set(selected)]
 
+    # §11 weighting: the primary arms get the k §3.6 derived, the descriptive
+    # arms get `descriptive_repetitions`. An arm is primary iff it appears in
+    # the §3.1 contrast, so this cannot drift from the analysis.
+    primary_arms = set(harness["analysis"]["primary_contrast"])
+    descriptive_reps = config.get("descriptive_repetitions", config["repetitions"])
+
     ready: list[Trial] = []
     for arm in config["arms"]:
+        reps = config["repetitions"] if arm in primary_arms else descriptive_reps
         for item in items:
-            for rep in range(config["repetitions"]):
+            for rep in range(reps):
                 if (arm, item.id, rep) in done:
                     continue
                 try:

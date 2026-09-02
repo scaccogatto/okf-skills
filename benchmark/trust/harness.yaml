@@ -57,6 +57,14 @@ calibration:
 
 measurement:
   arms: [B0, B1, A0, A1]
+  # §11: "repetitions weighted toward the primary arms A1 and B1; A0 and B0 are
+  # descriptive and get fewer." The plan's `repetitions` is the primary-arm k
+  # that §3.6's rule derives; this is the descriptive-arm count, which no rule
+  # derives because no criterion depends on it. Four, matching calibration.
+  # Added at rev 7, before the measurement run and after calibration: §11
+  # committed the weighting and the code applied one k to every arm, which
+  # would have spent a third of the budget on arms that carry no criterion.
+  descriptive_repetitions: 4
   # §3.6 fixes the *rule* before calibration and lets the *numbers* fall out of
   # it afterwards, which is what makes this legitimate rather than a placeholder:
   # k comes from the empty-cell floor (0.5^k <= 1%, so k >= 7), then n is solved
