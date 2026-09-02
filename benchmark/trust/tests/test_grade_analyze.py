@@ -74,6 +74,38 @@ class TestGraderFidelity(unittest.TestCase):
         self.assertEqual(grade("ANSWER: `384 KiB`", "384KiB", "112 KiB"), "stale")
 
 
+class TestEffectDirection(unittest.TestCase):
+    """Rev 9: the claim predicts A1's conditional stale rate BELOW B1's, so the
+    effect §3.7 thresholds is the reduction. The committed code compared the
+    signed contrast against the floor, which turns a perfect result into a
+    failure; no test exercised it until a run produced one."""
+
+    def _trials(self, a1_stale, b1_stale, items=12, reps=8):
+        rows = []
+        for n in range(items):
+            for arm, stale in (("A1", a1_stale), ("B1", b1_stale)):
+                for rep in range(reps):
+                    rows.append({"item": f"i{n}", "arm": arm, "rep": rep,
+                                  "grade": "stale" if rep < stale else "fresh"})
+        return rows
+
+    def test_treatment_that_removes_every_stale_answer_is_not_called_a_failure(self):
+        result = analyze(self._trials(a1_stale=0, b1_stale=8), CONFIG)
+        self.assertLess(result["primary_contrast"]["point_estimate"], 0)
+        self.assertAlmostEqual(result["effect_pp"], 1.0)
+        self.assertEqual(result["verdict"], "pass")
+
+    def test_treatment_that_makes_it_worse_fails(self):
+        result = analyze(self._trials(a1_stale=8, b1_stale=0), CONFIG)
+        self.assertAlmostEqual(result["effect_pp"], -1.0)
+        self.assertEqual(result["verdict"], "fail")
+
+    def test_no_difference_fails(self):
+        result = analyze(self._trials(a1_stale=4, b1_stale=4), CONFIG)
+        self.assertEqual(result["effect_pp"], 0.0)
+        self.assertEqual(result["verdict"], "fail")
+
+
 class TestGraderUnitAndArticleTolerance(unittest.TestCase):
     """§9, rev 7. Calibration produced answers that assert the value exactly and
     grade `neither` on wording: "1024 tasks" against a value of "1024", "the

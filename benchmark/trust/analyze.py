@@ -267,7 +267,18 @@ def analyze(trials: list[dict], config: dict, seed: int = 0) -> dict:
             "A0_minus_B0": _descriptive_contrast(trials, "A0", "B0"),
             "B1_minus_B0": _descriptive_contrast(trials, "B1", "B0"),
         },
-        "verdict": _verdict(invalid, ci, point_estimate, min_effect, co_criterion_holds),
+        # Rev 9, after the measurement run. `point_estimate` is A1 − B1 on the
+        # conditional STALE rate, so the claim of §2 predicts a NEGATIVE number:
+        # the treatment asserts superseded facts less often. §3.7's floor ("the
+        # point estimate is below 15pp") is a floor on the effect size, i.e. on
+        # the reduction, and the committed code compared the signed contrast
+        # against it — which would have called a perfect result a failure. The
+        # reduction is reported and tested here; the signed contrast is left
+        # exactly as it was so both are on the record. This changes no verdict on
+        # this run: §3.2 invalidates it before any of it is consulted.
+        "effect_pp": -point_estimate,
+        "verdict": _verdict(invalid, (-ci[1], -ci[0]), -point_estimate, min_effect,
+                             co_criterion_holds),
     }
 
 
