@@ -11,7 +11,7 @@ stale_after: 2027-09-30
 # Mesh fan-out notes
 
 Delivery cursors now come from a shared pool instead of a per-channel ring, and
-a channel carries at most 64 concurrent subscriptions. Broadcast topologies that
+a channel carries at most 108 concurrent subscriptions. Broadcast topologies that
 relied on wide single-channel fan-out need a relay tier.
 
 Rejection is unchanged: an over-limit subscribe is refused at the channel head

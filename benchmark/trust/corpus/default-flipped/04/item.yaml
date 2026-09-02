@@ -6,14 +6,14 @@ id: default-flipped-04
 shape: default-flipped
 
 question: >-
-  What replication factor does a new Selkie store bucket get by default?
+  What storage class does a new Selkie store bucket get by default?
 
-f_old: "3"
-f_new: "5"
+f_old: "standard"
+f_new: "infrequent"
 
 superseded:
   source: superseded.md
-  filename: selkie-bucket-replication.md
+  filename: selkie-bucket-storage-class.md
 current:
   source: current.md
-  filename: store-durability-notes.md
+  filename: store-tiering-notes.md

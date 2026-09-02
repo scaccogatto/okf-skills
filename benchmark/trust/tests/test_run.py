@@ -322,6 +322,23 @@ class TestCliBackend(unittest.TestCase):
             self.assertNotIn(str(trial.root / doc.filename), trial.prompt)
 
 
+class TestCorpusAuthoringRules(unittest.TestCase):
+    def test_no_answer_value_is_a_bare_short_number(self):
+        """§10's leakage check compares against the whole rendered prompt, and
+        under the CLI backend that prompt contains the trial directory's path.
+        An answer of "3" is therefore present in every prompt that has a 3
+        anywhere in its path, which aborted every trial of one item rather than
+        biasing one silently — but the authoring rule belongs here, not in the
+        run log."""
+        real_corpus = Path(__file__).resolve().parents[1] / "corpus"
+        for item in discover_items(real_corpus):
+            for label, value in (("f_old", item.f_old), ("f_new", item.f_new)):
+                self.assertFalse(
+                    value.isdigit() and len(value) < 3,
+                    f"{item.id}: {label}={value!r} is a bare short number",
+                )
+
+
 class TestDiscoverItems(unittest.TestCase):
     def test_discovers_real_corpus_item(self):
         real_corpus = Path(__file__).resolve().parents[1] / "corpus"

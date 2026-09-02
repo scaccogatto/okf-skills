@@ -8,8 +8,8 @@ shape: limit-changed
 question: >-
   Into how many shards may a single Juniper stream be split?
 
-f_old: "96"
-f_new: "28"
+f_old: "192"
+f_new: "104"
 
 superseded:
   source: superseded.md
