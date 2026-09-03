@@ -11,7 +11,15 @@
   was frozen and are excluded from the result — one of them estimated
   spontaneous syncing at 5 of 6, which did not survive contact with 100 runs
   (43 of 100), which is exactly why probe data is declared out of the result
-  rather than folded into it. The read side is still running.
+  rather than folded into it. The read side came in at 62% stale unmarked, 34%
+  with only an expired `stale_after`, 27% marked `deprecated`: a 28.0pp
+  reduction from the one field that expires without anyone acting. Compared
+  directly on the same items, write side minus read side is +11.0pp
+  CI[-10.0, +33.0] — **both mechanisms work and this experiment cannot tell them
+  apart**, so neither makes the other redundant. Result in
+  `benchmark/gate/RESULTS.md`; the answer to #40's §14 is "neither, both", and
+  the question that actually separates them (six months of drift) is one no
+  per-trial harness can see.
 
 ## 2026-09-02
 * **Trust benchmark, the result**: it ran. Pre-registration frozen at
