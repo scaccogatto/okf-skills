@@ -19,11 +19,9 @@ from pathlib import Path
 GATE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(GATE_DIR))
 
-from analyze import analyze, contrast, per_item_stale_rate  # noqa: E402
+from analyze import analyze, contrast  # noqa: E402
 from pipeline import (  # noqa: E402
     AGENTS_MD,
-    STATES,
-    WRITER_DOC_STALE_AFTER,
     artifact_text,
     build_consumer_command,
     build_writer_command,

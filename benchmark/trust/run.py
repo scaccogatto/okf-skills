@@ -35,10 +35,9 @@ import zlib
 import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
 
 import yaml
 
