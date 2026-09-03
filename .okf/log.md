@@ -1,6 +1,9 @@
 # Update Log
 
 ## 2026-09-03
+* **Release 0.9.3**: the two benchmarks, the README section that leads with
+  their qualifications, and CI gating both suites. No change to what the plugin
+  does; what changed is the evidence shipped beside it.
 * **Both benchmarks land in `main`, and the README says what they measured**:
   a "What has actually been measured" table pointing at the two results files,
   written so the honest part is the part you read first — the trust benchmark's

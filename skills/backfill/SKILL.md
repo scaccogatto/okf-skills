@@ -130,7 +130,7 @@ priming; analyses without candidate names still flow to the weaver.
    ```
    ## 2026-09-01
 
-   - **Backfill**: reconstructed from N events by okf-backfill/0.9.2
+   - **Backfill**: reconstructed from N events by okf-backfill/0.9.3
    ```
 
 3. **Delete cursor:**
@@ -231,7 +231,7 @@ a mechanical listing of commits or a taxonomy-by-accident:
   trailers (structured decision metadata), the extracted event's `body` already contains
   trailers in a machine-readable format. The analyzer and weaver should use trailers as
   the primary source of "why" (overriding generic inference from diff content).
-- **Trust metadata**: `generated.by` is the backfill agent (`okf-backfill/0.9.2`), not
+- **Trust metadata**: `generated.by` is the backfill agent (`okf-backfill/0.9.3`), not
   claimed as human-reviewed (`human:...`); concepts are correctly `unverified` (SPEC §5.3).
   Map-phase analyses are working artifacts (stored for auditability during reduce); the
   weaver's output is the canonical bundle.

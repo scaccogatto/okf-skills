@@ -4,6 +4,35 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.9.3] — 2026-09-03
+
+### Added
+- **Two measured experiments, published with their own qualifications.**
+  `benchmark/trust/` tests the claim the spec leads with: do the v0.2 lifecycle
+  and trust fields stop a consumer asserting superseded facts? The channel
+  works — with that frontmatter present the consumer never asserted a
+  superseded fact across 473 trials, and it reads `status`, `stale_after` and
+  `verified` without being told what they mean — but **the primary contrast is
+  invalid under the protocol's own rule**, because too many items produced no
+  committed answer in the control arm. `benchmark/gate/` tests whether a
+  write-side process gate makes that metadata redundant: it does not, and the
+  metadata does not make a gate pointless either. A gate cut stale answers by
+  39pp, an expired `stale_after` by 28pp, and 20 items cannot tell the two
+  apart. Both protocols were pre-registered and tagged before their measurement
+  run; corpora, transcripts and every trial record are published, along with
+  the defects the runs exposed.
+- **A README section that leads with the qualification.** "What has actually
+  been measured" points at both results files and states, before the numbers,
+  that neither experiment estimates what OKF is worth in a real repository —
+  where prose, filenames and history already carry recency.
+
+### Changed
+- **CI gates the benchmark suites.** The gate benchmark's tests run alongside
+  the trust benchmark's, for the reason already stated there: the analysis is
+  what decides whether a published comparison is honest. Its direction tests
+  exist because the trust benchmark's analysis had its effect sign inverted and
+  nothing exercised it until a real result arrived.
+
 ## [0.9.2] — 2026-09-01
 
 ### Added

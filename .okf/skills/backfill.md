@@ -57,7 +57,7 @@ decided, why, and when.
 - **Coverage guarantee**: deterministic `--check-coverage` verifies every live
   event appears in the bundle's `sources` or log before declaring the backfill
   complete. Unmapped events cause finalize to fail.
-- **Trust metadata**: concepts inherit `generated.by: okf-backfill/0.9.2` (not
+- **Trust metadata**: concepts inherit `generated.by: okf-backfill/0.9.3` (not
   claimed as human-reviewed); they are correctly `unverified` under §5.3. Each
   commit becomes a source with its timestamp.
 - **Privacy**: events.jsonl is scratchpad-only, never committed. Session turn
