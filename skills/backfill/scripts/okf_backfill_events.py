@@ -462,11 +462,97 @@ def truncate_text(text: str, max_len: int = 2000) -> str:
     return head + "\n[...]\n" + tail
 
 
+def check_coverage(events_path: Path, bundle_dir: Path) -> list[str]:
+    """Check that all live events (without skip field) are mapped in the bundle.
+
+    Returns a list of unmapped event ids (empty if all are covered).
+    Live events are found by looking for those without a 'skip' key.
+    Coverage is determined by searching for event ids or their short shas in
+    the bundle's .md files (sources and log).
+    """
+    if not events_path.exists():
+        print(f"Error: {events_path} does not exist", file=sys.stderr)
+        sys.exit(1)
+    if not bundle_dir.exists():
+        print(f"Error: {bundle_dir} does not exist", file=sys.stderr)
+        sys.exit(1)
+
+    # Collect all live event ids
+    live_ids = []
+    try:
+        with open(events_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    event = json.loads(line)
+                    if "skip" not in event and "id" in event:
+                        live_ids.append(event["id"])
+                except json.JSONDecodeError:
+                    continue
+    except Exception as e:
+        print(f"Error reading events: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Collect all text from .md files in bundle
+    bundle_text = ""
+    try:
+        for md_file in bundle_dir.rglob("*.md"):
+            try:
+                bundle_text += md_file.read_text(encoding="utf-8") + "\n"
+            except Exception:
+                continue
+    except Exception as e:
+        print(f"Error reading bundle: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Check coverage
+    unmapped = []
+    for event_id in live_ids:
+        if event_id.startswith("git:"):
+            # Git events: search for full sha and any >=7-char prefix
+            sha = event_id[4:]  # Remove "git:" prefix
+            short_sha = sha[:7]
+            # Check if full sha or short sha appears in bundle
+            if sha not in bundle_text and short_sha not in bundle_text:
+                unmapped.append(event_id)
+        elif event_id.startswith("session:"):
+            # Session events: search for literal id (with colons)
+            if event_id not in bundle_text:
+                unmapped.append(event_id)
+        else:
+            # Unknown format, consider unmapped
+            unmapped.append(event_id)
+
+    return unmapped
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Event-sourcing extractor for OKF bundle reconstruction"
     )
-    parser.add_argument("repo_dir", help="Repository directory")
+
+    # Check if this is a coverage check (--check-coverage mode)
+    if "--check-coverage" in sys.argv:
+        parser.add_argument("--check-coverage", nargs=2, metavar=("EVENTS_JSONL", "BUNDLE_DIR"),
+                          help="Check coverage of events in bundle")
+        args = parser.parse_args()
+        if args.check_coverage:
+            events_path = Path(args.check_coverage[0])
+            bundle_dir = Path(args.check_coverage[1])
+            unmapped = check_coverage(events_path, bundle_dir)
+            if unmapped:
+                print(f"Unmapped events (exit 1):")
+                for event_id in unmapped:
+                    print(f"  {event_id}")
+                sys.exit(1)
+            else:
+                print("All events mapped (exit 0)")
+                sys.exit(0)
+
+    # Normal extraction mode
+    parser.add_argument("repo_dir", nargs="?", help="Repository directory")
     parser.add_argument("--out", default="events.jsonl", help="Output file")
     parser.add_argument(
         "--branch", action="append", default=[], help="Git branch(es) to extract"
@@ -485,6 +571,10 @@ def main():
     )
 
     args = parser.parse_args()
+
+    if not args.repo_dir:
+        print("Error: repo_dir is required for extraction mode", file=sys.stderr)
+        sys.exit(1)
 
     repo_dir = Path(args.repo_dir).resolve()
     if not repo_dir.exists():

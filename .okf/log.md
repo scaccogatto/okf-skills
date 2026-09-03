@@ -169,6 +169,15 @@
   skip-rule classifier (lockfiles, merge-only commits, slash-command noise) and
   cursor-based resume-safe replay loop. Bumped version to 0.9.0.
 
+* **Backfill enhancement**: Deep semantic replay via dedicated agents. New
+  `agents/event-analyzer.md` (map phase, parallel)
+  extracts domain rationale from git diffs and session outcomes. New
+  `agents/bundle-weaver.md` (reduce phase, sequential)
+  folds analyses into the bundle while enforcing anti-degeneration rules
+  (entity-based naming, kebab-case, intent-driven log). Finalize now includes
+  deterministic `--check-coverage` to guarantee every live event is mapped in
+  the bundle. Bumped version to 0.9.2.
+
 ## 2026-08-16
 * **Benchmark returns, measuring something else**: `benchmark/trust/` adds a
   protocol for the one claim the spec leads with and nobody has tested —
