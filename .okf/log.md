@@ -1,5 +1,18 @@
 # Update Log
 
+## 2026-09-03
+* **Gate benchmark ([#48](https://github.com/scaccogatto/okf-skills/issues/48)), the question #40 left open**: does a
+  write-side process gate beat read-side trust metadata? Protocol, two-stage
+  harness and analysis in `benchmark/gate/`, pre-registered at
+  `gate-benchmark-prereg-rev1`. Stage E is in: with an `AGENTS.md` gate the
+  writer touched the documentation 100 times out of 100 and the consumer
+  asserted the superseded fact 9% of the time; without it, 43 out of 100 and
+  48%. A 39.0pp reduction, CI [21.0, 58.0]. Two probes ran before the protocol
+  was frozen and are excluded from the result — one of them estimated
+  spontaneous syncing at 5 of 6, which did not survive contact with 100 runs
+  (43 of 100), which is exactly why probe data is declared out of the result
+  rather than folded into it. The read side is still running.
+
 ## 2026-09-02
 * **Trust benchmark, the result**: it ran. Pre-registration frozen at
   `trust-benchmark-prereg-rev8`, 946 measurement trials, writeup in

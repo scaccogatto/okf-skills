@@ -430,12 +430,26 @@ def main(argv: list[str] | None = None) -> int:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     lock = threading.Lock()
 
+    # Resume, as in #40's runner: a batch that dies partway costs the runs it
+    # died on, not the ones already paid for. Keyed by the identity that makes a
+    # run independent — arm or state, item, repetition.
+    done: set[tuple] = set()
+    if args.out.is_file():
+        for line in args.out.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                row = json.loads(line)
+                done.add((row.get("arm") or row.get("state"), row["item"], row["rep"]))
+        if done:
+            print(f"resuming: {len(done)} run(s) already recorded", file=sys.stderr)
+
     jobs: list = []
     if args.stage == "endtoend":
         arms = (args.arms or "nogate,gate").split(",")
         for arm in arms:
             for item in items:
                 for rep in range(args.reps):
+                    if (arm, item.id, rep) in done:
+                        continue
                     root = build_writer_repo(item, arm)
                     jobs.append(WriterRun(item=item, arm=arm, rep=rep, root=root,
                                            prompt=writer_prompt(item, arm, root)))
@@ -444,6 +458,8 @@ def main(argv: list[str] | None = None) -> int:
         for arm in arms:
             for item in items:
                 for rep in range(args.reps):
+                    if (arm, item.id, rep) in done:
+                        continue
                     root = build_writer_repo(item, arm)
                     jobs.append(WriterRun(item=item, arm=arm, rep=rep, root=root,
                                            prompt=writer_prompt(item, arm, root)))
@@ -452,6 +468,8 @@ def main(argv: list[str] | None = None) -> int:
         for state in states:
             for item in items:
                 for rep in range(args.reps):
+                    if (state, item.id, rep) in done:
+                        continue
                     rng = random.Random(f"{args.seed}:{item.id}:{state}:{rep}")
                     run = build_consumer_corpus(item, all_items, state, harness, rng)
                     run.rep = rep
