@@ -45,6 +45,13 @@ jobs:
       - name: Unit tests for the trust benchmark item selection and power
         run: uv run benchmark/trust/tests/test_power.py
 
+      # Same gate as the trust benchmark, and for the same reason: this one's
+      # analysis decides whether a published comparison is honest. Its direction
+      # tests exist because the trust benchmark's analysis had its effect sign
+      # inverted and nothing exercised it until a real result arrived.
+      - name: Unit tests for the gate benchmark harness and analysis
+        run: uv run benchmark/gate/tests/test_gate.py
+
       - name: Validate example bundle (strict)
         run: uv run skills/validate/scripts/okf_validate.py examples/sample-bundle --strict
 

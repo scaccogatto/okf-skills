@@ -244,6 +244,24 @@ never errors; `--strict` is the nudge, `--migrate` is the door:
 uv run skills/validate/scripts/okf_validate.py .okf --migrate --strict
 ```
 
+## What has actually been measured
+
+Two experiments live in [`benchmark/`](benchmark/), both pre-registered and tagged
+before their measurement run, both published with their transcripts and with the
+defects the runs exposed. Read the results files rather than these two lines; the
+headline numbers are smaller than they look.
+
+| Question | Result | Where |
+|---|---|---|
+| Do the v0.2 lifecycle and trust fields stop a consumer asserting superseded facts? | The channel works — with that frontmatter present the consumer never asserted a superseded fact, and it reads the fields without being told what they mean. **The primary contrast is invalid under the protocol's own rule** (too many items where the control simply refused to answer), and the corpus had to be stripped of every other recency signal before the metadata mattered. | [`benchmark/trust/RESULTS.md`](benchmark/trust/RESULTS.md) |
+| Does a write-side process gate make that metadata redundant? | No, and neither makes the other pointless: a gate reduced stale answers by 39pp, an expired `stale_after` by 28pp, and the two are **not distinguishable** on 20 items. Ungated writers left documentation untouched 57% of the time, which is exactly where the metadata acts. | [`benchmark/gate/RESULTS.md`](benchmark/gate/RESULTS.md) |
+
+Neither experiment estimates what OKF is worth in a real repository, where prose,
+filenames and history already carry recency; both say so in their own headlines.
+A third-party benchmark measures a different v0.2 claim — sufficiency — and
+measures it well: [`aws-samples/sample-okf-llm-wiki`](https://github.com/aws-samples/sample-okf-llm-wiki)
+scores EX 74.0 on BIRD mini_dev with 500 independent agents.
+
 ## Repository layout
 
 ```
@@ -252,6 +270,7 @@ okf-skills/
 ├── skills/{okf, validate, visualize}/{SKILL.md, scripts/}
 ├── hooks/                         # the dormant Stop hook
 ├── servers/okf_mcp.py             # the read-only MCP server (.mcp.json wires it)
+├── benchmark/{trust,gate}/        # the two experiments, protocols and published runs
 ├── examples/sample-bundle/        # the live-demo bundle
 ├── docs/                          # GitHub Pages: the live interactive demo
 ├── templates/CLAUDE-okf.md

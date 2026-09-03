@@ -1,6 +1,13 @@
 # Update Log
 
 ## 2026-09-03
+* **Both benchmarks land in `main`, and the README says what they measured**:
+  a "What has actually been measured" table pointing at the two results files,
+  written so the honest part is the part you read first — the trust benchmark's
+  primary contrast is invalid under its own rule, and the gate benchmark cannot
+  distinguish the two mechanisms it compared. CI now gates the gate benchmark's
+  tests alongside the trust benchmark's, for the same stated reason: its
+  analysis decides whether a published comparison is honest.
 * **Gate benchmark ([#48](https://github.com/scaccogatto/okf-skills/issues/48)), the question #40 left open**: does a
   write-side process gate beat read-side trust metadata? Protocol, two-stage
   harness and analysis in `benchmark/gate/`, pre-registered at
