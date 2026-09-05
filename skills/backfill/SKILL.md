@@ -87,10 +87,15 @@ The replay is now structured in two phases to enforce semantic depth and anti-de
 
 #### Phase 1: Map (parallel analysis, per-event)
 
-Launch one `okf:event-analyzer` agent per live event (those without `skip` field), orchestrated
-in waves via Claude Code's Workflow `agentType` parameter. Each analyzer:
-- Reads the event (git diff or session transcript)
-- Outputs `analyses/<event-id>.md` (event id with `:` sanitized to `-`) to scratchpad
+Launch `okf:event-analyzer` agents for the live events (those without `skip` field), in waves of
+4 to 8 (see the cost note in §5), via Claude Code's Workflow `agentType` parameter. Each analyzer
+receives its event ids, the `events.jsonl` path, the repo path, the output directory and the
+emitter path, and:
+- Fetches its own event JSON with `jq` (the orchestrator dispatches ids, never content)
+- Reads git evidence only through the capped diff emitter (§6); session events need no other call
+- Writes `analyses/<event-id>.md` (event id with `:` sanitized to `-`) to scratchpad, with a
+  `truncated` flag copied from the emitter's last line
+- Replies with one line of counts per event; the analysis never travels back in the reply
 - Never touches `.okf/`
 - Is resumable: skip events already in `analyses/`
 
@@ -102,10 +107,12 @@ system prompt as `agents/event-analyzer.md`, one per event, collecting analyses 
 Run a single `okf:bundle-weaver` agent that:
 - Reads all analyses in chronological order
 - Folds them into `.okf/`, updating or creating concepts
-- Enforces anti-degeneration rules (§3)
+- Enforces anti-degeneration rules (§4)
 - Updates `log.md` with dated bullets (the "why" from each analysis)
 - Manages cursor (`.okf/.backfill-state.json`) for resume capability
 - Is the only actor that writes `.okf/`
+- Replies with one line of counts (folded, created, updated, bullets, conflicts, truncated
+  inputs); the bundle never travels back in the reply
 
 **Resume behavior:** both phases support resumption. Phase 1 skips already-analyzed event ids;
 Phase 2 restarts from `last_id` in the cursor.
@@ -117,6 +124,20 @@ a candidate taxonomy of concepts (skills, integrations, decisions, etc.). This p
 *advisory only* — it helps the analyzer emit better candidate names. The *guarantee* that
 no events are lost comes from the deterministic coverage check in Finalize (§5), not from
 priming; analyses without candidate names still flow to the weaver.
+
+### Context hygiene (orchestrator)
+
+The orchestrator handles ids and counts, never content. Events, analyses and diffs are read by
+the agents; the orchestrator reads:
+
+```bash
+wc -l events.jsonl                                   # total events
+jq -r 'select(.skip==null) | .id' events.jsonl       # live ids to dispatch
+ls analyses | wc -l                                  # analyses written
+```
+
+Never `cat events.jsonl` or open an analysis from the orchestrator: whatever enters its context
+is billed at the frontier rate on every following turn, and the routing exists to prevent that.
 
 ### Finalize: validate and clean up
 
@@ -169,6 +190,11 @@ priming; analyses without candidate names still flow to the weaver.
    - Log entry samples (first and last)
    - Coverage check result (all events mapped)
    - Validation result (pass/fail, warnings)
+   - Agents spawned per phase (analyzers, weaver invocations) and, when the host reports it,
+     tokens per phase
+   - Truncated analyses: `grep -l '^truncated: true' analyses/*.md | wc -l`, next to the
+     deterministic estimate of git events whose full diff exceeds the default cap:
+     `jq -r 'select(.skip==null and .source=="git") | [.files[]|.add+.del] | add' events.jsonl | awk '$1>300' | wc -l`
 
 ## 3. Skip rules
 
@@ -221,11 +247,13 @@ a mechanical listing of commits or a taxonomy-by-accident:
   reduce loop is human-readable and cursor-backed.
 - **Privacy**: events.jsonl goes to scratchpad, never committed. Session turn text is
   truncated (head+tail) before extraction.
-- **Cost note**: deep replay reads ~1 diff per git commit (full `git show` output) to
-  extract rationale. For histories >500 events, consider splitting into sub-ranges and
+- **Cost note**: deep replay reads one capped diff per git commit (§6) to extract
+  rationale. For histories >500 events, consider splitting into sub-ranges and
   replaying sequentially, or use `--skip-globs` to exclude low-signal paths (e.g.,
-  vendored dependencies, generated code). Map phase is massively parallel (64 analyzers
-  can run concurrently); reduce is sequential but much cheaper (concepts already analyzed).
+  vendored dependencies, generated code). Map phase is parallel in waves of 4 to 8: the
+  gate benchmark lost 260 of 299 runs to a high-concurrency mass failure and finished at
+  concurrency 4 (`benchmark/gate/RESULTS.md`). Reduce is sequential but much cheaper
+  (concepts already analyzed).
 - **Future sources** (not implemented): GitHub PR/issue text, release notes, CI/deploy logs
   — all optional post-MVP. **Lore protocol** (arXiv 2603.15566): on repos that adopt git
   trailers (structured decision metadata), the extracted event's `body` already contains
@@ -236,3 +264,32 @@ a mechanical listing of commits or a taxonomy-by-accident:
   Map-phase analyses are working artifacts (stored for auditability during reduce); the
   weaver's output is the canonical bundle.
 
+## 6. Capped diff emitter
+
+Analyzers never read a raw `git show`: the harness cuts long tool output blindly (mid-hunk,
+character-based, host-dependent) and a cheap worker may not notice the cut. The extractor reads
+the whole diff instead and emits a deterministic sample:
+
+```bash
+uv run "${CLAUDE_SKILL_DIR}/scripts/okf_backfill_events.py" <repo-dir> --show <sha> \
+  [--only <path>] [--max-diff-lines 300] [--per-file-lines 120] [--max-line-chars 400] \
+  [--skip-globs "vendor/**"]
+```
+
+- Diff against the first parent, so merge commits agree with the extracted numstat.
+- The stat is always complete: entities survive any cap.
+- Patches are capped per file (breadth over depth) and cut at hunk or file boundaries, with a
+  bracketed marker at every cut; lines longer than `--max-line-chars` are shortened with a
+  marker (a generated one-line file is "1 line" but can be hundreds of KB).
+- Patches of generated files (lockfiles, `vendor/**`, `--skip-globs`) are omitted even inside
+  mixed commits; their stat line stays.
+- The last line is fixed-form: `[diff: shown=X total=Y files_shown=A files_total=B truncated=true|false]`.
+  The analyzer copies `truncated` into its frontmatter; finalize reports the count.
+- `--only <path>` is the one permitted follow-up when a truncated diff hides the rationale:
+  same cap logic, one file.
+
+Defaults keep one call under the harness limits with margin; tune per repo with the flags.
+
+The analyzer's tier is configuration, not infrastructure: `agents/event-analyzer.md` carries
+`model` and `effort` in its frontmatter. Fork the file to retier the map phase; the skill
+resolves the agent by name and nothing else changes.

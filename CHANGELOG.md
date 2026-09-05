@@ -4,6 +4,32 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [Unreleased]
+
+### Added
+- **Capped diff emitter for the backfill map phase.** `okf_backfill_events.py --show <sha>`
+  reads the whole first-parent diff and emits a deterministic sample under the harness
+  limits: complete stat, patches capped per file (default 300 lines total, 120 per file,
+  400 chars per line) and cut at hunk or file boundaries with a marker at every cut,
+  generated files' patches omitted even inside mixed commits, and a fixed last line
+  declaring `truncated=true|false`. `--only <path>` is the one permitted follow-up.
+  Analyzers never run a raw `git show` again; the harness cut long output blindly and
+  a cheap worker could not tell. 14 unit tests, including merge commits and the
+  accounting closure between shown, declared and total lines.
+- **Map-phase routing protocol** (`benchmark/map-tier/PROTOCOL.md`): an engineering A/B
+  of the analyzer tier (sonnet vs haiku) and dispatch shape (solo vs batched), with
+  paired per-event deterministic metrics and decision rules written before the run.
+
+### Changed
+- **Backfill contracts.** The orchestrator dispatches event ids and reads counts only
+  (never `events.jsonl`, analyses or diffs); analyzers fetch their own events with `jq`,
+  write bullets-only analyses with a `truncated` flag, and reply one line per event;
+  the weaver replies counts. Finalize reports agents per phase and truncated analyses.
+- **Concurrency guidance.** Map-phase waves of 4 to 8 replace the "64 analyzers" claim,
+  citing the gate benchmark's high-concurrency mass failure.
+- **Analyzer agent** (`agents/event-analyzer.md`) documents that its tier is
+  configuration: fork the file to retier the map phase.
+
 ## [0.9.3] — 2026-09-03
 
 ### Added

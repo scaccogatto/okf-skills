@@ -9,6 +9,10 @@ Deterministic extraction: same input → byte-identical events.jsonl.
 Run:  uv run okf_backfill_events.py <repo-dir> [--out events.jsonl]
       [--branch REF ...] [--no-sessions] [--sessions-dir DIR] [--max-text 2000]
       [--skip-globs GLOB ...]
+
+      uv run okf_backfill_events.py <repo-dir> --show <sha> [--only <path>]
+      [--max-diff-lines 300] [--per-file-lines 120] [--max-line-chars 400]
+      [--skip-globs GLOB ...]
 """
 from __future__ import annotations
 
@@ -528,6 +532,337 @@ def check_coverage(events_path: Path, bundle_dir: Path) -> list[str]:
     return unmapped
 
 
+def split_patch(patch_text: str) -> list[dict]:
+    """Split -p output into blocks on lines starting with 'diff --git'.
+
+    Each block contains:
+        - path: str (the b/ path from the diff --git line, or new path for renames)
+        - header: list[str] (lines before first @@ line)
+        - hunks: list[list[str]] (groups starting at each @@ line)
+    """
+    if not patch_text:
+        return []
+
+    lines = patch_text.split("\n")
+    blocks = []
+    current_block = None
+
+    for line in lines:
+        if line.startswith("diff --git "):
+            # Start new block: extract path from b/ side
+            # Format: diff --git a/<path> b/<path>
+            # ponytail: paths containing " b/" would be incorrectly split; git-quoted paths are out of scope
+            if " b/" in line:
+                path = line.split(" b/", 1)[1]
+            else:
+                path = ""
+
+            if current_block is not None:
+                blocks.append(current_block)
+            current_block = {
+                "path": path,
+                "header": [line],
+                "hunks": [],
+            }
+        elif current_block is not None:
+            if line.startswith("@@"):
+                # Start new hunk
+                current_block["hunks"].append([line])
+            elif current_block["hunks"]:
+                # Add to current hunk
+                current_block["hunks"][-1].append(line)
+            else:
+                # Header line (before first hunk)
+                current_block["header"].append(line)
+
+    if current_block is not None:
+        blocks.append(current_block)
+
+    return blocks
+
+
+def cap_patch(
+    blocks: list[dict],
+    numstat_lines: list[str],
+    *,
+    per_file_lines: int,
+    max_diff_lines: int,
+    max_line_chars: int,
+    skip_globs: list[str],
+    only: Optional[str] = None,
+) -> tuple[list[str], dict]:
+    """Cap patches per-file and globally.
+
+    Returns (patch_lines, summary_dict) where:
+    - patch_lines: list of lines to emit (markers included, no '# patch' header)
+    - summary_dict: {shown, total, files_shown, files_total, truncated}
+
+    Capping rules:
+    - Glob-omitted files: emit marker, consume nothing, don't count toward total
+    - Per-file budget: max(per_file_lines, max_diff_lines - shown) under normal mode,
+      min(max_diff_lines, max_diff_lines - shown) under --only
+    - Header exceeds budget: emit header lines that fit, then accounting line with
+      N = unshown header lines + all hunk lines, M = len(hunks)
+    - Hunk doesn't fit: emit it whole if it fits remaining budget; otherwise emit
+      [+N more lines in M more hunks] or [hunk truncated: +N more lines]
+    - Global cap: before starting file, if shown >= max_diff_lines, emit
+      [patches omitted for K more files (+N lines)] and stop
+    - Line-length rule: lines longer than max_line_chars are truncated with marker
+    """
+    globs = LOCKFILE_GLOBS + skip_globs
+    patch_lines = []
+    shown = 0
+    files_shown = 0
+    truncated = False
+
+    # Parse numstat for totals and --only validation
+    numstat_by_path = {}
+    for numstat_line in numstat_lines:
+        parts = numstat_line.split("\t", 2)
+        if len(parts) >= 3:
+            add_str, del_str, path = parts[0], parts[1], parts[2]
+            numstat_by_path[path] = (add_str, del_str)
+
+    files_total = len(numstat_lines)
+
+    # Total counts every eligible file (not glob-omitted, matching --only), including
+    # the ones the global cap omits: truncated=true must mean shown < total.
+    eligible = [
+        b for b in blocks
+        if not matches_globs([b["path"]], globs) and (only is None or b["path"] == only)
+    ]
+    total = sum(len(b["header"]) + sum(len(h) for h in b["hunks"]) for b in eligible)
+
+    # Validate --only path
+    if only is not None:
+        if only not in numstat_by_path:
+            raise KeyError(f"Path not found in commit: {only}")
+
+    # Process blocks
+    block_idx = 0
+    for block_idx, block in enumerate(blocks):
+        block_path = block["path"]
+
+        # Check glob omission
+        if matches_globs([block_path], globs):
+            # Emit marker, consume nothing
+            if block_path in numstat_by_path:
+                add_str, del_str = numstat_by_path[block_path]
+            else:
+                add_str, del_str = "-", "-"
+            patch_lines.append(f"[patch omitted: {block_path} (generated), {add_str} {del_str}]")
+            continue
+
+        # Check --only filter
+        if only is not None and block_path != only:
+            continue
+
+        # Global cap check
+        if shown >= max_diff_lines:
+            # Count remaining non-glob blocks and their lines
+            remaining_files = 0
+            remaining_lines = 0
+            for j in range(block_idx, len(blocks)):
+                remaining_block = blocks[j]
+                if matches_globs([remaining_block["path"]], globs):
+                    continue
+                if only is not None and remaining_block["path"] != only:
+                    continue
+                remaining_files += 1
+                for hunk in remaining_block["hunks"]:
+                    remaining_lines += len(hunk)
+                remaining_lines += len(remaining_block["header"])
+
+            if remaining_files > 0:
+                patch_lines.append(f"[patches omitted for {remaining_files} more files (+{remaining_lines} lines)]")
+            truncated = True
+            break
+
+        # Calculate file budget
+        if only is not None:
+            file_budget = min(max_diff_lines, max_diff_lines - shown)
+        else:
+            file_budget = min(per_file_lines, max_diff_lines - shown)
+
+        # Emit header lines
+        file_lines_emitted = 0
+        header_lines_to_emit = []
+        for hline in block["header"]:
+            if len(hline) > max_line_chars:
+                shortened = hline[:max_line_chars] + f" [line truncated: {len(hline)} chars]"
+                header_lines_to_emit.append(shortened)
+            else:
+                header_lines_to_emit.append(hline)
+            file_lines_emitted += 1
+            if file_lines_emitted > file_budget:
+                # Header alone exceeds budget
+                header_lines_to_emit = header_lines_to_emit[: file_budget]
+                break
+
+        patch_lines.extend(header_lines_to_emit)
+        shown += len(header_lines_to_emit)
+
+        # Process hunks
+        if file_lines_emitted <= file_budget and len(block["header"]) > 0:
+            # Some header was emitted and didn't exceed budget
+            remaining_budget = file_budget - file_lines_emitted
+        else:
+            # Either no header or header exactly filled budget
+            remaining_budget = file_budget - len(header_lines_to_emit)
+
+        hunks_emitted = 0
+        for hunk_idx, hunk in enumerate(block["hunks"]):
+            hunk_size = len(hunk)
+
+            if hunk_size <= remaining_budget:
+                # Hunk fits
+                for hline in hunk:
+                    if len(hline) > max_line_chars:
+                        shortened = hline[:max_line_chars] + f" [line truncated: {len(hline)} chars]"
+                        patch_lines.append(shortened)
+                    else:
+                        patch_lines.append(hline)
+                    shown += 1
+                remaining_budget -= hunk_size
+                hunks_emitted += 1
+            else:
+                # Hunk doesn't fit
+                truncated = True
+
+                if hunks_emitted == 0:
+                    # No hunk emitted yet: either emit partial hunk or full accounting
+                    if remaining_budget > 0:
+                        # Emit first remaining_budget lines of this hunk
+                        for hline in hunk[:remaining_budget]:
+                            if len(hline) > max_line_chars:
+                                shortened = hline[:max_line_chars] + f" [line truncated: {len(hline)} chars]"
+                                patch_lines.append(shortened)
+                            else:
+                                patch_lines.append(hline)
+                            shown += 1
+                        # Emit truncation marker
+                        remaining_hunk_lines = hunk_size - remaining_budget
+                        patch_lines.append(f"[hunk truncated: +{remaining_hunk_lines} more lines]")
+                    else:
+                        # Budget is 0 or negative, emit full accounting
+                        remaining_hunk_lines = hunk_size + sum(len(h) for h in block["hunks"][hunk_idx + 1:])
+                        remaining_hunks = len(block["hunks"]) - hunk_idx
+                        patch_lines.append(f"[+{remaining_hunk_lines} more lines in {remaining_hunks} more hunks of {block_path}]")
+                else:
+                    # Some hunks emitted, more remain
+                    remaining_hunk_lines = hunk_size + sum(len(h) for h in block["hunks"][hunk_idx + 1:])
+                    remaining_hunks = len(block["hunks"]) - hunk_idx
+                    patch_lines.append(f"[+{remaining_hunk_lines} more lines in {remaining_hunks} more hunks of {block_path}]")
+                break
+
+        if hunks_emitted > 0 or len(header_lines_to_emit) > 0:
+            files_shown += 1
+
+    summary = {
+        "shown": shown,
+        "total": total,
+        "files_shown": files_shown,
+        "files_total": files_total,
+        "truncated": truncated,
+    }
+
+    return patch_lines, summary
+
+
+def format_summary(summary: dict) -> str:
+    """Format the fixed-form summary line."""
+    return (
+        f"[diff: shown={summary['shown']} total={summary['total']} "
+        f"files_shown={summary['files_shown']} files_total={summary['files_total']} "
+        f"truncated={'true' if summary['truncated'] else 'false'}]"
+    )
+
+
+def show_commit(
+    repo_dir: Path,
+    sha: str,
+    *,
+    only: Optional[str] = None,
+    max_diff_lines: int = 300,
+    per_file_lines: int = 120,
+    max_line_chars: int = 400,
+    skip_globs: list[str] = (),
+) -> str:
+    """Run git, emit the full capped diff text.
+
+    Raises ValueError for a bad sha (exit 1) or KeyError for --only path not found (exit 2).
+    """
+    # Resolve the sha first, separately from the parent check
+    resolve_result = subprocess.run(
+        ["git", "-C", str(repo_dir), "rev-parse", "--verify", "--quiet", f"{sha}^{{commit}}"],
+        capture_output=True, text=True, errors="replace", check=False
+    )
+    if resolve_result.returncode != 0:
+        raise ValueError(f"Bad commit: {sha}")
+
+    full_sha = resolve_result.stdout.strip()
+
+    # Check if this is a root commit or has a parent
+    parent_result = subprocess.run(
+        ["git", "-C", str(repo_dir), "rev-parse", "--verify", "--quiet", f"{full_sha}^1"],
+        capture_output=True, text=True, errors="replace", check=False
+    )
+
+    if parent_result.returncode == 0:
+        # Has a parent: diff against first parent
+        base = parent_result.stdout.strip()
+        stat_result = subprocess.run(
+            ["git", "-C", str(repo_dir), "diff", "--no-color", "-M", "--numstat", base, full_sha],
+            capture_output=True, text=True, errors="replace", check=True
+        )
+        patch_result = subprocess.run(
+            ["git", "-C", str(repo_dir), "diff", "--no-color", "-M", "-p", base, full_sha],
+            capture_output=True, text=True, errors="replace", check=True
+        )
+    else:
+        # Root commit: use git show
+        stat_result = subprocess.run(
+            ["git", "-C", str(repo_dir), "show", "--no-color", "-M", "--format=", "--numstat", full_sha],
+            capture_output=True, text=True, errors="replace", check=True
+        )
+        patch_result = subprocess.run(
+            ["git", "-C", str(repo_dir), "show", "--no-color", "-M", "--format=", "-p", full_sha],
+            capture_output=True, text=True, errors="replace", check=True
+        )
+
+    # Parse stat
+    numstat_lines = [
+        line.strip()
+        for line in stat_result.stdout.split("\n")
+        if line.strip()
+    ]
+
+    # Parse patch
+    blocks = split_patch(patch_result.stdout)
+
+    # Cap the patch
+    patch_lines, summary = cap_patch(
+        blocks,
+        numstat_lines,
+        per_file_lines=per_file_lines,
+        max_diff_lines=max_diff_lines,
+        max_line_chars=max_line_chars,
+        skip_globs=list(skip_globs),
+        only=only,
+    )
+
+    # Build output
+    lines = []
+    lines.append(f"# commit {full_sha}")
+    lines.append("# stat (complete)")
+    lines.extend(numstat_lines)
+    lines.append("# patch")
+    lines.extend(patch_lines)
+    lines.append(format_summary(summary))
+
+    return "\n".join(lines) + "\n"
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Event-sourcing extractor for OKF bundle reconstruction"
@@ -551,7 +886,7 @@ def main():
                 print("All events mapped (exit 0)")
                 sys.exit(0)
 
-    # Normal extraction mode
+    # Normal extraction mode / show mode
     parser.add_argument("repo_dir", nargs="?", help="Repository directory")
     parser.add_argument("--out", default="events.jsonl", help="Output file")
     parser.add_argument(
@@ -569,11 +904,26 @@ def main():
     parser.add_argument(
         "--skip-globs", action="append", default=[], help="Additional skip globs"
     )
+    parser.add_argument(
+        "--show", help="Show capped diff for a commit (exit 0 on success, 1 on bad sha)"
+    )
+    parser.add_argument(
+        "--only", help="Restrict patch to a single path (with --show)"
+    )
+    parser.add_argument(
+        "--max-diff-lines", type=int, default=300, help="Max diff lines total"
+    )
+    parser.add_argument(
+        "--per-file-lines", type=int, default=120, help="Max diff lines per file"
+    )
+    parser.add_argument(
+        "--max-line-chars", type=int, default=400, help="Max characters per line"
+    )
 
     args = parser.parse_args()
 
     if not args.repo_dir:
-        print("Error: repo_dir is required for extraction mode", file=sys.stderr)
+        print("Error: repo_dir is required", file=sys.stderr)
         sys.exit(1)
 
     repo_dir = Path(args.repo_dir).resolve()
@@ -581,6 +931,30 @@ def main():
         print(f"Error: {repo_dir} does not exist", file=sys.stderr)
         sys.exit(1)
 
+    # Handle --show mode
+    if args.show:
+        try:
+            output = show_commit(
+                repo_dir,
+                args.show,
+                only=args.only,
+                max_diff_lines=args.max_diff_lines,
+                per_file_lines=args.per_file_lines,
+                max_line_chars=args.max_line_chars,
+                skip_globs=args.skip_globs,
+            )
+            sys.stdout.write(output)
+            sys.exit(0)
+        except ValueError as e:
+            # Bad sha
+            print(str(e), file=sys.stderr)
+            sys.exit(1)
+        except KeyError as e:
+            # --only path not found
+            print(e.args[0], file=sys.stderr)
+            sys.exit(2)
+
+    # Normal extraction mode
     # Extract events
     git_events = git_log(repo_dir, args.branch)
     session_events = [] if args.no_sessions else sessions_from_transcripts(

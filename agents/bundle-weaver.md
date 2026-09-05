@@ -22,6 +22,9 @@ decisions on concept naming, grouping, and log entries become the bundle's perma
 - A cursor state file (`.okf/.backfill-state.json`) indicating which events have already been
   folded (resume case).
 - A list of "live" event ids (those without a `skip` field) to process in order.
+- Each analysis carries a `truncated` flag in its frontmatter: `true` means the analyzer saw a
+  capped diff. Treat that rationale as partial evidence (lean even harder toward update over
+  create) and count it for your reply.
 
 ## Your responsibilities
 
@@ -132,6 +135,16 @@ When done with all live events (or a batch, if resuming):
 - `.okf/.backfill-state.json` cursor updated.
 
 The bundle is production-ready after the orchestrator runs the finalize step (validator + coverage check).
+
+## What you return
+
+Your reply to the orchestrator is one line of counts and nothing else:
+
+```
+folded=<n> created=<n> updated=<n> bullets=<n> conflicts=<n> truncated_inputs=<n> last_id=<event-id>
+```
+
+The bundle is on disk; never paste concept bodies, log sections, or analyses into the reply.
 
 ## Hard rules
 

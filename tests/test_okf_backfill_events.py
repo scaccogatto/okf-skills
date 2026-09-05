@@ -9,6 +9,7 @@ Run:  uv run tests/test_okf_backfill_events.py
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -21,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills" / "backfil
 from okf_backfill_events import (  # noqa: E402
     apply_skip_rules, git_log, normalize_ts, repo_slug,
     sessions_from_transcripts, merge_and_sort, truncate_text, check_coverage,
+    split_patch, cap_patch, format_summary, show_commit,
 )
 
 
@@ -635,6 +637,373 @@ class TestCheckCoverage(unittest.TestCase):
 
         unmapped = check_coverage(events_file, bundle)
         self.assertEqual(unmapped, ["git:def9876543210"])
+
+
+class TestSplitPatch(unittest.TestCase):
+    """Test patch splitting."""
+
+    def test_empty_input(self):
+        result = split_patch("")
+        self.assertEqual(result, [])
+
+    def test_single_block(self):
+        patch = "diff --git a/file.txt b/file.txt\nindex 123..456\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new\n"
+        result = split_patch(patch)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["path"], "file.txt")
+        self.assertEqual(len(result[0]["header"]), 4)  # diff --git, index, ---, +++
+        self.assertEqual(len(result[0]["hunks"]), 1)
+
+    def test_two_blocks(self):
+        patch = (
+            "diff --git a/a.txt b/a.txt\nindex 123..456\n--- a/a.txt\n+++ b/a.txt\n"
+            "@@ -1 +1 @@\n-old\n+new\n"
+            "diff --git a/b.txt b/b.txt\nindex 789..abc\n--- a/b.txt\n+++ b/b.txt\n"
+            "@@ -1 +1 @@\n-old\n+new\n"
+        )
+        result = split_patch(patch)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0]["path"], "a.txt")
+        self.assertEqual(result[1]["path"], "b.txt")
+
+
+class TestCapPatch(unittest.TestCase):
+    """Test patch capping."""
+
+    def test_summary_arithmetic(self):
+        """Hand-built blocks: 2 files, 10 lines each."""
+        blocks = [
+            {
+                "path": "a.txt",
+                "header": ["diff --git a/a.txt b/a.txt", "index 123..456", "--- a/a.txt", "+++ b/a.txt"],
+                "hunks": [["@@ -1,5 +1,5 @@"] + [f"+line{i}" for i in range(5)]],
+            },
+            {
+                "path": "b.txt",
+                "header": ["diff --git a/b.txt b/b.txt", "index 789..abc", "--- a/b.txt", "+++ b/b.txt"],
+                "hunks": [["@@ -1,5 +1,5 @@"] + [f"+line{i}" for i in range(5)]],
+            },
+        ]
+        numstat_lines = ["5\t0\ta.txt", "5\t0\tb.txt"]
+
+        lines, summary = cap_patch(
+            blocks, numstat_lines,
+            per_file_lines=20, max_diff_lines=50,
+            max_line_chars=1000, skip_globs=[]
+        )
+
+        # Both files should fit
+        self.assertFalse(summary["truncated"])
+        self.assertEqual(summary["files_shown"], 2)
+        self.assertEqual(summary["files_total"], 2)
+        # Each file: 4 header + 1 @@ + 5 body = 10 lines
+        self.assertEqual(summary["total"], 20)
+        self.assertEqual(summary["shown"], 20)
+
+
+class TestShowCommit(unittest.TestCase):
+    """Test show_commit and CLI integration."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+
+        # Initialize git repo with stable branch
+        subprocess.run(["git", "init", "-b", "main"], cwd=self.repo, check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=self.repo, check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.name", "Test User"], cwd=self.repo, check=True, capture_output=True)
+
+    def commit(self, filename: str, content: str, msg: str):
+        """Helper to create a single-file commit."""
+        (self.repo / filename).write_text(content)
+        subprocess.run(["git", "add", filename], cwd=self.repo, check=True, capture_output=True)
+        env = os.environ.copy()
+        env["GIT_COMMITTER_DATE"] = "2026-01-15 10:00:00 +0000"
+        subprocess.run(["git", "commit", "-m", msg], cwd=self.repo, check=True, capture_output=True, env=env)
+
+    def commit_files(self, files: dict[str, str], msg: str):
+        """Helper to create a commit touching multiple files."""
+        for filename, content in files.items():
+            (self.repo / filename).write_text(content)
+            subprocess.run(["git", "add", filename], cwd=self.repo, check=True, capture_output=True)
+        env = os.environ.copy()
+        env["GIT_COMMITTER_DATE"] = "2026-01-15 10:00:00 +0000"
+        subprocess.run(["git", "commit", "-m", msg], cwd=self.repo, check=True, capture_output=True, env=env)
+
+    def test_small_commit_passthrough(self):
+        """5-line new file: output contains stat, patch, summary."""
+        self.commit("newfile.txt", "a\nb\nc\nd\ne\n", "Add file")
+
+        # Get the HEAD commit
+        result = subprocess.run(
+            ["git", "-C", str(self.repo), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True
+        )
+        sha = result.stdout.strip()
+
+        output = show_commit(self.repo, sha)
+        lines = output.split("\n")
+
+        # Check structure
+        self.assertIn("# commit", lines[0])
+        self.assertIn("# stat (complete)", output)
+        self.assertIn("# patch", output)
+        self.assertIn("[diff: shown=", lines[-2])  # -2 because last line is empty after final \n
+
+        # No truncation for small file
+        self.assertIn("truncated=false", output)
+        self.assertIn("files_shown=1", output)
+        self.assertIn("files_total=1", output)
+
+    def test_per_file_cap_at_hunk_boundary(self):
+        """Two hunks in one file, cap at first hunk boundary."""
+        # Create 100-line file
+        content = "\n".join([f"line{i}" for i in range(100)]) + "\n"
+        self.commit("big.txt", content, "Add big file")
+
+        # Modify lines 5 and 95 to create two hunks
+        lines = content.split("\n")[:-1]  # Remove trailing empty
+        lines[4] = "line4-modified"
+        lines[94] = "line94-modified"
+        modified_content = "\n".join(lines) + "\n"
+
+        (self.repo / "big.txt").write_text(modified_content)
+        subprocess.run(["git", "add", "big.txt"], cwd=self.repo, check=True, capture_output=True)
+        env = os.environ.copy()
+        env["GIT_COMMITTER_DATE"] = "2026-01-15 10:00:01 +0000"
+        subprocess.run(["git", "commit", "-m", "Modify lines"], cwd=self.repo, check=True, capture_output=True, env=env)
+
+        result = subprocess.run(
+            ["git", "-C", str(self.repo), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True
+        )
+        sha = result.stdout.strip()
+
+        # Call with per_file_lines=15 so header+first hunk fit, second doesn't
+        output = show_commit(self.repo, sha, per_file_lines=15)
+
+        self.assertIn("[+", output)
+        self.assertIn("more hunks of", output)
+        self.assertIn("truncated=true", output)
+
+    def test_oversize_first_hunk_is_cut(self):
+        """Single hunk, header+budget fit, hunk is cut."""
+        # 300-line file in one commit
+        content = "\n".join([f"line{i}" for i in range(300)]) + "\n"
+        self.commit("huge.txt", content, "Add huge file")
+
+        result = subprocess.run(
+            ["git", "-C", str(self.repo), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True
+        )
+        sha = result.stdout.strip()
+
+        # per_file_lines=20 means header(5) + @@ + 14 body
+        output = show_commit(self.repo, sha, per_file_lines=20)
+
+        self.assertIn("[hunk truncated:", output)
+        self.assertIn("truncated=true", output)
+        # Count non-marker, non-section-header lines
+        patch_section = output.split("# patch\n")[1].split("[diff:")[0]
+        patch_lines = [l for l in patch_section.split("\n") if l and not l.startswith("[")]
+        # Should be header + @@ + body lines, totaling around 20
+        self.assertLessEqual(len(patch_lines), 25)
+
+    def test_generated_patch_omitted_stat_kept(self):
+        """Commit touching app.py and package-lock.json."""
+        self.commit_files(
+            {"app.py": "print('hello')\n", "package-lock.json": "{}\n"},
+            "Mix of files"
+        )
+
+        result = subprocess.run(
+            ["git", "-C", str(self.repo), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True
+        )
+        sha = result.stdout.strip()
+
+        output = show_commit(self.repo, sha)
+
+        # Both in stat
+        self.assertIn("app.py", output.split("# patch")[0])
+        self.assertIn("package-lock.json", output.split("# patch")[0])
+
+        # Only app.py in patch
+        self.assertIn("diff --git a/app.py", output)
+        self.assertNotIn("diff --git a/package-lock.json", output)
+
+        # Omission marker present
+        self.assertIn("[patch omitted: package-lock.json (generated)", output)
+
+        # Not truncated (we skipped one file by policy, not by cap)
+        self.assertIn("truncated=false", output)
+
+    def test_global_cap_at_file_boundary(self):
+        """Five 30-line files, max_diff_lines=70."""
+        for i in range(5):
+            self.commit_files(
+                {f"file{i}.txt": "\n".join([f"line{j}" for j in range(30)]) + "\n"},
+                f"Add file{i}"
+            )
+
+        # Get last commit (which has all 5 files? no, each commit is separate)
+        # Actually, let me create one commit with 5 files
+        self.repo_init2 = tempfile.TemporaryDirectory()
+        repo2 = Path(self.repo_init2.name)
+        subprocess.run(["git", "init", "-b", "main"], cwd=repo2, check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo2, check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo2, check=True, capture_output=True)
+
+        files = {f"file{i}.txt": "\n".join([f"line{j}" for j in range(30)]) + "\n" for i in range(5)}
+        for filename, content in files.items():
+            (repo2 / filename).write_text(content)
+            subprocess.run(["git", "add", filename], cwd=repo2, check=True, capture_output=True)
+        env = os.environ.copy()
+        env["GIT_COMMITTER_DATE"] = "2026-01-15 10:00:00 +0000"
+        subprocess.run(["git", "commit", "-m", "Five files"], cwd=repo2, check=True, capture_output=True, env=env)
+
+        result = subprocess.run(
+            ["git", "-C", str(repo2), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True
+        )
+        sha = result.stdout.strip()
+
+        output = show_commit(repo2, sha, max_diff_lines=70, per_file_lines=120)
+
+        self.assertIn("[patches omitted for", output)
+        self.assertIn("files_total=5", output)
+        self.assertIn("truncated=true", output)
+        # Accounting closure: every line not shown is declared by exactly one marker
+        # ([hunk truncated: +N more lines], [+N more lines in M more hunks of ...],
+        # [patches omitted for K more files (+N lines)]), so shown + declared == total.
+        summary = dict(p.split("=") for p in output.strip().splitlines()[-1].strip("[]")[6:].split())
+        declared = sum(int(n) for n in re.findall(r"\+(\d+) (?:more )?lines", output))
+        self.assertEqual(int(summary["total"]), int(summary["shown"]) + declared)
+
+        self.repo_init2.cleanup()
+
+    def test_merge_commit_diffs_against_first_parent(self):
+        """Merge commit: diff is against first parent, not combined-diff."""
+        # Create a commit on main
+        self.commit("main.txt", "main content\n", "Main commit")
+
+        # Create a branch with a different commit
+        subprocess.run(["git", "checkout", "-b", "feature"], cwd=self.repo, check=True, capture_output=True)
+        self.commit("feature.txt", "feature content\n", "Feature commit")
+
+        # Go back to main
+        subprocess.run(["git", "checkout", "main"], cwd=self.repo, check=True, capture_output=True)
+
+        # Add another commit on main
+        self.commit("main2.txt", "main2 content\n", "Main commit 2")
+
+        # Merge feature into main
+        env = os.environ.copy()
+        env["GIT_COMMITTER_DATE"] = "2026-01-15 10:00:10 +0000"
+        subprocess.run(
+            ["git", "merge", "--no-ff", "feature", "-m", "Merge feature"],
+            cwd=self.repo, check=True, capture_output=True, env=env
+        )
+
+        result = subprocess.run(
+            ["git", "-C", str(self.repo), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True
+        )
+        merge_sha = result.stdout.strip()
+
+        output = show_commit(self.repo, merge_sha)
+
+        # Merge commit should show feature.txt (from the branch)
+        self.assertIn("diff --git", output)
+        # Should NOT use combined-diff format (no diff --cc)
+        self.assertNotIn("diff --cc", output)
+
+    def test_only_path(self):
+        """--only restricts to single file."""
+        self.commit_files(
+            {"a.py": "a\n", "b.py": "b\n"},
+            "Two files"
+        )
+
+        result = subprocess.run(
+            ["git", "-C", str(self.repo), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True
+        )
+        sha = result.stdout.strip()
+
+        # Only b.py
+        output = show_commit(self.repo, sha, only="b.py")
+        self.assertIn("diff --git a/b.py", output)
+        self.assertNotIn("diff --git a/a.py", output)
+        # Stat still has both
+        self.assertIn("a.py", output.split("# patch")[0])
+        self.assertIn("b.py", output.split("# patch")[0])
+
+        # Invalid path
+        with self.assertRaises(KeyError):
+            show_commit(self.repo, sha, only="nope.py")
+
+    def test_long_line_truncated(self):
+        """Line longer than max_line_chars is truncated."""
+        long_line = "x" * 2000
+        self.commit("long.txt", long_line + "\n", "Long line")
+
+        result = subprocess.run(
+            ["git", "-C", str(self.repo), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True
+        )
+        sha = result.stdout.strip()
+
+        output = show_commit(self.repo, sha, max_line_chars=100)
+
+        self.assertIn("[line truncated:", output)
+        for line in output.split("\n"):
+            if "[line truncated:" in line:
+                # Should not exceed 100 + marker length significantly
+                self.assertLessEqual(len(line), 150)
+
+    def test_show_is_deterministic(self):
+        """Two calls produce identical output."""
+        self.commit("file.txt", "content\n", "Test")
+
+        result = subprocess.run(
+            ["git", "-C", str(self.repo), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True
+        )
+        sha = result.stdout.strip()
+
+        output1 = show_commit(self.repo, sha)
+        output2 = show_commit(self.repo, sha)
+
+        self.assertEqual(output1, output2)
+
+    def test_cli_show(self):
+        """CLI --show mode works."""
+        self.commit("file.txt", "content\n", "Test")
+
+        result = subprocess.run(
+            ["git", "-C", str(self.repo), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True
+        )
+        sha = result.stdout.strip()
+
+        # Valid sha
+        result = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve().parents[1] / "skills" / "backfill" / "scripts" / "okf_backfill_events.py"),
+             str(self.repo), "--show", sha],
+            capture_output=True, text=True
+        )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("[diff: shown=", result.stdout)
+
+        # Bad sha
+        result = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve().parents[1] / "skills" / "backfill" / "scripts" / "okf_backfill_events.py"),
+             str(self.repo), "--show", "deadbeef"],
+            capture_output=True, text=True
+        )
+        self.assertEqual(result.returncode, 1)
 
 
 if __name__ == "__main__":

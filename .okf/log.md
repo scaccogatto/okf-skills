@@ -1,5 +1,23 @@
 # Update Log
 
+## 2026-09-05
+* **Backfill map phase routed like a bulk read**: the analyzer never runs a raw
+  `git show` again. The extractor gained `--show <sha>`, a capped diff emitter
+  that reads the whole first-parent diff and emits a deterministic sample
+  (complete stat, per-file caps cut at hunk boundaries, generated files' patches
+  dropped in mixed commits, over-long lines shortened, a fixed last line that
+  declares `truncated=true|false`). The reason is the harness: long tool output
+  is cut blindly, mid-hunk and host-dependently, and a cheap worker may not
+  notice; a script that read everything can choose what survives, and say so.
+  `docs/self.html` made the character cap necessary (one 61,537-character line
+  counts as "1+1" in numstat). Contracts tightened around it: the orchestrator
+  dispatches ids and reads counts only, analyzers fetch their own events with
+  `jq` and reply one line per event, the weaver replies counts; the cost note no
+  longer claims 64-way parallelism, which the gate benchmark's mass failure had
+  already disproved. The tier of the analyzer is being measured rather than
+  assumed: `benchmark/map-tier/PROTOCOL.md` fixes the arms, metrics and decision
+  rules before the run.
+
 ## 2026-09-03
 * **Release 0.9.3**: the two benchmarks, the README section that leads with
   their qualifications, and CI gating both suites. No change to what the plugin
