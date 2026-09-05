@@ -2,9 +2,11 @@
 
 Run against `PROTOCOL.md` as committed in `37ecf14`, on 2026-09-05. Subject: this repository
 at `85db7fd`, 147 live events (76 commits, 71 session turns). One run per arm, no confidence
-intervals: an engineering decision, not an effect size. Every number below comes from
-`metrics.py` rows and the workflow's agent transcripts; the analyses, bundles and per-event
-rows live in the session scratchpad and are not committed (they contain session text).
+intervals: an engineering decision, not an effect size. Every number below is reproducible
+from the published rows: `runs/<arm>/rows.jsonl` (one row per live event: presence, template
+compliance, candidate names and their violations, entity path hits and misses, the truncation
+flag against `runs/truth.json`) and `runs/<arm>/summary.json`. The analyses and bundles
+themselves are not committed: they carry session text.
 
 ## Headline
 
@@ -216,6 +218,32 @@ flag count next to the deterministic estimate for exactly that reason.
 
 Shipping configuration on this history: about 30 USD per full backfill against 46 before
 (run 1, arm D against arm A), with the reduce phase unchanged at about 21 of those 30.
+
+## Reproducing
+
+    # events (not committed: session text), small/big split, units per arm
+    uv run skills/backfill/scripts/okf_backfill_events.py . --out bench/events.jsonl \
+        --skip-globs "benchmark/*/runs/**" --skip-globs "docs/self.html" --skip-globs "docs/assets/**"
+    python3 benchmark/map-tier/bench_prep.py bench
+    # emitter ground truth per live commit
+    python3 benchmark/map-tier/bench_truth.py bench skills/backfill/scripts/okf_backfill_events.py . \
+        "benchmark/*/runs/**" "docs/self.html" "docs/assets/**"
+    # the Workflow script: agent prompts injected from the committed agent files
+    python3 benchmark/map-tier/build_workflow.py . bench bench/workflow.js
+    # run 1: Workflow({scriptPath: "bench/workflow.js", args: {pool: 10}})
+    # run 2: args {run2: true, mapOnly: true, pool: 10}; run 3: args {run3: true, mapOnly: true, pool: 10}
+    # per-event metrics, paired comparison, judgment sample, cost
+    python3 benchmark/map-tier/metrics.py bench/events.jsonl bench/arms/<arm>/analyses \
+        --truth bench/truth.json --rows bench/arms/<arm>/rows.jsonl
+    python3 benchmark/map-tier/compare.py bench A-sonnet-solo B-haiku-solo C-sonnet-batched D-haiku-batched
+    python3 benchmark/map-tier/spotread.py A2-sonnet-solo B3-haiku-solo
+    python3 benchmark/map-tier/tokens.py <workflow transcript dir>
+
+The Workflow tool is Claude Code's; the script runs the committed `agents/*.md` bodies as
+the analyzer and weaver prompts, so the run measures exactly the files in the tree.
+
+Cost: about 198 USD estimated at the assumed prices: 148 for run 1 (four arms, map, reduce
+and finalize), 36 for run 2 (two map arms), 13 for run 3 (one map arm).
 
 ## Limits, declared
 

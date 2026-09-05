@@ -1,0 +1,19 @@
+{
+ "expected": 147,
+ "present": 147,
+ "missing_n": 0,
+ "missing_sample": [],
+ "template_ok_rate": 1.0,
+ "stray_lines_total": 0,
+ "bytes_mean": 1481.748,
+ "candidates_mean": 2.224,
+ "violation_rate": 0.049,
+ "violations_total": 16,
+ "rationale_over2_rate": 0.02,
+ "truncated_reported": 28,
+ "truncated_truth": 31,
+ "truncated_agree_rate": 0.961,
+ "entity_precision_mean": 0.87,
+ "entity_pathlike_mean": 4.461,
+ "unclear_n": 19
+}

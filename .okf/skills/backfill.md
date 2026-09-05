@@ -33,7 +33,7 @@ decided, why, and when.
    sessions.
 3. **Bootstrap** (fresh only): initialize `.okf/index.md` and `log.md`.
 4. **Replay** (two-phase):
-   - **Map** (parallel, waves of 4 to 8): `agents/event-analyzer.md` receives event
+   - **Map** (parallel, waves of 4 to 10): `agents/event-analyzer.md` receives event
      ids (never content), fetches each event with `jq`, reads commit evidence only
      through the capped diff emitter, and writes `analyses/<event-id>.md`; its
      reply is one line of counts per event.
@@ -88,7 +88,7 @@ decided, why, and when.
   event appears in the bundle's `sources` or log before declaring the backfill
   complete. Unmapped events cause finalize to fail. Coverage means mapped, not
   fully read: the truncated-analysis count in the final report covers the gap.
-- **Concurrency**: waves of 4 to 8 analyzers. Both earlier benchmarks lost runs to
+- **Concurrency**: waves of 4 to 10 analyzers. Both earlier benchmarks lost runs to
   high-concurrency mass failures ([gate results](/decisions/trust-benchmark.md));
   the skill no longer claims 64-way parallelism.
 - **Trust metadata**: concepts inherit `generated.by: okf-backfill/0.9.3` (not

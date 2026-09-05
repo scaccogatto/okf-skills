@@ -1,0 +1,21 @@
+{
+ "expected": 147,
+ "present": 146,
+ "missing_n": 1,
+ "missing_sample": [
+  "git:85db7fd0a8a66d07d984ac6c5f4fbb5063d00357"
+ ],
+ "template_ok_rate": 0.993,
+ "stray_lines_total": 1,
+ "bytes_mean": 1633.63,
+ "candidates_mean": 2.925,
+ "violation_rate": 0.021,
+ "violations_total": 9,
+ "rationale_over2_rate": 0.164,
+ "truncated_reported": 16,
+ "truncated_truth": 31,
+ "truncated_agree_rate": 0.787,
+ "entity_precision_mean": 0.879,
+ "entity_pathlike_mean": 4.64,
+ "unclear_n": 1
+}

@@ -88,7 +88,7 @@ The replay is now structured in two phases to enforce semantic depth and anti-de
 #### Phase 1: Map (parallel analysis, per-event)
 
 Launch `okf:event-analyzer` agents for the live events (those without `skip` field), in waves of
-4 to 8 (see the cost note in §5), via Claude Code's Workflow `agentType` parameter. Each analyzer
+4 to 10 (see the cost note in §5), via Claude Code's Workflow `agentType` parameter. Each analyzer
 receives its event ids, the `events.jsonl` path, the repo path, the output directory and the
 emitter path, and:
 - Fetches its own event JSON with `jq` (the orchestrator dispatches ids, never content)
@@ -261,7 +261,7 @@ a mechanical listing of commits or a taxonomy-by-accident:
 - **Cost note**: deep replay reads one capped diff per git commit (§6) to extract
   rationale. For histories >500 events, consider splitting into sub-ranges and
   replaying sequentially, or use `--skip-globs` to exclude low-signal paths (e.g.,
-  vendored dependencies, generated code). Map phase is parallel in waves of 4 to 8: the
+  vendored dependencies, generated code). Map phase is parallel in waves of 4 to 10: the
   gate benchmark lost 260 of 299 runs to a high-concurrency mass failure and finished at
   concurrency 4 (`benchmark/gate/RESULTS.md`). Reduce is sequential but much cheaper
   (concepts already analyzed).

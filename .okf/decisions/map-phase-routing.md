@@ -15,8 +15,8 @@ sources:
     title: Map-phase routing A/B results
     last_modified: 2026-09-05
   - id: spotify-portal
-    resource: https://engineering.atspotify.com/
-    title: Spotify Engineering, "Portal by Spotify cut my Claude Code token usage by 90%", 3 September 2026
+    resource: https://engineering.atspotify.com/2026/9/portal-by-spotify-cut-my-claude-code-token-usage-by-90
+    title: Dimitri Mazmanov, "Portal by Spotify cut my Claude Code token usage by 90%", Spotify Engineering, 3 September 2026
     last_modified: 2026-09-03
 ---
 
@@ -75,7 +75,7 @@ Rejected or deferred: a PreToolUse hook for the analyzer (deferred, above); temp
 knob (the agent frontmatter does not expose it, `effort` is the knob); zero-residue
 delegation (Spotify keeps nothing; the backfill keeps its analyses for audit and resume, on
 purpose); the "64 analyzers concurrently" cost note (both earlier benchmarks lost runs to
-high concurrency; waves of 4 to 8, and a pool of 10 held for 436 agents).
+high concurrency; waves of 4 to 10, and a pool of 10 held for 436 agents).
 
 # Consequences
 
