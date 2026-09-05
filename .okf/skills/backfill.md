@@ -91,7 +91,7 @@ decided, why, and when.
 - **Concurrency**: waves of 4 to 10 analyzers. Both earlier benchmarks lost runs to
   high-concurrency mass failures ([gate results](/decisions/trust-benchmark.md));
   the skill no longer claims 64-way parallelism.
-- **Trust metadata**: concepts inherit `generated.by: okf-backfill/0.9.3` (not
+- **Trust metadata**: concepts inherit `generated.by: okf-backfill/0.9.4` (not
   claimed as human-reviewed); they are correctly `unverified` under §5.3. Each
   commit becomes a source with its timestamp.
 - **Privacy**: events.jsonl is scratchpad-only, never committed. Session turn

@@ -4,7 +4,7 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
-## [Unreleased]
+## [0.9.4] - 2026-09-05
 
 ### Added
 - **Capped diff emitter for the backfill map phase.** `okf_backfill_events.py --show <sha>`
@@ -37,8 +37,9 @@ OKF spec version it supports.
   (never `events.jsonl`, analyses or diffs); analyzers fetch their own events with `jq`,
   write bullets-only analyses with a `truncated` flag, and reply one line per event;
   the weaver replies counts. Finalize reports agents per phase and truncated analyses.
-- **Concurrency guidance.** Map-phase waves of 4 to 8 replace the "64 analyzers" claim,
-  citing the gate benchmark's high-concurrency mass failure.
+- **Concurrency guidance.** Map-phase waves of 4 to 10 replace the "64 analyzers" claim,
+  citing the gate benchmark's high-concurrency mass failure; a pool of 10 held for 436
+  agents in the map-tier runs.
 - **Analyzer default tier: `haiku`** (`agents/event-analyzer.md`), after run 3 of the
   map-tier benchmark passed every pre-set rule with two instructions made explicit (which
   emitter summary line the `truncated` flag copies; claims report intent as intent, never

@@ -1,6 +1,10 @@
 # Update Log
 
 ## 2026-09-05
+* **Release 0.9.4**: the capped diff emitter, counts-only contracts, batched
+  dispatch and the haiku analyzer default, with the map-tier benchmark that
+  decided them. No new surface: the backfill skill reads less, says what it
+  read, and costs about a third less per full reconstruction of this history.
 * **Backfill map phase routed like a bulk read**: the analyzer never runs a raw
   `git show` again. The extractor gained `--show <sha>`, a capped diff emitter
   that reads the whole first-parent diff and emits a deterministic sample
