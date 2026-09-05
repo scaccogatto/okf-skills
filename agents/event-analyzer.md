@@ -6,7 +6,9 @@ description: >-
   to materialize decision rationale from raw commit diffs and session outcomes.
 # Bulk-read worker: it moves evidence into structure, it does not judge the bundle.
 # Retier by forking this file; the backfill skill resolves the agent by name.
-model: sonnet
+# haiku since benchmark/map-tier/RESULTS.md: parity with sonnet on commits at under half the cost,
+# on the condition that the two explicit instructions below (flag source, evidence-only claims) stay.
+model: haiku
 effort: medium
 tools: Bash, Read, Write
 color: blue
@@ -107,10 +109,14 @@ truncated: true|false
 - `concept-name`: <domain it represents>; <one phrase on why it exists>
 ```
 
-- `truncated` copies the emitter's last line: `true` if it said `truncated=true`; `false` for
-  complete diffs and for session events.
+- `truncated` copies the last line of the **first** `--show` call for the commit: `true` if it
+  said `truncated=true`; `false` for complete diffs and for session events. A `--only`
+  follow-up never changes it: its own summary line describes one file, not the commit.
 - Bullets only, one line each, leading with a name or a path. Rationale is at most two bullets.
-- Mark uncertainty about intent with `[UNCLEAR]` inside the bullet; the weaver routes it.
+- The claim states what the evidence shows happened, nothing more. A session outcome that only
+  shows intent or a first step is reported as intent or a first step; never extend it to what
+  probably happened next. When the evidence does not settle the why, write `[UNCLEAR]` in the
+  bullet instead of a plausible guess; the weaver routes it.
 - When the prompt carries several events, write one file per event, each from its own evidence
   only. Never let one event's content leak into another's analysis.
 

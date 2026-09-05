@@ -17,6 +17,22 @@
   already disproved. The tier of the analyzer is being measured rather than
   assumed: `benchmark/map-tier/PROTOCOL.md` fixes the arms, metrics and decision
   rules before the run.
+* **Map-phase routing measured** ([decision](decisions/map-phase-routing.md),
+  `benchmark/map-tier/RESULTS.md`): four arms on this repository's 147 live
+  events, 436 agents, zero errors. Batching small events eight per call ships:
+  57 calls instead of 147, a third off the map phase at the same tier, no loss on
+  any paired per-event metric and no cross-event contamination. The cheap tier
+  extracted commits at parity with sonnet and failed two pre-set rules in run 1,
+  both contract failures of an under-specified instruction (it copied the last
+  summary line it saw; it filled thin session evidence with the plausible
+  continuation); the instructions are now explicit in the analyzer file and were
+  re-measured in runs 2 and 3. The weaver's `last_modified` contract now asks for
+  a date, because every arm's `--strict` run warned on the timestamp. The reduce
+  phase costs as much as a sonnet map in every arm, which makes the weaver's
+  context shape the next lever, not the analyzer tier. Run 3 passed every pre-set
+  rule with both instructions explicit, the truncation flag at the threshold
+  (0.905): the analyzer's default tier is now `haiku`, batched, about 30 dollars
+  per full backfill of this history against 46, the reduce phase unchanged.
 
 ## 2026-09-03
 * **Release 0.9.3**: the two benchmarks, the README section that leads with

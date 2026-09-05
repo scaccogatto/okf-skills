@@ -65,7 +65,14 @@ decided, why, and when.
   structure) and the reduce phase is the judgment (naming, update over create, log
   intent). The analyzer's tier lives in its frontmatter (`model`, `effort`); forking
   the agent file retiers the map phase without touching the skill. The tier itself
-  is measured, not assumed: see the [map-tier protocol](/skills/backfill.md#sources).
+  is measured, not assumed: `haiku` by default since 2026-09-05, batched, after it
+  passed every pre-set rule of the map-tier benchmark with two instructions made
+  explicit ([decision](/decisions/map-phase-routing.md)); `sonnet` extracted commits
+  at parity for twice the map cost.
+- **Dispatch rule**: a session turn or a commit of at most 60 changed lines is small;
+  small events go eight per analyzer call, large commits alone. Deterministic from
+  `events.jsonl`; measured at a third off the map phase with no per-event loss and no
+  cross-event contamination ([decision](/decisions/map-phase-routing.md)).
 - **Context hygiene**: the orchestrator handles ids and counts only (`wc`, `jq -r .id`,
   `ls | wc`). Events, analyses and diffs never enter its context; agents return
   counts, never content.

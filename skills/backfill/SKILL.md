@@ -99,6 +99,17 @@ emitter path, and:
 - Never touches `.okf/`
 - Is resumable: skip events already in `analyses/`
 
+**Dispatch rule** (deterministic, from `events.jsonl`, no content read): a live event is
+*small* when it is a session turn or a commit whose numstat totals at most 60 changed lines.
+Small events are grouped chronologically, eight per analyzer call; large commits go one per
+call. Measured on this repository (`benchmark/map-tier/RESULTS.md`): 57 calls instead of 147,
+a third off the map phase at the same tier, no loss on any per-event metric and no
+cross-event contamination.
+
+```bash
+jq -c 'select(.skip==null) | {id, small: (.source=="session" or (([.files[]?|.add+.del]|add)//0) <= 60)}' events.jsonl
+```
+
 **Host-agnostic fallback** (if no Workflow support): spawn generic subagents with the same
 system prompt as `agents/event-analyzer.md`, one per event, collecting analyses to scratchpad.
 
@@ -292,4 +303,7 @@ Defaults keep one call under the harness limits with margin; tune per repo with 
 
 The analyzer's tier is configuration, not infrastructure: `agents/event-analyzer.md` carries
 `model` and `effort` in its frontmatter. Fork the file to retier the map phase; the skill
-resolves the agent by name and nothing else changes.
+resolves the agent by name and nothing else changes. The default is `haiku` since the
+map-tier benchmark (`benchmark/map-tier/RESULTS.md`): parity with `sonnet` on commits at
+under half the map cost, on the condition that the two explicit instructions in the agent
+file stay (which summary line the flag copies; claims report intent as intent).

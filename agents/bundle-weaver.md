@@ -69,10 +69,10 @@ generated:
 sources:
   - id: git-abc1234        # Sanitized event id (colons → dashes)
     resource: git:abc1234  # Original id for reverse lookup
-    last_modified: <ISO 8601 of the event's timestamp>
+    last_modified: <YYYY-MM-DD of the event's timestamp; the validator warns on anything finer>
   - id: session-file-42
     resource: session:file:42
-    last_modified: <ISO 8601 of the event's timestamp>
+    last_modified: <YYYY-MM-DD of the event's timestamp; the validator warns on anything finer>
 ```
 
 **For session events, the `resource` and `id` differ:** `session:<file>:<lineno>` is the resource;

@@ -16,9 +16,21 @@ OKF spec version it supports.
   Analyzers never run a raw `git show` again; the harness cut long output blindly and
   a cheap worker could not tell. 14 unit tests, including merge commits and the
   accounting closure between shown, declared and total lines.
-- **Map-phase routing protocol** (`benchmark/map-tier/PROTOCOL.md`): an engineering A/B
-  of the analyzer tier (sonnet vs haiku) and dispatch shape (solo vs batched), with
-  paired per-event deterministic metrics and decision rules written before the run.
+- **Map-phase routing benchmark** (`benchmark/map-tier/`): an engineering A/B of the
+  analyzer tier (sonnet vs haiku) and dispatch shape (solo vs batched) on this repository's
+  own 147-event history, with paired per-event deterministic metrics and decision rules
+  written before the run. Batching small events eight per call cut the map phase by a third
+  at the same tier with no measurable loss. The cheap tier extracted commits at parity and
+  failed two contract rules in run 1; both traced to under-specified instructions, now
+  explicit in the analyzer file, and were re-measured in runs 2 and 3. The reduce phase
+  costs as much as a sonnet map in every configuration: the next lever is the weaver's
+  context shape, not the analyzer tier.
+- **Dispatch rule for the map phase.** A session turn or a commit of at most 60 changed
+  lines is small; small events go eight per analyzer call, large commits alone. Deterministic
+  from `events.jsonl`, documented with its `jq` one-liner in the skill.
+- **Decision record** `.okf/decisions/map-phase-routing.md`: what was adopted from the
+  Spotify routing pattern, what was deferred (hooks) and what diverges on purpose (analyses
+  are kept for audit and resume).
 
 ### Changed
 - **Backfill contracts.** The orchestrator dispatches event ids and reads counts only
@@ -27,8 +39,12 @@ OKF spec version it supports.
   the weaver replies counts. Finalize reports agents per phase and truncated analyses.
 - **Concurrency guidance.** Map-phase waves of 4 to 8 replace the "64 analyzers" claim,
   citing the gate benchmark's high-concurrency mass failure.
-- **Analyzer agent** (`agents/event-analyzer.md`) documents that its tier is
-  configuration: fork the file to retier the map phase.
+- **Analyzer default tier: `haiku`** (`agents/event-analyzer.md`), after run 3 of the
+  map-tier benchmark passed every pre-set rule with two instructions made explicit (which
+  emitter summary line the `truncated` flag copies; claims report intent as intent, never
+  the plausible continuation). Against sonnet solo: parity or better on every per-event
+  metric, the truncation flag at the threshold (0.905), map cost −43% solo and −62%
+  batched. The file documents that its tier is configuration: fork it to retier.
 
 ## [0.9.3] — 2026-09-03
 

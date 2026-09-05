@@ -41,3 +41,4 @@ described as an OKF bundle — the toolkit eating its own dog food. Render it wi
 * [Target OKF v0.2, migrate v0.1 rather than tolerate it](decisions/okf-v02-dual-read.md)
 * [Ship a read-only MCP server](decisions/mcp-server.md)
 * [Benchmark trustability, not the adoption pitch](decisions/trust-benchmark.md)
+* [Route the backfill map phase like a bulk read](decisions/map-phase-routing.md)
