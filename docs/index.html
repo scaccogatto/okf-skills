@@ -93,15 +93,15 @@ function relList(title,arr){if(!arr.length)return'';
 // §5.3 — the trust tier is derived, never stored: no `verified` is unverified,
 // `verified` by non-`human:` actors only is machine-confirmed, and any `human:`
 // actor makes it human-reviewed. The exact lowercase prefix is the whole key.
-// §5.5 — a concept is stale when today >= stale_after; both are YYYY-MM-DD, so
-// a string compare is the whole comparison. Advisory signals, not access control.
-const TODAY=new Date().toISOString().slice(0,10);
+// §5.5 — a concept is stale when now >= stale_after. PyYAML renders an unquoted
+// datetime with a space separator, which Date.parse rejects in some engines.
+// Advisory signals, not access control.
 function trustTier(n){const v=n.verified||[];
  if(!v.length)return['t-unverified','unverified'];
  return v.some(e=>(e.by||'').startsWith('human:'))?['t-human','human-reviewed']
                                                   :['t-machine','machine-confirmed'];}
 function badges(n){const [cls,label]=trustTier(n),out=[`<span class="badge ${cls}">${label}</span>`];
- if(n.stale_after&&TODAY>=n.stale_after)out.push(`<span class="badge b-stale">stale since ${esc(n.stale_after)}</span>`);
+ if(n.stale_after&&Date.parse(n.stale_after.replace(' ','T'))<=Date.now())out.push(`<span class="badge b-stale">stale since ${esc(n.stale_after)}</span>`);
  if(n.status==='deprecated')out.push('<span class="badge b-deprecated">deprecated</span>');
  return `<div class="badges">${out.join('')}</div>`;}
 // OKF v0.2 trust (§5.2) + lifecycle (§5.4/§5.5). A v0.1 `timestamp` arrives here

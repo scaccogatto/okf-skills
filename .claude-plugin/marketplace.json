@@ -10,7 +10,7 @@
     {
       "name": "okf",
       "source": "./",
-      "description": "Author, maintain, validate, and visualize Open Knowledge Format (OKF) bundles.",
+      "description": "Author, maintain, backfill, validate, visualize and serve (MCP) Open Knowledge Format (OKF) bundles.",
       "category": "documentation",
       "keywords": ["okf", "knowledge", "markdown", "agents"],
       "license": "MIT"

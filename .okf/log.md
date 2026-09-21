@@ -1,6 +1,21 @@
 # Update Log
 
 ## 2026-09-21
+* **Release 0.9.6**: the vendored spec was resynced with upstream, which moved to
+  `GoogleCloudPlatform/open-knowledge-format` (the old `knowledge-catalog/okf`
+  location is a frozen snapshot) and made three date fields — `stale_after`,
+  `sources[].last_modified`, `usage_window.{from,to}` — ISO 8601 datetimes with
+  an explicit offset. The validator now accepts a datetime on all three (a bare
+  date is still tolerated, no new warnings on existing bundles); the visualizer
+  compares staleness as instants (`Date.parse(stale_after) <= Date.now()`)
+  instead of a string compare, so a datetime value reads stale on the right
+  instant instead of never matching; the backfill weaver's frontmatter contract
+  now asks for the event's full ISO 8601 timestamp in `sources[].last_modified`
+  instead of a truncated `YYYY-MM-DD`, retiring the workaround from the map-phase
+  decision. Also fixed: the weaver's "process events in order" instruction told
+  it to rely on the filename sort of `analyses/*.md`, but analysis filenames are
+  event ids (content hashes) — their lexical order has no relation to time. It
+  now names the live-event-id list and the frontmatter `timestamp` instead.
 * **Release 0.9.5**: a reconstructed bundle no longer declares itself stable nor
   keeps asserting states its own history has overturned. Text-only: no script,
   no flag, no new surface. The fix came from outside, from a bundle built with

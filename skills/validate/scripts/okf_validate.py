@@ -42,10 +42,11 @@ RESERVED = {"index.md", "log.md"}
 RECOMMENDED = ("title", "description", "tags")
 STATUS_VALUES = {"draft", "stable", "deprecated"}
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-# RFC 3339, as the spec writes `generated.at` / `verified[].at` throughout. A
+# RFC 3339, as the spec writes `generated.at` / `verified[].at` throughout, and
+# (since 0.9.6) `stale_after`, `sources[].last_modified` and `usage_window`. A
 # date-only value is tolerated: it is common in the wild and loses only precision.
 # PyYAML resolves an unquoted timestamp to a datetime whose str() separates with a
-# space, so both spellings have to pass — as with `stale_after` above.
+# space, so both spellings have to pass.
 RFC3339 = re.compile(
     r"^\d{4}-\d{2}-\d{2}"
     r"(?:[Tt ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:[Zz]|[+-]\d{2}:?\d{2})?)?$")
@@ -245,20 +246,20 @@ def check_trust(meta: dict, rel: str, report: Report) -> None:
 
 
 def check_lifecycle(meta: dict, rel: str, report: Report) -> None:
-    """§5.4 / §5.5 — `status` and `stale_after`."""
+    """§5.4 / §5.5 — `status` and `stale_after`. A concept is stale when
+    `now >= stale_after`."""
     status = meta.get("status")
     if status is not None and status not in STATUS_VALUES:
         report.warn(rel, f"§5.4 unknown `status` `{status}` (expected "
                          f"{'|'.join(sorted(STATUS_VALUES))})")
     stale = meta.get("stale_after")
-    # PyYAML resolves an unquoted `2026-09-23` to a date object; str() round-trips
-    # it back to the ISO form, so both spellings check identically.
-    if stale is not None and not ISO_DATE.match(str(stale)):
-        report.warn(rel, f"§5.5 `stale_after` `{stale}` is not an absolute YYYY-MM-DD date")
+    if stale is not None and not RFC3339.match(str(stale)):
+        report.warn(rel, f"§5.5 `stale_after` `{stale}` is not an ISO 8601 datetime "
+                         f"(a bare date is tolerated)")
 
 
 def check_window(window, where: str, rel: str, report: Report) -> None:
-    """§5.1 — a `usage_window` is a `{from, to}` pair of absolute dates."""
+    """§5.1 — a `usage_window` is a `{from, to}` pair of ISO 8601 datetimes."""
     if window is None:
         return
     if not isinstance(window, dict):
@@ -268,9 +269,9 @@ def check_window(window, where: str, rel: str, report: Report) -> None:
         value = window.get(bound)
         if value is None:
             report.warn(rel, f"§5.1 `{where}` `usage_window` is missing `{bound}`")
-        elif not ISO_DATE.match(str(value)):
+        elif not RFC3339.match(str(value)):
             report.warn(rel, f"§5.1 `{where}` `usage_window.{bound}` `{value}` "
-                             f"is not an absolute YYYY-MM-DD date")
+                             f"is not an ISO 8601 datetime (a bare date is tolerated)")
 
 
 def check_sources(meta: dict, body: str, rel: str, report: Report) -> None:
@@ -305,8 +306,9 @@ def check_sources(meta: dict, body: str, rel: str, report: Report) -> None:
                              f"framing it (a sibling of `sources`, or on the entry)")
         check_window(window, f"sources[{i}]", rel, report)
         last_mod = src.get("last_modified")
-        if last_mod is not None and not ISO_DATE.match(str(last_mod)):
-            report.warn(rel, f"§5.1 `sources[{i}].last_modified` `{last_mod}` is not YYYY-MM-DD")
+        if last_mod is not None and not RFC3339.match(str(last_mod)):
+            report.warn(rel, f"§5.1 `sources[{i}].last_modified` `{last_mod}` is not an "
+                             f"ISO 8601 datetime (a bare date is tolerated)")
     # Attribution joins on the label, not on position (§5.1) — a footnote whose
     # label names no source silently attributes a claim to nothing.
     for label in sorted(set(FOOTNOTE.findall(body)) - ids):

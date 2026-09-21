@@ -28,8 +28,8 @@ the checker out of conformance. The §11.1 error therefore names the fix: add a
 All soft, all warnings: `generated.by` present when `generated` is; every
 `verified` entry has an actor (a bare mapping counts as a one-element list);
 `status` is one of draft/stable/deprecated; `stale_after` and
-`sources[].last_modified` are absolute `YYYY-MM-DD` dates; `generated.at` and
-`verified[].at` are RFC 3339 (date-only tolerated); every `sources` entry has a
+`sources[].last_modified` are ISO 8601 datetimes (a bare date is tolerated);
+`generated.at` and `verified[].at` are RFC 3339 (date-only tolerated); every `sources` entry has a
 `resource`; a `usage_count` is framed by a `usage_window`; every `[^label]`
 footnote names a `sources[].id`; an `Attested Computation` declares a `runtime`
 and its path-valued `computation` / `executor.resource` / `attester.resource`

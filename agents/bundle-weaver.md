@@ -18,7 +18,8 @@ decisions on concept naming, grouping, and log entries become the bundle's perma
 ## Input you receive
 
 - A `.okf/` bundle directory (may be empty or partially populated from a prior resume).
-- An `analyses/` directory with one `.md` file per event, timestamped and deterministically ordered.
+- An `analyses/` directory with one `.md` file per event, timestamped in frontmatter. File names
+  are event ids (content hashes) and carry no order.
 - A cursor state file (`.okf/.backfill-state.json`) indicating which events have already been
   folded (resume case).
 - A list of "live" event ids (those without a `skip` field) to process in order.
@@ -30,7 +31,9 @@ decisions on concept naming, grouping, and log entries become the bundle's perma
 
 ### 1. Process events in order
 
-Read analyses in chronological order (the filename sort of `analyses/*.md` is deterministic).
+Read analyses in chronological order: follow the live-event-id list you were given (it carries
+the event-stream order), or sort by each analysis's frontmatter `timestamp`. Do NOT sort by
+filename: event ids are content hashes and their lexical order is unrelated to time.
 For each event:
 
 1. Load the analysis file.
@@ -85,10 +88,10 @@ generated:
 sources:
   - id: git-abc1234        # Sanitized event id (colons → dashes)
     resource: git:abc1234  # Original id for reverse lookup
-    last_modified: <YYYY-MM-DD of the event's timestamp; the validator warns on anything finer>
+    last_modified: <the event's timestamp, ISO 8601 with offset, as in events.jsonl>
   - id: session-file-42
     resource: session:file:42
-    last_modified: <YYYY-MM-DD of the event's timestamp; the validator warns on anything finer>
+    last_modified: <the event's timestamp, ISO 8601 with offset, as in events.jsonl>
 ```
 
 **`status` is always written, and never `stable`.** SPEC §5.4 reads an absent `status` as

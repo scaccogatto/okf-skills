@@ -2,23 +2,23 @@
 type: Reference
 title: OKF v0.2 specification
 description: The Open Knowledge Format spec, vendored verbatim — the source of truth.
-resource: https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf
+resource: https://github.com/GoogleCloudPlatform/open-knowledge-format
 tags: [spec, reference, apache-2.0]
 status: stable
-generated: { by: human:scaccogatto, at: "2026-07-27T00:00:00Z" }
+generated: { by: human:scaccogatto, at: "2026-09-21T00:00:00Z" }
 sources:
   - id: okf-upstream
-    resource: https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf
+    resource: https://github.com/GoogleCloudPlatform/open-knowledge-format
     title: Open Knowledge Format reference repository
     author: team:google-cloud-data-cloud
-    last_modified: 2026-07-27
+    last_modified: 2026-08-21T00:00:00Z
 ---
 
 # Overview
 
 The canonical OKF v0.2 specification by the Google Cloud Data Cloud team
 (Apache-2.0), vendored verbatim at `skills/okf/reference/SPEC.md` (upstream
-`3fcbb9f`).[^okf-upstream] Every rule the [okf skill](/skills/okf.md) and
+`0b87c52`).[^okf-upstream] Every rule the [okf skill](/skills/okf.md) and
 [validator](/components/validator.md) apply traces here.
 
 # The one hard rule (§11)
@@ -39,5 +39,12 @@ MUST tolerate missing optional fields, unknown types, and broken links.
 Two v0.1 constructs are superseded: `timestamp` (now `generated.at`) and the
 body `# Citations` list (now `sources`). This toolkit still reads both — see the
 [dual-read decision](/decisions/okf-v02-dual-read.md).
+
+## History
+
+- 2026-09-21: upstream moved to GoogleCloudPlatform/open-knowledge-format (the
+  knowledge-catalog copy is frozen); the three date fields (stale_after,
+  sources[].last_modified, usage_window) became ISO 8601 datetimes, re-vendored
+  at 0b87c52.
 
 [^okf-upstream]: Open Knowledge Format reference repository
