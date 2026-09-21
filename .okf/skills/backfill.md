@@ -5,7 +5,7 @@ description: Reconstruct an OKF bundle from git history and session transcripts 
 resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/backfill/SKILL.md
 tags: [skill, bundle-reconstruction, history, event-sourcing, deep-replay, routing]
 status: stable
-generated: { by: claude/opus-5, at: "2026-09-21T12:00:00Z" }
+generated: { by: claude/opus-5, at: "2026-09-21T00:00:00Z" }
 sources:
   - id: spec-§5.2
     resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/okf/reference/SPEC.md#52-trust-generated-and-verified
@@ -139,3 +139,15 @@ and trustworthy, even though the LLM interpretation has variance.
 Routing follows the same principle one level down: only what carries judgment is
 billed at the judgment tier, and everything the model reads in bulk is shaped by a
 script that read all of it first.
+
+# Agents
+
+The two-phase replay dispatches subagents external to the skill. The map phase
+launches `agents/event-analyzer.md` in parallel waves (cheap tier, reads events
+with `jq`, writes bullets-only analyses with a `truncated` flag). The reduce phase
+runs `agents/bundle-weaver.md` sequentially (the only writer to `.okf/`, folds
+analyses in chronological order, marks reconstructed concepts `status: draft`,
+rewrites on contradiction with dated `## History` lines). Both agents live in
+`agents/` at the repo root, outside `skills/`, and ship with the Claude Code
+plugin install; a `skills.sh` install gets the skill text and the extractor but
+has no subagents to dispatch.
