@@ -95,3 +95,7 @@ metadata is worth in a real corpus.
   supersession *link* would beat the trust fields (v0.2 defines no such field, so
   that would be a gap in the spec), and whether read-side metadata beats a
   write-side process gate at all.
+
+# History
+
+- 2026-09-21: the write-side gate follow-up ran (issue #48); results in benchmark/gate/RESULTS.md: a gate and an expired stale_after each reduce stale answers and are not distinguishable on 20 items.

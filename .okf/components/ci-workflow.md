@@ -5,7 +5,7 @@ description: GitHub Actions workflow that validates, exercises the action, and g
 resource: https://github.com/scaccogatto/okf-skills/blob/main/.github/workflows/ci.yml
 tags: [ci, github-actions, validation]
 status: stable
-generated: { by: agent:claude-opus-5, at: "2026-09-01T00:00:00Z" }
+generated: { by: agent:claude-opus-5, at: "2026-09-21T00:00:00Z" }
 ---
 
 # Overview
@@ -66,13 +66,13 @@ skipped run wedging it; the non-PR and `skip-version-check`-label cases exit 0
 inside each step instead. Three steps:
 
 1. **Require a version bump for shipped changes.** Shipped paths:
-   `.claude-plugin/`, `skills/`, `hooks/`, `templates/`, `action.yml`. Compares
+   `.claude-plugin/`, `skills/`, `agents/`, `hooks/`, `servers/`, `templates/`, `action.yml`, `.mcp.json`. Compares
    `plugin.json`'s version at `BASE` and `HEAD`; passes only if `HEAD`'s is
    strictly higher.
 2. **Require a changelog entry for the new version.** If the version changed,
    `CHANGELOG.md` must contain a `## [<version>]` heading.
 3. **Require an `.okf/` update when a skill script changes.** If a path under
-   `skills/*/scripts/` or `hooks/` changed, something under `.okf/` must have
+   `skills/*/scripts/`, `agents/`, or `hooks/` changed, something under `.okf/` must have
    changed too.
 
 Steps 2 and 3 mirror, on every PR, the same two obligations the plugin's Stop

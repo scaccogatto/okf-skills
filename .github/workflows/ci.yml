@@ -345,7 +345,7 @@ jobs:
             exit 0
           fi
           # paths whose contents ship to users and therefore need a release
-          shipped='^(\.claude-plugin/|skills/|hooks/|servers/|templates/|action\.yml|\.mcp\.json)'
+          shipped='^(\.claude-plugin/|skills/|agents/|hooks/|servers/|templates/|action\.yml|\.mcp\.json)'
           changed="$(git diff --name-only "$BASE" "$HEAD")"
           if ! echo "$changed" | grep -qE "$shipped"; then
             echo "No shipped-surface files changed; version bump not required."
@@ -407,15 +407,15 @@ jobs:
             exit 0
           fi
           changed="$(git diff --name-only "$BASE" "$HEAD")"
-          if ! echo "$changed" | grep -qE '^(skills/[^/]+/scripts/|hooks/)'; then
-            echo "No skill script or hook changed; .okf/ update not required."
+          if ! echo "$changed" | grep -qE '^(skills/[^/]+/scripts/|agents/|hooks/)'; then
+            echo "No skill script, agent or hook changed; .okf/ update not required."
             exit 0
           fi
           if echo "$changed" | grep -qE '^\.okf/'; then
             echo "Behaviour changed and .okf/ was updated. OK."
             exit 0
           fi
-          echo "::error::A skill script or hook changed but nothing under .okf/ did. Update the concept that describes it and add a log.md entry (this is what the plugin's Stop hook enforces locally), or add the 'skip-version-check' label."
+          echo "::error::A skill script, agent or hook changed but nothing under .okf/ did. Update the concept that describes it and add a log.md entry (this is what the plugin's Stop hook enforces locally), or add the 'skip-version-check' label."
           echo "Changed behaviour files:"
-          echo "$changed" | grep -E '^(skills/[^/]+/scripts/|hooks/)' | sed 's/^/  /'
+          echo "$changed" | grep -E '^(skills/[^/]+/scripts/|agents/|hooks/)' | sed 's/^/  /'
           exit 1

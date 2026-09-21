@@ -24,6 +24,7 @@ test:
 	uv run benchmark/trust/tests/test_grade_analyze.py
 	uv run benchmark/trust/tests/test_run.py
 	uv run benchmark/trust/tests/test_power.py
+	uv run benchmark/gate/tests/test_gate.py
 
 validate:
 	uv run skills/validate/scripts/okf_validate.py examples/sample-bundle --strict

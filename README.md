@@ -1,96 +1,86 @@
 <div align="center">
 
-# 📚 okf: the Open Knowledge Format toolkit for Claude Code
+# okf: the Open Knowledge Format toolkit for Claude Code
 
-**Teach your coding agent to author, maintain, validate, and *visualize* portable
+**Teach your coding agent to author, maintain, validate and visualize portable
 knowledge bundles: markdown your team and your agents both read.**
 
-Built for **OKF v0.2**: trust signals, provenance, staleness.
-
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
-[![OKF spec](https://img.shields.io/badge/OKF-v0.2-6E56CF.svg)](skills/okf/reference/SPEC.md)
+[![OKF spec](https://img.shields.io/badge/OKF-v0.2-6E56CF.svg)](https://github.com/GoogleCloudPlatform/open-knowledge-format)
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757.svg)](https://code.claude.com/docs/en/plugins)
 [![skills.sh](https://img.shields.io/badge/skills.sh-installable-22C55E.svg)](https://skills.sh/scaccogatto/okf-skills)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-3B82F6.svg)](#contributing)
-
-### ▶ [**Open the live demo**](https://scaccogatto.github.io/okf-skills/): a real OKF bundle as an interactive graph
 
 [![okf: explore an OKF bundle as an interactive graph](docs/assets/demo.gif)](https://scaccogatto.github.io/okf-skills/)
 
-*Click any node for rendered markdown, the derived trust tier and staleness, provenance with its credibility signals, and "Links to / Cited by" backlinks. No backend, nothing leaves the page.*
-
-```shell
-/plugin install okf@scaccogatto
-npx skills add scaccogatto/okf-skills
-```
+**[Open the live demo](https://scaccogatto.github.io/okf-skills/)**: a real bundle as an interactive graph. Click a node for the rendered concept, its derived trust tier and staleness, its sources and backlinks. Nothing leaves the page.
 
 </div>
 
 ---
 
-> [**OKF**](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing)
-> is an open, vendor-neutral format (announced by Google Cloud, June 2026) that
-> represents knowledge (the context and curated insight around your systems) as a
-> directory of markdown files with YAML frontmatter. No schema registry, no
-> runtime, no SDK. If you can `cat` a file you can read it; if you can `git clone`
-> a repo you can ship it.
+[**OKF**](https://github.com/GoogleCloudPlatform/open-knowledge-format) is an
+open, vendor-neutral format from Google Cloud ([announced June 2026](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing))
+that stores the knowledge around your systems as a directory of markdown files
+with YAML frontmatter. No schema registry, no runtime, no SDK: `cat` reads it,
+`git clone` ships it. v0.2 adds trust, provenance and staleness signals to the
+frontmatter, so an agent can tell a verified fact from a stale guess.
 
-This is the **Claude Code-native** OKF toolchain. It teaches Claude to
-**produce, maintain, consume, validate, and visualize** OKF bundles as a normal
-part of how it already works, driven by the verbatim spec, backed by a
-deterministic conformance checker, with a self-contained graph renderer. Ships as
-a **Claude Code plugin**, as **agent skills** (Cursor, Codex, and 20+ agents), as
-a **GitHub Action** for repos with no agent at all, and as a **read-only MCP
-server** for hosts whose agents cannot reach the files. This one is v0.2
-throughout: trust signals, provenance and staleness, validated by
-`skills/validate/scripts/okf_validate.py`.
+**This repo is the Claude Code-native toolchain for it.** Claude learns to
+produce, maintain, consume, validate, visualize and backfill OKF bundles as part
+of how it already works, driven by the vendored spec and backed by a
+deterministic conformance checker. It ships four ways: a Claude Code **plugin**,
+**agent skills** for 20+ agents via skills.sh, a **GitHub Action** for repos with
+no agent, and a read-only **MCP server** for hosts whose agents cannot read files.
 
-> 🪞 **This repo documents itself in OKF.** The architecture, skills, and decisions
-> behind okf-skills live in [`.okf/`](.okf/), explorable as a
-> [**live self-graph**](https://scaccogatto.github.io/okf-skills/self.html). CI
-> validates that bundle on every push (dogfooding the conformance checker).
+This repo documents itself in OKF: its architecture and decisions live in
+[`.okf/`](.okf/), rendered as a [live self-graph](https://scaccogatto.github.io/okf-skills/self.html)
+and validated on every push.
 
 ## Install
 
-**As a Claude Code plugin:**
+| Channel | Command | Notes |
+|---|---|---|
+| Claude Code plugin | `/plugin marketplace add scaccogatto/okf-skills` then `/plugin install okf@scaccogatto` | Skills, subagents, Stop hook and MCP server. The full toolchain. |
+| Agent skills ([skills.sh](https://skills.sh/scaccogatto/okf-skills)) | `npx skills add scaccogatto/okf-skills` | Claude Code, Cursor, Codex and 20+ agents. Installs the okf, validate, visualize and backfill skills; backfill needs the plugin's subagents, see below. |
+| GitHub Action | `uses: scaccogatto/okf-skills@v1` | Validates a bundle in CI, no agent needed. |
+| MCP server | `uv run servers/okf_mcp.py .okf` | Any MCP host. Bundled with the plugin, nothing to configure there. |
+| Local development | `claude --plugin-dir /path/to/okf-skills` | No marketplace. |
 
-```shell
-/plugin marketplace add scaccogatto/okf-skills
-/plugin install okf@scaccogatto
-```
-
-**As agent skills via [skills.sh](https://skills.sh/scaccogatto/okf-skills)** (Claude Code, Cursor, Codex, and 20+ agents):
-
-```shell
-npx skills add scaccogatto/okf-skills            # the okf, validate & visualize skills
-```
-
-**Local development** (no marketplace): `claude --plugin-dir /path/to/okf-skills`.
-
-Both layouts coexist in this one repo: `.claude-plugin/` makes it a plugin
-marketplace, `skills/<name>/SKILL.md` makes it skills.sh-discoverable. Scripts live
-inside their skills and are referenced via `${CLAUDE_SKILL_DIR}`, so they work in
-either path. The scripts need [`uv`](https://docs.astral.sh/uv/) (or `python3` + `pyyaml`).
+The scripts need [`uv`](https://docs.astral.sh/uv/) (or `python3` with `pyyaml`).
+One repo serves both layouts: `.claude-plugin/` makes it a marketplace,
+`skills/<name>/SKILL.md` makes it skills.sh-discoverable, and scripts resolve
+through `${CLAUDE_SKILL_DIR}` so they run from either path. The backfill skill
+dispatches the two subagents in `agents/`, which live outside `skills/`, so
+backfill works from the plugin install only.
 
 ## Use it
 
-**Capture knowledge**: ask Claude to "document the auth service in OKF", or run:
+**Capture knowledge.** Ask Claude to "document the auth service in OKF", or:
 
 ```shell
 /okf:okf produce .okf
 ```
 
-**Validate** before committing:
+**Backfill a repo that predates the bundle.** Event-sources git history and
+Claude session transcripts into concepts, with a deterministic extractor and an
+auditable map/reduce over subagents:
+
+```shell
+/okf:backfill .
+```
+
+**Validate** before committing. The checker is deterministic, §11 of the spec,
+not an eyeball pass. `--migrate` rewrites v0.1 constructs in place:
 
 ```shell
 /okf:validate .okf --strict
-# or directly, zero-config:
-uv run skills/validate/scripts/okf_validate.py .okf --strict
-# gate in CI while some warnings are still outstanding:
+uv run skills/validate/scripts/okf_validate.py .okf --strict      # zero-config
 uv run skills/validate/scripts/okf_validate.py .okf --max-warnings 5
 ```
 
-**Gate it in CI**: the composite action works in any repo, with or without Claude Code:
+**Gate it in CI** with the composite action. `@v1` tracks the latest release
+while the repo is pre-1.0; pin `@okf--v<version>` to freeze it. The step exposes
+the validator's JSON as the `report` output.
 
 ```yaml
 - uses: scaccogatto/okf-skills@v1
@@ -99,106 +89,70 @@ uv run skills/validate/scripts/okf_validate.py .okf --max-warnings 5
     strict: "true"      # or: max-warnings: "5"
 ```
 
-`@v1` follows every release (the repo is pre-1.0, so it tracks the latest one
-rather than a major line). Pin an exact `@okf--v<version>` tag instead if you
-want the action frozen.
-
-The step also exposes a `report` output: the validator's JSON report
-(`--json`), for a later step to post or parse via `${{ steps.<id>.outputs.report }}`.
-
-**Visualize** the knowledge graph, a self-contained `viz.html` that opens in any
-browser ([live example](https://scaccogatto.github.io/okf-skills/)):
+**Visualize** the graph as a self-contained `viz.html`
+([live example](https://scaccogatto.github.io/okf-skills/)). Every concept gets
+a deep link (`viz.html#services/auth-api`), and each panel shows two derived
+badges: the §5.3 trust tier and staleness once `stale_after` has passed. OKF
+stores neither, so both are computed at render time. Above 1000 concepts the
+layout falls back to linear; `--layout cose` overrides, `--max-nodes N` refuses.
 
 ```shell
 /okf:visualize .okf
-# or directly, with a title and a back-link to your repo:
-uv run skills/visualize/scripts/okf_visualize.py .okf \
-  -o viz.html --title "My project" --link "https://github.com/me/project"
+uv run skills/visualize/scripts/okf_visualize.py .okf -o viz.html \
+  --title "My project" --link "https://github.com/me/project"
 ```
 
-Above 1000 concepts the default layout falls back to a linear one (force layout
-freezes the page); override with `--layout cose`, or refuse oversized bundles
-with `--max-nodes N`.
+**Read a bundle over MCP.** Three read-only tools; nothing writes and no id
+resolves outside the bundle root. Inside Claude Code the server starts with the
+plugin on `./.okf` and appears as `mcp__plugin_okf_bundle__*`. For Claude Code
+it duplicates Read and Grep, and [the decision record](.okf/decisions/mcp-server.md)
+says so; it ships for the hosts that have nothing else.
 
-Every concept gets a shareable deep link (`viz.html#services/auth-api` opens with
-that concept selected). Each panel carries two **derived** badges: the §5.3 trust
-tier (*unverified* / *machine-confirmed* / *human-reviewed*) and staleness once
-`stale_after` is past. OKF stores neither (a stored tier is a stored opinion, and
-it goes stale), so both are computed at render time.
+| Tool | Returns |
+|---|---|
+| `search_concepts(query, limit)` | Concept cards (`id`, `type`, `title`, `description`, `status`, `stale_after`); metadata hits rank above body hits. |
+| `read_concept(concept_id)` | One concept verbatim, frontmatter included. The id is the bundle path without `.md`. |
+| `get_neighbors(concept_id)` | `outgoing` and `incoming` cards from markdown links and bundle-internal `sources`. |
 
-**Read a bundle over MCP.** A read-only server exposes any bundle to a host that
-speaks MCP, for agents that have no file tools of their own:
+Any other host: run `uv run servers/okf_mcp.py <bundle>` as a stdio server
+(a bundle path, else `$OKF_BUNDLE`, else `./.okf`).
 
-| Tool | What it returns |
-|------|-----------------|
-| `search_concepts(query, limit)` | Matching concepts as cards: `id`, `type`, `title`, `description`, `status`, `stale_after`. Metadata hits rank above body-only hits. |
-| `read_concept(concept_id)` | One concept verbatim, frontmatter included. `concept_id` is the bundle path without `.md`; `index` and `log` work too. |
-| `get_neighbors(concept_id)` | `outgoing` and `incoming` cards, from markdown links and bundle-internal `sources`. External URLs are not neighbours. |
-
-Nothing writes, and no `concept_id` resolves outside the bundle root.
-
-It ships with the plugin and starts with it, reading `./.okf`, so inside Claude
-Code there is nothing to configure: the tools appear as
-`mcp__plugin_okf_bundle__search_concepts` and friends. In a project with no
-bundle the server still connects and says so on the first call.
-
-Standalone, or for any other MCP host:
-
-```shell
-uv run servers/okf_mcp.py .okf           # stdio; a bundle path, else $OKF_BUNDLE, else ./.okf
-```
-
-```json
-{ "mcpServers": { "okf": { "command": "uv",
-    "args": ["run", "/path/to/okf-skills/servers/okf_mcp.py", "/path/to/.okf"] } } }
-```
-
-Worth saying plainly: for Claude Code this duplicates Read and Grep, and it was
-declined on those grounds in July 2026. It ships for parity with a category that
-now expects one, and [decisions/mcp-server.md](.okf/decisions/mcp-server.md)
-records that as the reason instead of inventing a user need.
-
-**Keep it up to date.** Two opt-in ways to make upkeep automatic:
-
-- **Soft mode:** paste [`templates/CLAUDE-okf.md`](templates/CLAUDE-okf.md) into
-  your project's `CLAUDE.md` (or `~/.claude/CLAUDE.md`) to have Claude consult
-  `.okf/` before tasks and write knowledge back after changes.
-- **Enforced mode:** add `upkeep: enforced` to `.okf/index.md`'s frontmatter to
-  arm the plugin's dormant `Stop` hook, which then blocks finishing when tracked
-  files changed but `.okf/log.md` wasn't updated. Off by default; a user overrides
-  any bundle with `OKF_HOOK=off`. Full gate sequence:
-  [stop-hook concept](.okf/components/stop-hook.md).
+**Keep it up to date.** Two opt-in modes. *Soft:* paste
+[`templates/CLAUDE-okf.md`](templates/CLAUDE-okf.md) into your `CLAUDE.md` so
+Claude consults `.okf/` before a task and writes back after. *Enforced:* add
+`upkeep: enforced` to `.okf/index.md`'s frontmatter to arm the plugin's dormant
+`Stop` hook, which blocks finishing when tracked files changed but `.okf/log.md`
+did not. `OKF_HOOK=off` overrides any bundle. Details:
+[stop-hook concept](.okf/components/stop-hook.md).
 
 ## What's inside
 
 | Component | What it does |
-|-----------|--------------|
-| `/okf:okf` skill | Produce / maintain / consume bundles, applying the spec and templates. Auto-triggers when a repo has an OKF bundle. |
-| `/okf:validate` skill | Deterministic §11 conformance check (not an eyeball pass). |
-| `/okf:backfill` skill | Reconstruct an OKF bundle from git history and Claude session transcripts for repos that predate this toolchain. |
-| `/okf:visualize` skill | Render a bundle to a self-contained interactive HTML graph (`viz.html`). |
-| `skills/okf/scripts/okf_init.py` | Scaffold a conformant starter bundle in one shot. |
-| `skills/validate/scripts/okf_validate.py` | Standalone, zero-config validator (`uv run`, PyYAML via PEP 723). |
-| `skills/visualize/scripts/okf_visualize.py` | Standalone bundle→`viz.html` renderer. |
-| `servers/okf_mcp.py` | Read-only MCP server over a bundle: `search_concepts`, `read_concept`, `get_neighbors`. Ships with the plugin via `.mcp.json`. |
-| `skills/okf/reference/SPEC.md` | The OKF v0.2 spec, vendored verbatim: the source of truth. |
-| `templates/CLAUDE-okf.md` | Snippet that turns on automatic consume/maintain in your project. |
-| `action.yml` | Composite GitHub Action to gate a bundle in any repo's CI, no Claude Code needed. |
-| `examples/sample-bundle/` | The conformant bundle behind the [live demo](https://scaccogatto.github.io/okf-skills/). |
+|---|---|
+| `skills/okf/` | Produce / maintain / consume bundles from the spec and templates; auto-triggers in repos that have one. `scripts/okf_init.py` scaffolds a starter bundle. |
+| `skills/validate/` | `scripts/okf_validate.py`: standalone §11 conformance checker, `--strict`, `--max-warnings`, `--json`, `--migrate`. |
+| `skills/visualize/` | `scripts/okf_visualize.py`: bundle to `viz.html`. |
+| `skills/backfill/` | Reconstruct a bundle from history. `scripts/okf_backfill_events.py` extracts events and emits capped diffs deterministically. |
+| `agents/` | `event-analyzer` (map, cheap tier) and `bundle-weaver` (reduce, the only writer) for the backfill. |
+| `servers/okf_mcp.py` | The read-only MCP server, wired by `.mcp.json`. |
+| `hooks/` | The dormant Stop hook, armed by `upkeep: enforced`. |
+| `action.yml` | Composite GitHub Action around the validator. |
+| `templates/CLAUDE-okf.md` | The soft-mode snippet. |
+| `skills/okf/reference/SPEC.md` | OKF v0.2, vendored verbatim: the source of truth. |
+| `examples/sample-bundle/` | The bundle behind the live demo. |
+| `benchmark/` | Three published experiments, protocols and runs. |
 
 ## How a bundle looks
 
-A bundle is a directory of markdown files; a concept's path is its ID. The only
-rule for conformance is YAML frontmatter with a non-empty `type`; everything else
-is optional.
+A concept's path is its id. The only hard rule is YAML frontmatter with a
+non-empty `type`; everything else is optional.
 
 ```
 .okf/
 ├── index.md                  # progressive disclosure (root carries okf_version)
 ├── log.md                    # ISO-dated change history, newest first
-├── services/auth-api.md      # one concept = one file; path is its ID
-├── decisions/use-okf.md
-└── metrics/checkout-conversion.md
+├── services/auth-api.md      # one concept = one file
+└── decisions/use-okf.md
 ```
 
 ```markdown
@@ -206,14 +160,14 @@ is optional.
 type: Service
 title: Auth API
 description: Issues and verifies short-lived access tokens.
-resource: https://github.com/acme/auth
 status: stable
+stale_after: 2026-12-31T00:00:00Z
 generated: { by: doc_agent/1.0, at: 2026-06-14T10:00:00Z }
 verified: { by: human:dana, at: 2026-06-20T09:00:00Z }
 sources:
   - id: auth-readme
     resource: https://github.com/acme/auth#readme
-    title: Auth service README
+    last_modified: 2026-06-12T00:00:00Z
 ---
 
 # Endpoints
@@ -222,84 +176,59 @@ Tokens live 15 minutes.[^auth-readme]
 [^auth-readme]: Auth service README
 ```
 
-## What OKF v0.2 adds
-
-v0.2 assumes a corpus that agents keep writing, so it makes four things answerable
-from frontmatter alone. All optional; a concept carrying only `type` is still fully
-conformant. Full normative detail is in [`SPEC.md`](skills/okf/reference/SPEC.md).
+**What v0.2 adds**, all optional, all in frontmatter. Normative detail in
+[`SPEC.md`](skills/okf/reference/SPEC.md).
 
 | Family | Fields | Answers |
-|--------|--------|---------|
-| **Provenance** | `sources[]` + `author` / `usage_count` / `last_modified`, `usage_window` | Where did this come from, and how credible is that source? |
-| **Trust** | `generated: {by, at}`, `verified[]`, actor convention (`human:` / `process:` / `agent/version`) | Who wrote it, who confirmed it? |
-| **Lifecycle** | `status`, `stale_after` | Is it current? Is it still true? |
-| **Attestation** | `type: Attested Computation` + `runtime`, `parameters`, `executor`, `attester` | Was this number produced the sanctioned way? |
-
-**Upgrading from v0.1?** `--migrate` rewrites the two superseded constructs
-(`timestamp` → `generated.at`, body `# Citations` → `sources`) in place, textually
-and idempotently. The tools read both meanwhile and flag the old forms as warnings,
-never errors; `--strict` is the nudge, `--migrate` is the door:
-
-```shell
-uv run skills/validate/scripts/okf_validate.py .okf --migrate --strict
-```
-
-## What has actually been measured
-
-Two experiments live in [`benchmark/`](benchmark/), both pre-registered and tagged
-before their measurement run, both published with their transcripts and with the
-defects the runs exposed. Read the results files rather than these two lines; the
-headline numbers are smaller than they look.
-
-| Question | Result | Where |
 |---|---|---|
-| Do the v0.2 lifecycle and trust fields stop a consumer asserting superseded facts? | The channel works — with that frontmatter present the consumer never asserted a superseded fact, and it reads the fields without being told what they mean. **The primary contrast is invalid under the protocol's own rule** (too many items where the control simply refused to answer), and the corpus had to be stripped of every other recency signal before the metadata mattered. | [`benchmark/trust/RESULTS.md`](benchmark/trust/RESULTS.md) |
-| Does a write-side process gate make that metadata redundant? | No, and neither makes the other pointless: a gate reduced stale answers by 39pp, an expired `stale_after` by 28pp, and the two are **not distinguishable** on 20 items. Ungated writers left documentation untouched 57% of the time, which is exactly where the metadata acts. | [`benchmark/gate/RESULTS.md`](benchmark/gate/RESULTS.md) |
-| Can the backfill's map phase run on the cheap tier, and in batches? | Batching small events eight per call cut the map phase by a third at the same tier with no per-event loss. The cheap tier extracted commits at parity with `sonnet` and **failed two pre-set rules in run 1**, both instruction failures (it copied the last summary line it saw, it filled thin session evidence with the plausible continuation); with both instructions made explicit it passed every rule in run 3, the truncation flag at the threshold. Not pre-registered: an engineering A/B, one run per arm, on this repository's own history. | [`benchmark/map-tier/RESULTS.md`](benchmark/map-tier/RESULTS.md) |
+| Provenance | `sources[]` with `author`, `usage_count`, `last_modified`, `usage_window` | Where did this come from, how credible is it? |
+| Trust | `generated: {by, at}`, `verified[]`, actor prefixes `human:` / `process:` / `agent/version` | Who wrote it, who confirmed it? |
+| Lifecycle | `status`, `stale_after` | Is it current, is it still true? |
+| Attestation | `type: Attested Computation` with `runtime`, `parameters`, `executor`, `attester` | Was this number produced the sanctioned way? |
 
-Neither experiment estimates what OKF is worth in a real repository, where prose,
-filenames and history already carry recency; both say so in their own headlines.
-A third-party benchmark measures a different v0.2 claim — sufficiency — and
-measures it well: [`aws-samples/sample-okf-llm-wiki`](https://github.com/aws-samples/sample-okf-llm-wiki)
-scores EX 74.0 on BIRD mini_dev with 500 independent agents.
+Upgrading from v0.1: the tools read both, flag the old forms as warnings, and
+`okf_validate.py --migrate` rewrites them in place.
 
-## Repository layout
+## What has been measured
 
-```
-okf-skills/
-├── .claude-plugin/{plugin.json, marketplace.json}
-├── skills/{okf, validate, visualize}/{SKILL.md, scripts/}
-├── hooks/                         # the dormant Stop hook
-├── servers/okf_mcp.py             # the read-only MCP server (.mcp.json wires it)
-├── benchmark/{trust,gate}/        # the two experiments, protocols and published runs
-├── examples/sample-bundle/        # the live-demo bundle
-├── docs/                          # GitHub Pages: the live interactive demo
-├── templates/CLAUDE-okf.md
-├── action.yml                     # the CI-gating GitHub Action
-├── Makefile                       # make docs / test / validate; CI runs `make docs`
-└── .github/workflows/{ci,release}.yml
-```
+Three experiments in [`benchmark/`](benchmark/), each published with its
+protocol, runs and the defects it exposed. None of them estimates what OKF is
+worth in a real repository, where prose and history already carry recency.
+
+- **Trust metadata** ([results](benchmark/trust/RESULTS.md), pre-registered): with
+  v0.2 lifecycle fields present the consumer never asserted a superseded fact, and
+  read the fields unprompted. The primary contrast is invalid under the protocol's
+  own rule, because the control refused to answer rather than answering wrong.
+- **Write-side gate** ([results](benchmark/gate/RESULTS.md), pre-registered): a
+  process gate and an expired `stale_after` each reduced stale answers, and the
+  two are not distinguishable on 20 items. Ungated writers left docs untouched
+  57% of the time, which is where the metadata acts.
+- **Backfill map tier** ([results](benchmark/map-tier/RESULTS.md), engineering
+  A/B, one run per arm): batching small events eight per call cut the map phase by
+  a third; the cheap tier matched `sonnet` on commits once two instructions were
+  made explicit.
+
+A third party measures a different claim, sufficiency:
+[`aws-samples/sample-okf-llm-wiki`](https://github.com/aws-samples/sample-okf-llm-wiki)
+scores EX 74.0 on BIRD mini_dev (500 text-to-SQL questions) from the bundle alone.
 
 ## Contributing
 
-Issues and PRs welcome: new templates, producers for more sources, validator and
-visualizer improvements. CI validates the plugin manifest and the example bundle on
-every push. Releases are automatic: bump `version` in `.claude-plugin/plugin.json`
-and merging to `main` tags and publishes `okf--v<version>` on its own. That bump is
-required, not optional: a PR touching the shipped surface (`skills/`, `hooks/`,
-`templates/`, `action.yml`, `.claude-plugin/`) fails CI until the version is
-raised. A bump must also add a `## [<version>]` section to `CHANGELOG.md`; CI
-refuses the PR otherwise. Docs and tests are exempt. A PR touching
-`skills/*/scripts/` or `hooks/` must additionally update `.okf/`, and the
-`skip-version-check` label bypasses all three checks.
-
-This repo's own bundle sets `upkeep: enforced`, so the plugin's Stop hook blocks
-finishing until `.okf/log.md` records your change. Set `OKF_HOOK=off` to opt out.
+Issues and PRs welcome. CI validates the manifests, both bundles, the action,
+the docs regeneration and the test suites on every push. Releases are automatic:
+bump `version` in `.claude-plugin/plugin.json`, add a `## [<version>]` section to
+`CHANGELOG.md`, and merging to `main` tags `okf--v<version>`. A PR touching the
+shipped surface (`.claude-plugin/`, `skills/`, `agents/`, `hooks/`, `servers/`,
+`templates/`, `action.yml`, `.mcp.json`) fails CI without both; one touching
+`skills/*/scripts/`, `agents/` or `hooks/` must also update `.okf/`. The
+`skip-version-check` label bypasses all three. This repo's bundle sets
+`upkeep: enforced`, so the Stop hook blocks finishing until `.okf/log.md`
+records your change; `OKF_HOOK=off` opts out.
 
 ## Credits & license
 
 - The **Open Knowledge Format** specification is by the Google Cloud Data Cloud
-  team, released under Apache-2.0. `skills/okf/reference/SPEC.md` is vendored
-  verbatim from the [reference repository](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf)
-  with attribution.
+  team, Apache-2.0, at [GoogleCloudPlatform/open-knowledge-format](https://github.com/GoogleCloudPlatform/open-knowledge-format)
+  (the earlier copy under `knowledge-catalog/okf` is a frozen snapshot).
+  `skills/okf/reference/SPEC.md` is vendored verbatim with attribution.
 - This plugin's own code and content: **MIT** © Marco Boffo ([@scaccogatto](https://github.com/scaccogatto)).
