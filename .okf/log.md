@@ -1,5 +1,27 @@
 # Update Log
 
+## 2026-09-21
+* **Release 0.9.5**: a reconstructed bundle no longer declares itself stable nor
+  keeps asserting states its own history has overturned. Text-only: no script,
+  no flag, no new surface. The fix came from outside, from a bundle built with
+  the skill on a presales repo, where the second layer written by hand
+  contradicted the first layer written by the replay.
+* **Backfill skill** (`/skills/backfill.md`): a reconstructed bundle stopped
+  declaring itself ready to use and stopped asserting states the history had
+  already overturned. Reported from a real reconstruction in another repo, where
+  two concepts born of the same replay contradicted each other in the present
+  tense and both passed the validator in strict mode. Three causes, all in the
+  skill text: the weaver's frontmatter contract had no `status`, and §5.4 reads an
+  absent one as `stable`; "update over create" is a merge rule and says nothing
+  about a reversal, so the later event created a sibling instead of replacing;
+  every guard was lexical, and the coverage check pushed toward keeping superseded
+  material rather than retiring it. The sister `okf` skill already had the right
+  rule in maintain mode (mark `deprecated`, note it in the log, never delete
+  silently); backfill is maintain replayed over history and had not inherited it.
+  The semantic check sits at fold time, not in a finalize reread: the weaver
+  already holds the analysis and every earlier concept there, and a second full
+  pass would buy defense in depth at the price of rereading the bundle.
+
 ## 2026-09-05
 * **Release 0.9.4**: the capped diff emitter, counts-only contracts, batched
   dispatch and the haiku analyzer default, with the map-tier benchmark that

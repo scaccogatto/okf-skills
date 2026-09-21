@@ -122,8 +122,8 @@ Run a single `okf:bundle-weaver` agent that:
 - Updates `log.md` with dated bullets (the "why" from each analysis)
 - Manages cursor (`.okf/.backfill-state.json`) for resume capability
 - Is the only actor that writes `.okf/`
-- Replies with one line of counts (folded, created, updated, bullets, conflicts, truncated
-  inputs); the bundle never travels back in the reply
+- Replies with one line of counts (folded, created, updated, bullets, conflicts, superseded,
+  truncated inputs); the bundle never travels back in the reply
 
 **Resume behavior:** both phases support resumption. Phase 1 skips already-analyzed event ids;
 Phase 2 restarts from `last_id` in the cursor.
@@ -162,7 +162,7 @@ is billed at the frontier rate on every following turn, and the routing exists t
    ```
    ## 2026-09-01
 
-   - **Backfill**: reconstructed from N events by okf-backfill/0.9.4
+   - **Backfill**: reconstructed from N events by okf-backfill/0.9.5
    ```
 
 3. **Delete cursor:**
@@ -180,7 +180,13 @@ is billed at the frontier rate on every following turn, and the routing exists t
    
    # No identical consecutive log bullets
    awk 'p==$0 && /^- / {exit 1} {p=$0}' .okf/log.md
+
+   # Every concept declares its lifecycle (absent status reads as `stable`, SPEC §5.4)
+   [ -z "$(grep -rL '^status:' --include='*.md' .okf | grep -v '/index.md$\|/log.md$')" ]
    ```
+   These are lexical guards; they do not catch a bundle that asserts a superseded state. That
+   check is semantic and belongs to the weaver, at fold time, when it has both the analysis and
+   the earlier concepts on disk (§4 rule 5).
 
 5. **Run coverage check to guarantee every event is mapped:**
    ```bash
@@ -201,6 +207,8 @@ is billed at the frontier rate on every following turn, and the routing exists t
    - Log entry samples (first and last)
    - Coverage check result (all events mapped)
    - Validation result (pass/fail, warnings)
+   - Superseded resolutions (the weaver's `superseded` count) and deprecated concepts:
+     `grep -rl '^status: deprecated' --include='*.md' .okf | wc -l`
    - Agents spawned per phase (analyzers, weaver invocations) and, when the host reports it,
      tokens per phase
    - Truncated analyses: `grep -l '^truncated: true' analyses/*.md | wc -l`, next to the
@@ -251,6 +259,20 @@ a mechanical listing of commits or a taxonomy-by-accident:
    ```
    Instead: one bullet per concept, or combine into "Feature X: multiple updates".
 
+5. **A reversal is not growth.** A replay walks the history forward, so a later event routinely
+   overturns an earlier one (a phase dropped, a limit changed, a target downgraded). "Prefer
+   update over create" is a merge rule and says nothing about this: applied alone it leaves the
+   bundle asserting both states in the present tense, in one concept or in two. The weaver greps
+   the whole bundle before writing and, on contradiction, replaces rather than appends: the body
+   states what holds today, the previous position drops to a dated line under `## History`, and
+   an outdated concept that a newer one supersedes gets `status: deprecated` plus a link to its
+   successor. A deprecated concept keeps its `sources`, so coverage stays green. None of the
+   guards in Finalize can catch this — they are lexical, and a superseded claim is well-formed.
+
+6. **Reconstructed concepts are `draft`, never `stable`.** SPEC §5.4 reads an absent `status` as
+   `stable` ("ready for consumption"); a bundle nobody has reread is `draft` ("not yet reviewed;
+   possibly incomplete"). The weaver writes `status:` on every concept.
+
 ## 5. Implementation notes
 
 - **Determinism**: extraction is byte-identical; replay is not (time, LLM variance).
@@ -270,8 +292,11 @@ a mechanical listing of commits or a taxonomy-by-accident:
   trailers (structured decision metadata), the extracted event's `body` already contains
   trailers in a machine-readable format. The analyzer and weaver should use trailers as
   the primary source of "why" (overriding generic inference from diff content).
-- **Trust metadata**: `generated.by` is the backfill agent (`okf-backfill/0.9.4`), not
-  claimed as human-reviewed (`human:...`); concepts are correctly `unverified` (SPEC §5.3).
+- **Trust metadata**: `generated.by` is the backfill agent (`okf-backfill/0.9.5`), not
+  claimed as human-reviewed (`human:...`); concepts are correctly `unverified` (SPEC §5.3) and
+  `status: draft` (§5.4) — the two axes are independent: trust is who says it, lifecycle is
+  whether it has been reread. Writing `status` is not optional here: absent, §5.4 reads it as
+  `stable`, so a bundle nobody has reread would declare itself ready for consumption.
   Map-phase analyses are working artifacts (stored for auditability during reduce); the
   weaver's output is the canonical bundle.
 

@@ -53,6 +53,21 @@ For each event:
   higher-level concepts rather than creating one per subsystem.
 - **Update > Create.** The bundle evolves, not explodes. Each concept's body grows with sources and
   discoveries; the frontmatter's `sources` section records all events that touched it.
+- **A reversal is not growth.** Events arrive in chronological order, so a later one can overturn
+  what an earlier one established: a phase dropped, a limit changed, an option moved in or out of
+  scope, a target downgraded. Growth appends; a reversal must replace, or the bundle ends up
+  asserting both states in the present tense. Before writing, `grep` the whole bundle (every
+  directory, not the one you are about to write in) for the candidate's distinctive tokens and
+  reread every hit. Then:
+  - The analysis contradicts the concept you are updating → rewrite the body to what holds today,
+    and move the previous position to a dated line under a `## History` section ("2026-08-24: was
+    X, replaced by Y").
+  - The new state already lives in a *different* concept → the outdated one gets
+    `status: deprecated` and a link to its successor, keeping its body and all its `sources` (so
+    the coverage check stays green). Note both sides in the log bullet.
+  - Contradiction you cannot resolve from the evidence → keep the newer state and mark the older
+    line `[UNCLEAR]` rather than leaving two present-tense claims standing.
+  Count each resolution for `superseded` in your reply.
 
 ### 3. Frontmatter contract for concepts
 
@@ -62,9 +77,10 @@ Each `.okf/*/*.md` file must have YAML frontmatter:
 type: <inferred from analysis; one of: skill, plugin, tool, decision, pattern, architecture>
 title: <Human-readable title>
 description: <One-liner for the concept's essence>
+status: draft            # or `deprecated` once superseded (§2); never `stable`
 tags: [tag1, tag2]
 generated:
-  by: okf-backfill/0.9.4
+  by: okf-backfill/0.9.5
   at: <ISO 8601 timestamp now>
 sources:
   - id: git-abc1234        # Sanitized event id (colons → dashes)
@@ -74,6 +90,11 @@ sources:
     resource: session:file:42
     last_modified: <YYYY-MM-DD of the event's timestamp; the validator warns on anything finer>
 ```
+
+**`status` is always written, and never `stable`.** SPEC §5.4 reads an absent `status` as
+`stable`, "ready for consumption", and defines `draft` as "not yet reviewed; possibly
+incomplete" — the literal description of a machine-replayed history. Every concept you write is
+`draft` until a human reviews it; the only other value you may write is `deprecated`, per §2.
 
 **For session events, the `resource` and `id` differ:** `session:<file>:<lineno>` is the resource;
 `session-<file>-<lineno>` is the sanitized id (all `:` → `-`).
@@ -141,7 +162,7 @@ The bundle is production-ready after the orchestrator runs the finalize step (va
 Your reply to the orchestrator is one line of counts and nothing else:
 
 ```
-folded=<n> created=<n> updated=<n> bullets=<n> conflicts=<n> truncated_inputs=<n> last_id=<event-id>
+folded=<n> created=<n> updated=<n> bullets=<n> conflicts=<n> superseded=<n> truncated_inputs=<n> last_id=<event-id>
 ```
 
 The bundle is on disk; never paste concept bodies, log sections, or analyses into the reply.

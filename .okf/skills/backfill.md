@@ -5,7 +5,7 @@ description: Reconstruct an OKF bundle from git history and session transcripts 
 resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/backfill/SKILL.md
 tags: [skill, bundle-reconstruction, history, event-sourcing, deep-replay, routing]
 status: stable
-generated: { by: claude/fable-5.1, at: "2026-09-05T12:00:00Z" }
+generated: { by: claude/opus-5, at: "2026-09-21T12:00:00Z" }
 sources:
   - id: spec-§5.2
     resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/okf/reference/SPEC.md#52-trust-generated-and-verified
@@ -84,6 +84,20 @@ decided, why, and when.
   (e.g., `presales-pipeline.md`), never for change types or commit subjects.
   Log bullets explain intent, not restate subjects. Rules are enforced by the
   weaver and validated in finalize.
+- **Supersession**: a replay walks history forward, so later events overturn earlier
+  ones. "Update over create" is a merge rule and covers only growth; on its own it
+  leaves the bundle asserting both the old and the new state in the present tense.
+  The weaver greps the whole bundle before writing and, on contradiction, replaces:
+  the body holds today's state, the old position drops to a dated `## History` line,
+  and a concept a newer one supersedes gets `status: deprecated` with a link to its
+  successor (keeping its `sources`, so coverage stays green). The check is semantic
+  and lives at fold time; finalize's guards are lexical and a superseded claim is
+  well-formed, so they cannot catch it.
+- **Lifecycle**: every reconstructed concept is written `status: draft` (§5.4:
+  "not yet reviewed; possibly incomplete"). An absent `status` reads as `stable`,
+  which would declare a machine replay ready for consumption; finalize greps for the
+  field. Lifecycle and trust are separate axes: `draft` is "nobody reread it",
+  `unverified` is "no human attested it".
 - **Coverage guarantee**: deterministic `--check-coverage` verifies every live
   event appears in the bundle's `sources` or log before declaring the backfill
   complete. Unmapped events cause finalize to fail. Coverage means mapped, not
@@ -91,7 +105,7 @@ decided, why, and when.
 - **Concurrency**: waves of 4 to 10 analyzers. Both earlier benchmarks lost runs to
   high-concurrency mass failures ([gate results](/decisions/trust-benchmark.md));
   the skill no longer claims 64-way parallelism.
-- **Trust metadata**: concepts inherit `generated.by: okf-backfill/0.9.4` (not
+- **Trust metadata**: concepts inherit `generated.by: okf-backfill/0.9.5` (not
   claimed as human-reviewed); they are correctly `unverified` under §5.3. Each
   commit becomes a source with its timestamp.
 - **Privacy**: events.jsonl is scratchpad-only, never committed. Session turn

@@ -4,6 +4,25 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.9.5] - 2026-09-21
+
+### Fixed
+- **A backfilled bundle no longer asserts superseded states as current.** Three
+  independent gaps in the skill text, all reported from a real reconstruction: the
+  weaver's frontmatter contract omitted `status`, which SPEC §5.4 reads as `stable`
+  ("ready for consumption") for concepts nobody had reread; "update over create" is a
+  merge rule with nothing to say about a later event overturning an earlier one, so
+  reversals landed as a second present-tense claim beside the first; and every guard
+  was lexical, with the coverage check actively pushing to keep superseded material.
+  The weaver now writes `status: draft` on every concept (`deprecated` once a newer
+  concept supersedes it, keeping its `sources` so coverage stays green), greps the
+  whole bundle before writing, and on contradiction rewrites the body to today's state
+  with the old position as a dated `## History` line, counting `superseded` in its
+  reply. Finalize greps that `status` is present and reports the counts. The
+  semantic check stays at fold time, where the weaver has both the analysis and the
+  earlier concepts; a whole-bundle reread pass would be a second full pass for a case
+  fold time already covers.
+
 ## [0.9.4] - 2026-09-05
 
 ### Added
