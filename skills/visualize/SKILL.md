@@ -40,7 +40,7 @@ bundles still render fully.
 
 Two badges are **derived**, not read: the §5.3 trust tier
 (*unverified* / *machine-confirmed* / *human-reviewed*, keyed off the `human:`
-prefix in `verified[].by`) and staleness (`today >= stale_after`). They are
+prefix in `verified[].by`) and staleness (`now >= stale_after`). They are
 advisory signals — when reporting on a bundle, say which tier a concept is in
 rather than treating any of them as a gate.
 

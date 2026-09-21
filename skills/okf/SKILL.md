@@ -56,7 +56,8 @@ fields, unknown types, and broken links — never reject a bundle over them.
   Use `human:` whenever a person authored or signed off — consumers key trust
   tiers off that prefix.
 - **Lifecycle (§5.4–5.5):** `status: draft|stable|deprecated` (absent means
-  stable) and `stale_after: YYYY-MM-DD`, an absolute date, not a TTL.
+  stable) and `stale_after`, an absolute ISO 8601 datetime (a bare date is
+  tolerated), not a TTL.
 - **Provenance (§5.1):** `sources: [{ id, resource, title, author,
   usage_count, last_modified }]` plus a `usage_window: { from, to }` sibling of
   `sources` framing every `usage_count` (an entry may carry its own to override

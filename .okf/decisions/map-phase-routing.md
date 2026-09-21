@@ -87,3 +87,8 @@ more than twice the API calls for the same events.
 
 The two sentences the cheap tier needed are the durable lesson: a resolved prompt is what
 makes a cheap executor work, and "resolved" is discovered by measuring, one failure at a time.
+
+## History
+
+- 2026-09-21: the YYYY-MM-DD workaround in the weaver contract is retired; the validator
+  accepts ISO 8601 datetimes for sources[].last_modified since 0.9.6.

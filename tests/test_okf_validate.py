@@ -162,6 +162,23 @@ class TestV02Families(TmpBundle):
             self.assertEqual((r.errors, r.warnings), ([], []), ok)
         self.assertIn("§5.5", self.only(self.concept("generated: { by: human:t }\nstale_after: 30d\n")))
 
+    def test_stale_after_accepts_an_iso_datetime(self):
+        r = self.concept("generated: { by: human:t }\nstale_after: 2026-09-21T00:00:00Z\n")
+        self.assertEqual((r.errors, r.warnings), ([], []))
+
+    def test_usage_window_accepts_iso_datetimes(self):
+        r = self.concept(
+            "generated: { by: human:t }\n"
+            "usage_window: { from: 2026-06-01T00:00:00Z, to: 2026-06-30T00:00:00Z }\n"
+            "sources:\n  - { resource: https://x, usage_count: 5 }\n")
+        self.assertEqual((r.errors, r.warnings), ([], []))
+
+    def test_source_last_modified_accepts_an_iso_datetime(self):
+        r = self.concept(
+            "generated: { by: human:t }\n"
+            "sources:\n  - { resource: https://x, last_modified: 2026-09-21T10:00:00+02:00 }\n")
+        self.assertEqual((r.errors, r.warnings), ([], []))
+
     def test_source_needs_a_resource(self):
         r = self.concept("generated: { by: human:t }\nsources:\n  - { id: a, title: A }\n")
         self.assertIn("§5.1", self.only(r))

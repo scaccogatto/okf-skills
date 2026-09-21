@@ -4,6 +4,38 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.9.6] - 2026-09-21
+
+### Changed
+- **Spec re-vendored from the new upstream repository.** Upstream moved to
+  `GoogleCloudPlatform/open-knowledge-format` on 2026-08-21; the former
+  `knowledge-catalog/okf` location is a frozen snapshot. `skills/okf/reference/SPEC.md`
+  is re-vendored at commit `0b87c52`, with a header note pointing at the frozen
+  snapshot. The only normative change is that `stale_after`, `sources[].last_modified`
+  and `usage_window.{from,to}` are now ISO 8601 datetimes with an explicit offset;
+  Version 0.2 and section numbering are unchanged.
+- **The validator accepts ISO 8601 datetimes on those three fields.** A bare
+  `YYYY-MM-DD` is still tolerated, so no existing bundle picks up a new warning;
+  `stale_after` is stale when `now >= stale_after`, worded to match the spec.
+- **The visualizer compares staleness as instants, not strings**, so a datetime
+  value in `stale_after` reads stale on the correct day instead of never matching
+  the old `YYYY-MM-DD` comparison.
+- **The backfill weaver's frontmatter contract writes full event timestamps**
+  (`sources[].last_modified`) instead of a truncated `YYYY-MM-DD`, matching what
+  the validator now accepts.
+- **Plugin description now mentions backfill and MCP serving**, alongside author,
+  maintain, validate and visualize.
+
+### Fixed
+- **The weaver's ordering instruction pointed at filename sort, which is hash
+  order.** `agents/bundle-weaver.md` told the weaver to read `analyses/*.md` in
+  "chronological order (the filename sort... is deterministic)" — but analysis
+  filenames are event ids, content hashes, whose lexical order has no relation to
+  time. Reported from a real reconstruction where filename order matched
+  chronological order in 10 of 107 positions. It now names the live-event-id list
+  (which carries event-stream order) or the analysis's frontmatter `timestamp`,
+  and forbids sorting by filename.
+
 ## [0.9.5] - 2026-09-21
 
 ### Fixed

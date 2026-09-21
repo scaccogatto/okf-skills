@@ -31,8 +31,8 @@ derivations and storing them would be storing an opinion:
 * the **trust tier** (§5.3) — no `verified` is *unverified*, `verified` by
   non-`human:` actors only is *machine-confirmed*, any `human:` actor makes it
   *human-reviewed*;
-* **staleness** (§5.5) — a concept is stale when `today >= stale_after`, which
-  absolute dates reduce to a string comparison.
+* **staleness** (§5.5) — a concept is stale when `now >= stale_after`, compared
+  as instants so a bare date and a full datetime both work.
 
 Both are advisory badges, not access control: nothing is hidden or refused on
 their account.
