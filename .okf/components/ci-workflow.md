@@ -5,7 +5,7 @@ description: GitHub Actions workflow that validates, exercises the action, and g
 resource: https://github.com/scaccogatto/okf-skills/blob/main/.github/workflows/ci.yml
 tags: [ci, github-actions, validation]
 status: stable
-generated: { by: agent:claude-opus-5, at: "2026-09-21T00:00:00Z" }
+generated: { by: agent:claude-opus-5-5, at: "2026-09-28T12:00:00Z" }
 ---
 
 # Overview
@@ -20,7 +20,9 @@ Runs on `ubuntu-latest` with `astral-sh/setup-uv`. Steps, in order:
 
 1. `jq empty` on `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`.
 2. Unit tests: `okf_validate.py` internals, the MCP server's tools and its
-   stdio spawn, `okf_backfill_events` extraction, and the
+   stdio spawn, `okf_backfill_events` extraction, the
+   [Stop hook](/components/stop-hook.md)'s gates on throwaway repos (Linux only,
+   since the hook is bash), and the
    [trust benchmark](/decisions/trust-benchmark.md)'s
    grader, analysis, trial assembly and item selection. The benchmark ships no
    runnable product, but its grader and its analysis decide whether a published

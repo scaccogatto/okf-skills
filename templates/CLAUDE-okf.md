@@ -19,8 +19,10 @@ This project keeps shared knowledge as an OKF bundle in `.okf/`.
   knowledge, not errors.
 - **After a change** that affects a documented asset (service, API, schema,
   metric, runbook, decision), update the matching concept: refresh its body and
-  `generated: { by, at }`, fix cross-links, and append a dated entry to the
-  nearest `log.md`. Create a new concept for any new asset.
+  `generated: { by, at }`, and fix cross-links. Create a new concept for any new
+  asset. Append a dated entry to the bundle-root `log.md` only for a lifecycle
+  event: a concept created, deprecated, superseded, regenerated after its source
+  changed, or verified. Routine edits get no log entry.
 - **Capturing new knowledge** → use the `/okf:okf` skill (modes: produce,
   maintain, consume).
 - **Before committing** bundle changes → run `/okf:validate .okf --strict` and

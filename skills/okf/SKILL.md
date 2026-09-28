@@ -44,8 +44,14 @@ fields, unknown types, and broken links — never reject a bundle over them.
   in the surrounding prose, not the link.
 - **Reserved files:** `index.md` (directory listing, no frontmatter, except the
   bundle-root index, which may carry `okf_version` and this plugin's
-  `upkeep: enforced` opt-in flag) and `log.md` (ISO-dated change history, newest
+  `upkeep: enforced` opt-in flag) and `log.md` (ISO-dated history, newest
   first). Never use these names for concepts.
+- **What goes in `log.md`:** lifecycle events only, written in the bundle-root
+  `log.md`: a bundle **created**, a concept **deprecated** or retired, one
+  concept **superseding** another, concepts **regenerated** after their source
+  changed, a **verification** pass. Routine edits to a concept do not get an
+  entry: its `generated` and git already record them. A log is append-only, so
+  never rewrite or drop an existing entry.
 
 ## The v0.2 families (all optional, all worth filling)
 
@@ -110,7 +116,8 @@ is given. Then extend it:
    descriptive `type`, fill recommended fields, record `generated` and the
    `sources` you actually read, cross-link related concepts.
 5. Add/refresh `index.md` per directory (and `okf_version: "0.2"` in the root
-   index). Append a dated entry to `log.md`.
+   index). A new bundle gets a dated **Creation** entry in `log.md`. Extending
+   an existing one does not.
 6. Validate (see below). Fix every error before finishing.
 
 ### maintain — keep a bundle in sync with reality
@@ -122,8 +129,8 @@ is given. Then extend it:
    assets `status: deprecated` and note the deprecation in `log.md` rather than
    silently deleting context. Facing a whole v0.1 bundle rather than a stray
    field? Do not hand-edit it — run the validator's `--migrate` once.
-3. Update the relevant `index.md` files and append a dated `log.md` entry
-   describing what changed.
+3. Update the relevant `index.md` files. Append a dated `log.md` entry only if
+   the change is a lifecycle event (see *What goes in `log.md`*).
 4. Validate.
 
 ### consume — use a bundle as context

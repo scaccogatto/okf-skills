@@ -4,6 +4,35 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.10.0] - 2026-09-28
+
+### Changed
+- **`log.md` records lifecycle events only.** The `okf` skill, the log template,
+  `okf_init.py`'s starter concept and the `CLAUDE-okf.md` snippet no longer ask
+  for a log entry on every change. An entry goes in the bundle-root `log.md` when
+  a bundle is created, a concept is deprecated, superseded, or regenerated after
+  its source changed, or a verification pass runs. Routine edits are already
+  recorded by `generated` and git. This matches upstream, whose sample bundle
+  holds four entries in five months, and an open upstream proposal
+  (open-knowledge-format#22) that would make root `log.md` supersession entries
+  normative. Existing entries stay: the log is append-only.
+- **The Stop hook accepts any change under `.okf/` as upkeep, not `log.md`
+  alone.** Untracked files count, so a new concept satisfies it. With every
+  change writing to the top of `log.md`, parallel branches conflicted on every
+  merge (#54). A bundle with `upkeep: enforced` that relied on the hook to force
+  log entries now gets fewer of them, by design.
+- **The backfill weaver logs lifecycle events only.** A reconstructed bundle's
+  `log.md` gets a bullet when a concept is created, deprecated or superseded,
+  dated by the event. A routine update's "why" goes into the concept body, and
+  a reversal into its `## History`. Coverage was already read from `sources`,
+  and every live event must still land in at least one concept's `sources`.
+- **The CI `.okf/` guard's error message** no longer asks for a `log.md` entry.
+
+### Added
+- **Tests for the Stop hook** (`tests/test_okf_stop_hook.py`), run in CI on
+  Linux: each gate against a throwaway git repo, including the new "any change
+  under `.okf/`" rule and the loop guard.
+
 ## [0.9.6] - 2026-09-21
 
 ### Changed

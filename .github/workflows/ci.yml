@@ -32,6 +32,9 @@ jobs:
       - name: Unit tests — okf_backfill_events extraction
         run: uv run tests/test_okf_backfill_events.py
 
+      - name: Behaviour tests — Stop hook gates
+        run: uv run tests/test_okf_stop_hook.py
+
       # The trust benchmark ships no runnable product, but its grader and its
       # analysis decide whether a published result is honest, so they are held to
       # the same gate as the skills. No API call is made: the runner is exercised
@@ -415,7 +418,7 @@ jobs:
             echo "Behaviour changed and .okf/ was updated. OK."
             exit 0
           fi
-          echo "::error::A skill script, agent or hook changed but nothing under .okf/ did. Update the concept that describes it and add a log.md entry (this is what the plugin's Stop hook enforces locally), or add the 'skip-version-check' label."
+          echo "::error::A skill script, agent or hook changed but nothing under .okf/ did. Update the concept that describes it (this is what the plugin's Stop hook enforces locally), or add the 'skip-version-check' label."
           echo "Changed behaviour files:"
           echo "$changed" | grep -E '^(skills/[^/]+/scripts/|agents/|hooks/)' | sed 's/^/  /'
           exit 1
