@@ -119,7 +119,8 @@ Run a single `okf:bundle-weaver` agent that:
 - Reads all analyses in chronological order
 - Folds them into `.okf/`, updating or creating concepts
 - Enforces anti-degeneration rules (§4)
-- Updates `log.md` with dated bullets (the "why" from each analysis)
+- Adds a dated `log.md` bullet for each lifecycle event only (a concept created, deprecated or
+  superseded); the "why" of a routine update goes into the concept body
 - Manages cursor (`.okf/.backfill-state.json`) for resume capability
 - Is the only actor that writes `.okf/`
 - Replies with one line of counts (folded, created, updated, bullets, conflicts, superseded,
@@ -240,24 +241,27 @@ a mechanical listing of commits or a taxonomy-by-accident:
 
    Example: a commit with subject "feat: add presales pipeline" touches a domain concept.
    The *concept* is named `presales-pipeline.md` (the entity), not `feat:-add-presales-pipeline.md`
-   (the change). The change history lives in frontmatter `sources` and log bullets.
+   (the change). The change history lives in frontmatter `sources` and the body's `## History`;
+   `log.md` holds only lifecycle events.
 
 2. **Prefer update over create.** Every event is analyzed for which concepts it touches; if
    a concept already exists and the analysis fits, update its `sources` and body. Only create
    a new concept if the analysis reveals a distinct domain entity not yet captured.
 
-3. **Log bullets explain intent, not restate subjects.** A bullet should answer "why did this
-   change happen?" from the commit body or session outcome, never just re-read the subject:
+3. **Log bullets are lifecycle events, and explain intent.** Only a concept created,
+   deprecated or superseded gets a bullet; a routine update does not. A bullet answers "why?"
+   from the commit body or session outcome, never just re-reads the subject:
    - Bad: `- Added presales-pipeline.md feature`
-   - Good: `- **Presales pipeline**: formalized the sales workflow to clarify handoff points`
+   - Good: `- **Creation**: [Presales pipeline](...), formalized to clarify handoff points`
 
-4. **No identical consecutive bullets.** Group same-date updates by concept to avoid:
+4. **No identical consecutive bullets.** A run of same-concept bullets means updates leaked
+   into the log:
    ```
    - Feature X update
    - Feature X update
    - Feature X update
    ```
-   Instead: one bullet per concept, or combine into "Feature X: multiple updates".
+   Instead: no bullet at all; the updates live in the concept's body and `sources`.
 
 5. **A reversal is not growth.** A replay walks the history forward, so a later event routinely
    overturns an earlier one (a phase dropped, a limit changed, a target downgraded). "Prefer

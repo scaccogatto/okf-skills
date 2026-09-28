@@ -16,8 +16,10 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
 # .venv/, ...). New-asset authoring is the maintain flow's job, not this backstop's.
 changes=$(git status --porcelain 2>/dev/null | grep -v '^??')
 [ -n "$changes" ] || exit 0
-# log.md already touched this session -> assume the bundle was maintained
-printf '%s\n' "$changes" | grep -q '\.okf/log\.md' && exit 0
+# anything under .okf/ already touched, untracked included (a new concept starts
+# untracked) -> assume the bundle was maintained. Not log.md alone: it records
+# lifecycle events only, so most maintained changes never touch it.
+[ -n "$(git status --porcelain -- .okf 2>/dev/null)" ] && exit 0
 cat <<'JSON'
-{"decision":"block","reason":"This repo's .okf/ bundle declares `upkeep: enforced` and there are uncommitted changes, but .okf/log.md was not updated. If a documented asset changed, update the matching concept (body + generated) and append a dated log.md entry. If no documented asset changed, you may finish."}
+{"decision":"block","reason":"This repo's .okf/ bundle declares `upkeep: enforced` and there are uncommitted changes, but nothing under .okf/ changed. If a documented asset changed, update the matching concept (body + generated); add a dated log.md entry only for a lifecycle event (creation, deprecation, supersession, regeneration, verification). If no documented asset changed, you may finish."}
 JSON

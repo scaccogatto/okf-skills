@@ -82,7 +82,8 @@ decided, why, and when.
   *why* changes were made, not just mechanical change listing.
 - **Anti-degeneration rules**: concepts are named for domain entities
   (e.g., `presales-pipeline.md`), never for change types or commit subjects.
-  Log bullets explain intent, not restate subjects. Rules are enforced by the
+  Log bullets record lifecycle events only (a concept created, deprecated or
+  superseded) and explain intent, not restate subjects. Rules are enforced by the
   weaver and validated in finalize.
 - **Supersession**: a replay walks history forward, so later events overturn earlier
   ones. "Update over create" is a merge rule and covers only growth; on its own it
@@ -132,7 +133,8 @@ The extractor runs standalone; the skill drives it and the replay loop per the
 # Design rationale
 
 Event-sourcing preserves the *sequence* of decisions, not just the current state:
-the log.md can narrate why a concept exists in its current form. Deterministic
+each concept's `sources` and `## History` narrate why it exists in its current
+form, and log.md records when concepts were born, deprecated or superseded. Deterministic
 extraction + auditable replay = a reconstructed bundle that is both replayable
 and trustworthy, even though the LLM interpretation has variance.
 

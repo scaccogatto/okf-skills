@@ -5,7 +5,7 @@ description: Dormant Stop hook — a no-op unless a bundle opts in to enforced u
 resource: https://github.com/scaccogatto/okf-skills/blob/main/hooks/okf-stop-check.sh
 tags: [bash, hook, enforcement]
 status: stable
-generated: { by: "agent:claude-fable-5", at: "2026-08-02T12:18:55Z" }
+generated: { by: "agent:claude-opus-5-5", at: "2026-09-28T12:00:00Z" }
 ---
 
 # Overview
@@ -30,11 +30,26 @@ checked in order:
    paths are ignored, since a brand-new file is not yet a documented asset.
    (This is what keeps tooling dirs like `.claude/` or `.venv/` from
    false-firing the hook.)
-6. `.okf/log.md` is not already among those changes (if it is, the bundle was
-   plausibly maintained this session, so the hook stays quiet).
+6. nothing under `.okf/` is changed, untracked files included (a new concept
+   starts untracked). Any bundle change means it was plausibly maintained this
+   session, so the hook stays quiet.
 
 Only when all six hold does it block, asking the agent to update the matching
-concept and append a dated `log.md` entry before finishing.
+concept before finishing, and to add a `log.md` entry only for a lifecycle
+event.
+
+# Why not `log.md`
+
+Until 0.10.0 gate 6 looked for `.okf/log.md` alone, which made every change
+append a log entry. With parallel branches that turned the top of `log.md` into
+a conflict on every merge (issue #54, from a project merging about ten PRs a
+day). Upstream reads `log.md` as a rare, curated record of lifecycle events
+(its sample bundle has four entries in five months), and an open upstream
+proposal would make root `log.md` entries normative for supersession. So the
+log stopped being the proof of upkeep, and any change under `.okf/` is.
+
+The gates are covered by `tests/test_okf_stop_hook.py`, which runs the script
+against throwaway git repos.
 
 # Activation
 
@@ -61,8 +76,10 @@ set of required status checks does not change.
   ignoring untracked files: if the only change is a new untracked file that
   ought to get a concept, the hook stays quiet — authoring new assets is the
   maintain flow's job, not this backstop's.
-* Conversely, an uncommitted `.okf/log.md` left over from an earlier session
-  satisfies gate 6 and silences the hook until it is committed.
+* Conversely, any uncommitted change under `.okf/` left over from an earlier
+  session satisfies gate 6 and silences the hook until it is committed. So does
+  touching an unrelated concept: the gate checks that the bundle moved, not
+  that the right concept did.
 * Paths resolve from the session's working directory: a bundle not at
   `./.okf/` (monorepo subdirectory, session launched elsewhere) is never seen.
 * The loop guard greps the raw JSON for `"stop_hook_active": true` rather

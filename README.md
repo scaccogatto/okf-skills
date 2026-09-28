@@ -121,8 +121,8 @@ Any other host: run `uv run servers/okf_mcp.py <bundle>` as a stdio server
 [`templates/CLAUDE-okf.md`](templates/CLAUDE-okf.md) into your `CLAUDE.md` so
 Claude consults `.okf/` before a task and writes back after. *Enforced:* add
 `upkeep: enforced` to `.okf/index.md`'s frontmatter to arm the plugin's dormant
-`Stop` hook, which blocks finishing when tracked files changed but `.okf/log.md`
-did not. `OKF_HOOK=off` overrides any bundle. Details:
+`Stop` hook, which blocks finishing when tracked files changed but nothing under
+`.okf/` did. `OKF_HOOK=off` overrides any bundle. Details:
 [stop-hook concept](.okf/components/stop-hook.md).
 
 ## What's inside
@@ -150,7 +150,7 @@ non-empty `type`; everything else is optional.
 ```
 .okf/
 ├── index.md                  # progressive disclosure (root carries okf_version)
-├── log.md                    # ISO-dated change history, newest first
+├── log.md                    # ISO-dated lifecycle events, newest first
 ├── services/auth-api.md      # one concept = one file
 └── decisions/use-okf.md
 ```
@@ -222,8 +222,8 @@ shipped surface (`.claude-plugin/`, `skills/`, `agents/`, `hooks/`, `servers/`,
 `templates/`, `action.yml`, `.mcp.json`) fails CI without both; one touching
 `skills/*/scripts/`, `agents/` or `hooks/` must also update `.okf/`. The
 `skip-version-check` label bypasses all three. This repo's bundle sets
-`upkeep: enforced`, so the Stop hook blocks finishing until `.okf/log.md`
-records your change; `OKF_HOOK=off` opts out.
+`upkeep: enforced`, so the Stop hook blocks finishing until the concept
+describing your change is updated; `OKF_HOOK=off` opts out.
 
 ## Credits & license
 

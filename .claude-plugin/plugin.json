@@ -1,7 +1,7 @@
 {
   "name": "okf",
   "displayName": "Open Knowledge Format",
-  "version": "0.9.6",
+  "version": "0.10.0",
   "description": "Author, maintain, backfill, validate, visualize and serve (MCP) Open Knowledge Format (OKF) bundles: portable markdown knowledge for humans and agents.",
   "author": {
     "name": "Marco Boffo",

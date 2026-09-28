@@ -40,8 +40,10 @@ For each event:
 2. Extract candidate concept names and rationale.
 3. Decide: update existing concepts, or create new ones (prefer update).
 4. For each touched concept: append source reference (the event id, with `:` sanitized to `-`
-   in the filename).
-5. Update `log.md` with a dated bullet explaining the change (the "why" from the analysis).
+   in the filename). Every live event lands in at least one concept's `sources`: that, not
+   `log.md`, is what the coverage check relies on.
+5. If the event created, deprecated or superseded a concept, add a `log.md` bullet under the
+   event's date (§4). A routine update gets no bullet: its "why" goes into the concept body.
 6. Update cursor: save `event_id` and increment `done` count.
 7. Repeat.
 
@@ -104,20 +106,25 @@ incomplete" — the literal description of a machine-replayed history. Every con
 
 ### 4. Log entry format
 
-Each concept update gets one bullet under the dated section of `log.md`. Format:
+`log.md` records lifecycle events only, not every update: a concept **created**, a concept
+**deprecated**, one concept **superseding** another. The date heading is the event's date, not
+today's. Format:
 
 ```
 ## 2026-09-01
 
-- **Presales pipeline** (`presales-pipeline.md`): Added vendor-sync phase (from session: "Discuss...").
-  Sources: [`git-abc1234`](/concepts/sales/presales-pipeline.md#sources)
+- **Creation**: [Presales pipeline](/concepts/sales/presales-pipeline.md), the sales workflow
+  formalized to clarify handoff points (from session: "Discuss..."). Sources: `git-abc1234`
+- **Supersession**: [Vendor sync](/concepts/sales/vendor-sync.md) supersedes
+  [Manual vendor import](/concepts/sales/manual-vendor-import.md), now `deprecated`. Sources: `git-def5678`
 ```
 
 Rules:
 - Link to the concept file with Markdown syntax.
 - Explain the "why" from the analysis, not just what changed.
-- Group same-date updates by concept to avoid consecutive duplicate bullets.
 - Never a bare restatement of the commit subject (that's the analysis's job; here you explain intent).
+- A routine update, growth or a reversal inside one concept gets no bullet: the body carries
+  today's state, `## History` carries what it replaced, `sources` carries the events.
 
 ### 5. Anti-degeneration enforcement
 
@@ -155,7 +162,7 @@ If unsure, default to `concepts/`.
 
 When done with all live events (or a batch, if resuming):
 - `.okf/<dir>/<concept>.md` files created/updated with sources and frontmatter.
-- `.okf/log.md` updated with dated bullets.
+- `.okf/log.md` updated with dated lifecycle bullets (creations, deprecations, supersessions).
 - `.okf/.backfill-state.json` cursor updated.
 
 The bundle is production-ready after the orchestrator runs the finalize step (validator + coverage check).
