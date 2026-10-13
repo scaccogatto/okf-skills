@@ -223,7 +223,9 @@ shipped surface (`.claude-plugin/`, `skills/`, `agents/`, `hooks/`, `servers/`,
 `skills/*/scripts/`, `agents/` or `hooks/` must also update `.okf/`. The
 `skip-version-check` label bypasses all three. This repo's bundle sets
 `upkeep: enforced`, so the Stop hook blocks finishing until the concept
-describing your change is updated; `OKF_HOOK=off` opts out.
+describing your change is updated; `OKF_HOOK=off` opts out. The details, and
+the local commands that mirror CI, are in [CONTRIBUTING.md](CONTRIBUTING.md).
+Report vulnerabilities privately, as [SECURITY.md](SECURITY.md) describes.
 
 ## Credits & license
 
