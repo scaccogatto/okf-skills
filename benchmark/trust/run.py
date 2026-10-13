@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["pyyaml>=6", "anthropic"]
+# dependencies = ["pyyaml>=6,<7", "anthropic"]
 # ///
 """Trial runner for the OKF trust benchmark (PROTOCOL.md).
 

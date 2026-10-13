@@ -5,7 +5,7 @@ description: Read-only MCP server over a bundle, exposing search_concepts, read_
 resource: https://github.com/scaccogatto/okf-skills/blob/main/servers/okf_mcp.py
 tags: [python, mcp, consumer]
 status: stable
-generated: { by: "agent:claude-opus-5", at: "2026-09-01T00:00:00Z" }
+generated: { by: "agent:claude-opus-5-5", at: "2026-10-13T00:00:00Z" }
 ---
 
 # Overview
@@ -39,9 +39,14 @@ resolved and rejected unless it lands under the bundle root.
   ([self-contained skills](/decisions/self-contained-skills.md)).
 * The bundle is re-read on every call. Correct while a bundle is being edited,
   and cheap up to a few thousand concepts.
-* `mcp>=2`: the SDK renamed `FastMCP` to `MCPServer` in 2.0. `tests/test_okf_mcp.py`
+* `mcp>=2,<3`: the SDK renamed `FastMCP` to `MCPServer` in 2.0. `tests/test_okf_mcp.py`
   dispatches through the SDK rather than calling the functions directly, so a
-  further rename breaks CI instead of production.
+  further rename breaks CI instead of production. The major is capped because
+  there is no lockfile: `uv run` resolves afresh on every user's machine, so an
+  unbounded 3.0 would break every install the day it shipped. Dependabot does
+  not read PEP 723 blocks, so moving to a new major is a deliberate bump (the
+  same holds for `pyyaml>=6,<7` in every shipped script), enforced by
+  `tests/test_supply_chain.py`.
 * The handshake's `serverInfo.version` is read from `.claude-plugin/plugin.json`
   at startup, never restated here, so a release cannot leave the two disagreeing.
   Outside the plugin tree it is simply empty.

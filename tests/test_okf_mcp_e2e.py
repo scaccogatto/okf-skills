@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["mcp>=2"]
+# dependencies = ["mcp>=2,<3"]
 # ///
 """End-to-end test for the MCP server (issue #41).
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["mcp>=2", "pyyaml>=6"]
+# dependencies = ["mcp>=2,<3", "pyyaml>=6,<7"]
 # ///
 """Unit tests for okf_mcp.py, the read-only MCP server (issue #41).
 
