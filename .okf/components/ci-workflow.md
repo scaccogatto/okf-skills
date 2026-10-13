@@ -5,24 +5,34 @@ description: GitHub Actions workflow that validates, exercises the action, and g
 resource: https://github.com/scaccogatto/okf-skills/blob/main/.github/workflows/ci.yml
 tags: [ci, github-actions, validation]
 status: stable
-generated: { by: agent:claude-opus-5-5, at: "2026-09-28T12:00:00Z" }
+generated: { by: "agent:claude-opus-5-5", at: "2026-10-13T00:00:00Z" }
 ---
 
 # Overview
 
 Runs on push to `main` and on every pull request. `permissions: contents: read`
 at the workflow level, since every job only reads the checkout. Four jobs:
-`validate`, `action`, `validate-windows`, and `version-bump`.
+`validate`, `action`, `validate-windows`, and `version-bump`, each with a
+`timeout-minutes`. A `ci-<ref>` concurrency group cancels a superseded PR run;
+runs on `main` always finish.
 
 # The `validate` job
 
 Runs on `ubuntu-latest` with `astral-sh/setup-uv`. Steps, in order:
 
-1. `jq empty` on `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`.
+1. `jq empty` on `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`,
+   then `ruff check` with a pinned ruff (its default rule set, `ruff.toml` sets
+   only the target version) over every Python script. The pin keeps a ruff
+   release that widens its defaults from turning `main` red; `make lint` uses
+   the same version.
 2. Unit tests: `okf_validate.py` internals, the MCP server's tools and its
    stdio spawn, `okf_backfill_events` extraction, the
    [Stop hook](/components/stop-hook.md)'s gates on throwaway repos (Linux only,
-   since the hook is bash), and the
+   since the hook is bash), the supply-chain guards (every CDN script in the
+   [visualizer](/components/visualizer.md)'s output and in `docs/` is pinned
+   with SRI, every shipped PEP 723 dependency has a major-version cap), the
+   release-notes extraction used by the
+   [release workflow](/components/release-workflow.md), and the
    [trust benchmark](/decisions/trust-benchmark.md)'s
    grader, analysis, trial assembly and item selection. The benchmark ships no
    runnable product, but its grader and its analysis decide whether a published
@@ -70,9 +80,13 @@ inside each step instead. Three steps:
 1. **Require a version bump for shipped changes.** Shipped paths:
    `.claude-plugin/`, `skills/`, `agents/`, `hooks/`, `servers/`, `templates/`, `action.yml`, `.mcp.json`. Compares
    `plugin.json`'s version at `BASE` and `HEAD`; passes only if `HEAD`'s is
-   strictly higher.
+   strictly higher. One exemption: a PR authored by `dependabot[bot]` whose only
+   shipped change is `action.yml` (an Actions pin bump) passes, since Dependabot
+   cannot bump the plugin version and the required check would otherwise hold
+   it forever. The pin ships with the next real release.
 2. **Require a changelog entry for the new version.** If the version changed,
-   `CHANGELOG.md` must contain a `## [<version>]` heading.
+   `CHANGELOG.md` must contain a `## [<version>]` heading. That section becomes
+   the GitHub release notes.
 3. **Require an `.okf/` update when a skill script changes.** If a path under
    `skills/*/scripts/`, `agents/`, or `hooks/` changed, something under `.okf/` must have
    changed too.

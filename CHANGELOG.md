@@ -4,6 +4,42 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.10.2] - 2026-10-13
+
+### Security
+- **The visualizer loads every CDN script with Subresource Integrity.**
+  `marked` was loaded as `marked@14`, a floating range, and neither it nor
+  Cytoscape carried an `integrity` attribute, so a compromised CDN file or a
+  bad 14.x release would have run in every generated `viz.html` and on the
+  GitHub Pages demos. DOMPurify sanitizes marked's output and cannot guard
+  against marked itself. `marked` is now pinned to 14.1.4, and Cytoscape 3.30.2
+  and marked carry `integrity` and `crossorigin="anonymous"`, like DOMPurify.
+- **Shipped scripts cap their dependencies' major version.** `mcp>=2,<3` and
+  `pyyaml>=6,<7`. `uv run` resolves afresh on every machine with no lockfile, so
+  an `mcp` 3.0 would have broken the MCP server for every install on release day.
+
+### Changed
+- **Release notes come from this changelog.** A release's body is now its
+  `## [<version>]` section here, followed by the generated PR list. It used to
+  be the PR list alone.
+- **`okf_backfill_events.py` catches only the errors it expects** (a missing
+  `git`, a failing git command, an unreadable or non-JSON transcript line). An
+  unexpected error now surfaces with a traceback instead of being skipped
+  silently.
+
+### Added
+- **`CONTRIBUTING.md`** lists the three PR gates (version bump, changelog entry,
+  `.okf/` upkeep) and the local commands that mirror CI. **`SECURITY.md`**
+  describes private vulnerability reporting.
+- **CI lints every Python script with a pinned `ruff`** (`make lint` locally),
+  and tests that CDN scripts carry SRI and that shipped dependencies are capped.
+
+### Fixed
+- **Dependabot updates of the `action.yml` pin no longer stall on the
+  `version-bump` check.** Dependabot cannot bump the plugin version, so such a
+  PR could never pass. A Dependabot PR whose only shipped change is
+  `action.yml` is now exempt, and the pin ships with the next release.
+
 ## [0.10.1] - 2026-10-13
 
 ### Fixed
