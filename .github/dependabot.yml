@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # The skills are PEP 723 inline-metadata scripts run with `uv run`: no
+  # manifest or lockfile for Dependabot to read, so only the Actions pins
+  # (workflows and the composite action.yml) are tracked here.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    open-pull-requests-limit: 5

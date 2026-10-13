@@ -18,6 +18,13 @@ OKF spec version it supports.
   session in that checkout was blocked until it was committed. Other tracked
   paths under `.claude/` (commands, hooks, skills) still count.
 
+### Changed
+- **The GitHub Action runs `astral-sh/setup-uv` v10**, pinned by commit SHA
+  (was `@v5`). v10 disables its cache by default on untrusted events, and the
+  action sets no cache inputs, so callers see no change.
+- **Dependabot keeps the workflow and action pins current** (weekly
+  `github-actions` updates).
+
 ## [0.10.0] - 2026-09-28
 
 ### Changed

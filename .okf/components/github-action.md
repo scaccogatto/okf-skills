@@ -5,7 +5,7 @@ description: Composite GitHub Action that runs the OKF validator against a bundl
 resource: https://github.com/scaccogatto/okf-skills/blob/main/action.yml
 tags: [ci, github-actions, validator]
 status: stable
-generated: { by: agent:claude-opus-5, at: "2026-09-01T00:00:00Z" }
+generated: { by: "agent:claude-opus-5-5", at: "2026-10-13T00:00:00Z" }
 ---
 
 # Overview
@@ -35,7 +35,8 @@ must stay under 125 characters.
 
 # What the composite step does
 
-One `runs: using: composite` job with two steps: `astral-sh/setup-uv@v5`, then
+One `runs: using: composite` job with two steps: `astral-sh/setup-uv` (v10, pinned by
+commit SHA, which Dependabot keeps current), then
 a single `bash` step (id `validate`). Inputs travel into the script through
 `env` rather than being interpolated directly into the `run:` body, because a
 bundle path is caller-controlled and `${{ }}` inside `run:` is textual
