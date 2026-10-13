@@ -1,26 +1,36 @@
 name: Dependabot auto-merge
 
+# Queues auto-merge on Dependabot's patch and minor bumps. The merge itself only
+# happens once the required status checks pass. Majors, and minors of a 0.x
+# dependency (breaking by semver convention), are left for a human.
+
 on: pull_request
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   auto-merge:
     runs-on: ubuntu-latest
-    if: github.actor == 'dependabot[bot]'
+    timeout-minutes: 5
+    # The PR's author, not github.actor: the actor is whoever triggered this
+    # run (a human re-run, a push to the Dependabot branch).
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
       - uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
         id: metadata
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - if: >
+      - name: Enable auto-merge for patch and non-0.x minor updates
+        if: >-
           steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
-          steps.metadata.outputs.update-type == 'version-update:semver-minor'
-        run: gh pr merge --auto --squash "${{ github.event.pull_request.number }}"
+          (steps.metadata.outputs.update-type == 'version-update:semver-minor' &&
+           !startsWith(steps.metadata.outputs.previous-version, '0.'))
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "$PR_URL"
