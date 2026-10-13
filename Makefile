@@ -28,6 +28,7 @@ test:
 	uv run tests/test_okf_backfill_events.py
 	uv run tests/test_okf_stop_hook.py
 	uv run tests/test_supply_chain.py
+	uv run tests/test_changelog_notes.py
 	uv run benchmark/trust/tests/test_grade_analyze.py
 	uv run benchmark/trust/tests/test_run.py
 	uv run benchmark/trust/tests/test_power.py

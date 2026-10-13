@@ -12,25 +12,40 @@ on:
 permissions:
   contents: write
 
+# Two version bumps landing back to back must not race on the v1 tag.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # The body is the version's CHANGELOG.md section, the prose CI requires
+      # for every bump. --generate-notes appends the PR list and contributors
+      # after it. A missing section fails the release rather than shipping a
+      # bare PR list.
       - name: Tag & release if the version is new
         env:
           GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
         run: |
+          set -euo pipefail
           version="$(jq -r .version .claude-plugin/plugin.json)"
           tag="okf--v${version}"
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "release $tag already exists — nothing to do"
             exit 0
           fi
+          notes="$(mktemp)"
+          python3 .github/scripts/changelog_notes.py "$version" CHANGELOG.md > "$notes"
           gh release create "$tag" \
-            --target "${{ github.sha }}" \
+            --target "$SHA" \
             --title "okf v${version}" \
+            --notes-file "$notes" \
             --generate-notes
 
       - name: Move the floating `v1` tag to this release
@@ -42,7 +57,8 @@ jobs:
         # the README next to the example.
         env:
           GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
         run: |
-          git tag -f v1 "${{ github.sha }}"
+          git tag -f v1 "$SHA"
           git push -f origin refs/tags/v1
-          echo "v1 -> ${{ github.sha }}"
+          echo "v1 -> $SHA"

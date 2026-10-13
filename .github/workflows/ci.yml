@@ -43,6 +43,9 @@ jobs:
       - name: Supply-chain tests (CDN SRI, bounded script dependencies)
         run: uv run tests/test_supply_chain.py
 
+      - name: Unit tests for the release notes extraction
+        run: uv run tests/test_changelog_notes.py
+
       # The trust benchmark ships no runnable product, but its grader and its
       # analysis decide whether a published result is honest, so they are held to
       # the same gate as the skills. No API call is made: the runner is exercised
