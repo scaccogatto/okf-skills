@@ -23,6 +23,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Kept on purpose: the v1 step below pushes a tag with these credentials.
+          persist-credentials: true # zizmor: ignore[artipacked]
 
       # The body is the version's CHANGELOG.md section, the prose CI requires
       # for every bump. --generate-notes appends the PR list and contributors

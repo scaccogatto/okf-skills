@@ -9,11 +9,19 @@ on:
 permissions:
   contents: read
 
+# A new push to a PR supersedes the run in flight. Runs on main always finish.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
@@ -282,8 +290,11 @@ jobs:
     # than assumed: the happy path, and a bundle that must fail the gate. Without
     # the failing case a broken action would look green by never failing at all.
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: The action validates this repo's own bundle
         uses: ./
@@ -311,8 +322,11 @@ jobs:
     # console (not a simulated codepage on Linux) defaults to cp1252, which is
     # what originally crashed the ✓/✗/— glyphs.
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
@@ -332,23 +346,26 @@ jobs:
     # A PR that changes the shipped surface must bump the plugin version, so the
     # release workflow (release.yml) then cuts a release for it. Docs, .okf/,
     # tests and CI are exempt. Add the `skip-version-check` label to bypass.
+    # A Dependabot PR whose only shipped change is an action.yml pin is exempt
+    # too: Dependabot cannot bump plugin.json, so it would sit red on this
+    # required check forever. The pin ships with the next real release.
     #
     # Always runs (no job-level `if`) so it can be a *required* status check: a
     # skipped job does not report success and would wedge a required check. The
     # non-PR and label-bypass cases are handled inside the step, exiting 0.
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Require a version bump for shipped changes
         env:
           EVENT: ${{ github.event_name }}
           SKIP: ${{ contains(github.event.pull_request.labels.*.name, 'skip-version-check') }}
-    # A Dependabot PR whose only shipped change is an action.yml pin is exempt
-    # too: Dependabot cannot bump plugin.json, so it would sit red on this
-    # required check forever. The pin ships with the next real release.
+          AUTHOR: ${{ github.event.pull_request.user.login }}
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
@@ -365,8 +382,11 @@ jobs:
           shipped='^(\.claude-plugin/|skills/|agents/|hooks/|servers/|templates/|action\.yml|\.mcp\.json)'
           changed="$(git diff --name-only "$BASE" "$HEAD")"
           if ! echo "$changed" | grep -qE "$shipped"; then
-          AUTHOR: ${{ github.event.pull_request.user.login }}
             echo "No shipped-surface files changed; version bump not required."
+            exit 0
+          fi
+          if [ "$AUTHOR" = "dependabot[bot]" ] && [ "$(echo "$changed" | grep -E "$shipped")" = "action.yml" ]; then
+            echo "Dependabot pin bump limited to action.yml; it ships with the next release."
             exit 0
           fi
           base_v="$(git show "$BASE:.claude-plugin/plugin.json" | jq -r .version)"
@@ -385,10 +405,6 @@ jobs:
       # The plugin's Stop hook keeps `.okf/` and the changelog honest for anyone
       # running the plugin. Contributors who are not running it get nothing, so
       # the same two obligations are mirrored here. Same PR-only guard and same
-          if [ "$AUTHOR" = "dependabot[bot]" ] && [ "$(echo "$changed" | grep -E "$shipped")" = "action.yml" ]; then
-            echo "Dependabot pin bump limited to action.yml; it ships with the next release."
-            exit 0
-          fi
       # `skip-version-check` label as the gate above.
 
       - name: Require a changelog entry for the new version
