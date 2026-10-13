@@ -14,7 +14,11 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
 # count only changes to tracked files: an untracked path is not yet a documented
 # asset, and treating it as one made the hook false-fire on tooling dirs (.claude/,
 # .venv/, ...). New-asset authoring is the maintain flow's job, not this backstop's.
-changes=$(git status --porcelain 2>/dev/null | grep -v '^??')
+# The two Claude Code settings files are left out too (#58): `/plugin` writes
+# .claude/settings.json, which no concept documents, and blocked every Stop until
+# committed. Every other path under .claude/ (commands, hooks, skills) still counts.
+changes=$(git status --porcelain 2>/dev/null | grep -v '^??' \
+  | grep -vE '^.. \.claude/settings(\.local)?\.json$')
 [ -n "$changes" ] || exit 0
 # anything under .okf/ already touched, untracked included (a new concept starts
 # untracked) -> assume the bundle was maintained. Not log.md alone: it records

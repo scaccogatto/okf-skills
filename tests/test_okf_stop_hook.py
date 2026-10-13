@@ -77,6 +77,49 @@ class TestStopHook(unittest.TestCase):
         (self.repo / "scratch.py").write_text("y = 1\n")
         self.assertFalse(self.run_hook())
 
+    def commit_claude_dir(self) -> None:
+        claude = self.repo / ".claude"
+        (claude / "hooks").mkdir(parents=True)
+        (claude / "skills").mkdir()
+        (claude / "settings.json").write_text("{}\n")
+        (claude / "settings.local.json").write_text("{}\n")
+        (claude / "hooks/h.sh").write_text("#!/bin/sh\n")
+        (claude / "skills/s.md").write_text("# s\n")
+        sh(self.repo, "git", "add", "-A")
+        sh(self.repo, "git", "commit", "-qm", "claude dir")
+
+    def test_claude_settings_change_alone_passes(self) -> None:
+        # #58: /plugin writes .claude/settings.json, which no concept documents
+        self.commit_claude_dir()
+        for name in ("settings.json", "settings.local.json"):
+            with self.subTest(name=name):
+                (self.repo / ".claude" / name).write_text('{"enabledPlugins": {}}\n')
+                self.assertFalse(self.run_hook())
+                sh(self.repo, "git", "checkout", "--", ".claude")
+
+    def test_claude_settings_change_does_not_hide_a_code_change(self) -> None:
+        self.commit_claude_dir()
+        (self.repo / ".claude/settings.json").write_text('{"enabledPlugins": {}}\n')
+        self.edit_code()
+        self.assertTrue(self.run_hook())
+
+    def test_other_claude_paths_still_block(self) -> None:
+        self.commit_claude_dir()
+        for rel in ("hooks/h.sh", "skills/s.md"):
+            with self.subTest(rel=rel):
+                (self.repo / ".claude" / rel).write_text("changed\n")
+                self.assertTrue(self.run_hook())
+                sh(self.repo, "git", "checkout", "--", ".claude")
+
+    def test_nested_settings_json_still_blocks(self) -> None:
+        # only the two root settings files are exempt, not any settings.json
+        (self.repo / "app").mkdir()
+        (self.repo / "app/settings.json").write_text("{}\n")
+        sh(self.repo, "git", "add", "-A")
+        sh(self.repo, "git", "commit", "-qm", "app settings")
+        (self.repo / "app/settings.json").write_text('{"a": 1}\n')
+        self.assertTrue(self.run_hook())
+
     def test_loop_guard_passes(self) -> None:
         self.edit_code()
         self.assertFalse(self.run_hook('{"stop_hook_active": true}'))

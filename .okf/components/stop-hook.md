@@ -5,7 +5,7 @@ description: Dormant Stop hook — a no-op unless a bundle opts in to enforced u
 resource: https://github.com/scaccogatto/okf-skills/blob/main/hooks/okf-stop-check.sh
 tags: [bash, hook, enforcement]
 status: stable
-generated: { by: "agent:claude-opus-5-5", at: "2026-09-28T12:00:00Z" }
+generated: { by: "agent:claude-opus-5-5", at: "2026-10-13T00:00:00Z" }
 ---
 
 # Overview
@@ -29,7 +29,10 @@ checked in order:
 5. the working tree is a git repo with **modified tracked files** — untracked
    paths are ignored, since a brand-new file is not yet a documented asset.
    (This is what keeps tooling dirs like `.claude/` or `.venv/` from
-   false-firing the hook.)
+   false-firing the hook.) The two Claude Code settings files,
+   `.claude/settings.json` and `.claude/settings.local.json`, are ignored even
+   when tracked: `/plugin` writes the first, and no concept documents it.
+   Every other tracked path under `.claude/` (commands, hooks, skills) counts.
 6. nothing under `.okf/` is changed, untracked files included (a new concept
    starts untracked). Any bundle change means it was plausibly maintained this
    session, so the hook stays quiet.
