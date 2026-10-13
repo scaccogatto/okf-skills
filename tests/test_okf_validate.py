@@ -191,6 +191,28 @@ class TestV02Families(TmpBundle):
         r = self.concept(good, "Claim.[^nope]\n\n[^nope]: Nope\n")
         self.assertIn("[^nope]", self.only(r))
 
+    def test_regex_classes_in_code_are_not_footnotes(self):
+        # #56: a negated character class in a code span or fence is code, not a
+        # footnote reference (CommonMark recognizes neither inside code).
+        good = ("generated: { by: human:t }\nsources:\n"
+                "  - { id: pol, resource: https://x/pol, title: Policy }\n")
+        body = ("- `.../clients/(?<client_code>[^#?/]+).*` matches `clients/folders` too\n"
+                "- ``a `[^a-z]` b`` in a double-backtick span\n\n"
+                "```\nre.compile(r\"[^0-9]+\")\n```\n\n"
+                "~~~python\n[^x]\n~~~\n\n"
+                "Claim.[^pol]\n\n[^pol]: Policy\n")
+        r = self.concept(good, body)
+        self.assertEqual((r.errors, r.warnings), ([], []))
+
+    def test_footnote_outside_code_still_checked_next_to_a_code_span(self):
+        good = ("generated: { by: human:t }\nsources:\n"
+                "  - { id: pol, resource: https://x/pol, title: Policy }\n")
+        r = self.concept(good, "`[^a-z]` then a claim.[^nope]\n\n```\n[^b]\n```\nAfter.[^gone]\n")
+        self.assertEqual(r.errors, [])
+        self.assertEqual(len(r.warnings), 2, r.warnings)
+        self.assertTrue(any("[^nope]" in w for w in r.warnings))
+        self.assertTrue(any("[^gone]" in w for w in r.warnings))
+
     def test_legacy_citations_body_section_warns(self):
         r = self.concept("generated: { by: human:t }\n", "# Citations\n\n[1] [x](https://x)\n")
         self.assertIn("legacy v0.1 `# Citations`", self.only(r))
