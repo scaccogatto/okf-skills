@@ -21,7 +21,7 @@ for f in sorted(W.glob("agent-*.jsonl")):
     for line in f.read_text(errors="replace").splitlines():
         try:
             rec = json.loads(line)
-        except Exception:
+        except ValueError:
             continue
         msg = rec.get("message") or {}
         if arm is None and rec.get("type") == "user":

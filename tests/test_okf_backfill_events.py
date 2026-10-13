@@ -9,20 +9,27 @@ Run:  uv run tests/test_okf_backfill_events.py
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
-from datetime import datetime, timezone
-import os
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills" / "backfill" / "scripts"))
-from okf_backfill_events import (  # noqa: E402
-    apply_skip_rules, git_log, normalize_ts, repo_slug,
-    sessions_from_transcripts, merge_and_sort, truncate_text, check_coverage,
-    split_patch, cap_patch, format_summary, show_commit,
+from okf_backfill_events import (
+    apply_skip_rules,
+    cap_patch,
+    check_coverage,
+    git_log,
+    merge_and_sort,
+    normalize_ts,
+    repo_slug,
+    sessions_from_transcripts,
+    show_commit,
+    split_patch,
+    truncate_text,
 )
 
 
@@ -240,7 +247,7 @@ class TestSessionExtraction(unittest.TestCase):
         self.sessions_dir = Path(self._tmp.name)
         self.addCleanup(self._tmp.cleanup)
 
-    def write_session_jsonl(self, records: list[dict], filename: str = "session.jsonl", subdir: str = None):
+    def write_session_jsonl(self, records: list[dict], filename: str = "session.jsonl", subdir: str | None = None):
         """Helper to write a session JSONL file, defaulting to the slug dir
         that matches self.REPO so sessions_from_transcripts finds it."""
         session_dir = self.sessions_dir / (subdir or self.SLUG)
@@ -248,8 +255,7 @@ class TestSessionExtraction(unittest.TestCase):
         session_file = session_dir / filename
 
         with open(session_file, "w") as f:
-            for rec in records:
-                f.write(json.dumps(rec) + "\n")
+            f.writelines(json.dumps(rec) + "\n" for rec in records)
 
     @staticmethod
     def user_rec(content, ts="2026-01-15T10:00:00.000Z", cwd=REPO, branch="main",
@@ -548,8 +554,7 @@ class TestCheckCoverage(unittest.TestCase):
         """Write events to a JSONL file."""
         events_file = self.scratch / filename
         with open(events_file, "w") as f:
-            for event in events:
-                f.write(json.dumps(event) + "\n")
+            f.writelines(json.dumps(event) + "\n" for event in events)
         return events_file
 
     def write_bundle(self, concepts: dict[str, str]) -> Path:
@@ -686,7 +691,7 @@ class TestCapPatch(unittest.TestCase):
         ]
         numstat_lines = ["5\t0\ta.txt", "5\t0\tb.txt"]
 
-        lines, summary = cap_patch(
+        _, summary = cap_patch(
             blocks, numstat_lines,
             per_file_lines=20, max_diff_lines=50,
             max_line_chars=1000, skip_globs=[]
@@ -992,7 +997,7 @@ class TestShowCommit(unittest.TestCase):
         result = subprocess.run(
             [sys.executable, str(Path(__file__).resolve().parents[1] / "skills" / "backfill" / "scripts" / "okf_backfill_events.py"),
              str(self.repo), "--show", sha],
-            capture_output=True, text=True
+            capture_output=True, text=True, check=False
         )
         self.assertEqual(result.returncode, 0)
         self.assertIn("[diff: shown=", result.stdout)
@@ -1001,7 +1006,7 @@ class TestShowCommit(unittest.TestCase):
         result = subprocess.run(
             [sys.executable, str(Path(__file__).resolve().parents[1] / "skills" / "backfill" / "scripts" / "okf_backfill_events.py"),
              str(self.repo), "--show", "deadbeef"],
-            capture_output=True, text=True
+            capture_output=True, text=True, check=False
         )
         self.assertEqual(result.returncode, 1)
 

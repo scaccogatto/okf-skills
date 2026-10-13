@@ -5,11 +5,13 @@ usage: spotread.py <bench-dir> <armX> <armY>
 """
 import json
 import sys
+from pathlib import Path
 
 B = sys.argv[1]
 arms = sys.argv[2:4] if len(sys.argv) >= 4 else ["A-sonnet-solo", "B-haiku-solo"]
-ev = {json.loads(l)["id"]: json.loads(l) for l in open(B + "/events.jsonl") if l.strip()}
-live = json.load(open(B + "/live.json"))
+events = [json.loads(line) for line in Path(B, "events.jsonl").read_text().splitlines() if line.strip()]
+ev = {e["id"]: e for e in events}
+live = json.loads(Path(B, "live.json").read_text())
 commits = sorted([r["id"] for r in live if r["source"] != "session"],
                  key=lambda i: -sum(f["add"] + f["del"] for f in ev[i]["files"]))
 sessions = [r["id"] for r in live if r["source"] == "session"]
@@ -19,7 +21,7 @@ for i in commits[:5] + sessions[::14][:5]:
     print("\n" + "=" * 100 + f"\nEVENT {i} | {head}")
     for arm in arms:
         try:
-            body = open(f"{B}/arms/{arm}/analyses/{fn}").read().split("---", 2)[2].strip()
-        except Exception:
+            body = Path(B, "arms", arm, "analyses", fn).read_text().split("---", 2)[2].strip()
+        except (OSError, IndexError):
             body = "<MISSING>"
         print(f"\n--- {arm} ---\n{body}")

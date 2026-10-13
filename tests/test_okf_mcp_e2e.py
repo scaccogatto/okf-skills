@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import sys
 import unittest
 from pathlib import Path
 
@@ -37,7 +36,7 @@ def server_params() -> StdioServerParameters:
     servers = config["mcpServers"]
     assert list(servers) == ["bundle"], f"unexpected servers in .mcp.json: {list(servers)}"
     entry = servers["bundle"]
-    expand = lambda s: s.replace("${CLAUDE_PLUGIN_ROOT}", str(ROOT))  # noqa: E731
+    expand = lambda s: s.replace("${CLAUDE_PLUGIN_ROOT}", str(ROOT))
     return StdioServerParameters(
         command=expand(entry["command"]),
         args=[expand(a) for a in entry.get("args", [])],
@@ -47,28 +46,30 @@ def server_params() -> StdioServerParameters:
 
 
 async def session_probe() -> dict:
-    async with stdio_client(server_params()) as (read, write):
-        async with ClientSession(read, write) as session:
-            init = await session.initialize()
-            tools = await session.list_tools()
-            hits = await session.call_tool("search_concepts", {"query": "validator"})
-            concept = await session.call_tool(
-                "read_concept", {"concept_id": "decisions/mcp-server"})
-            neighbors = await session.call_tool(
-                "get_neighbors", {"concept_id": "components/validator"})
-            missing = await session.call_tool("read_concept", {"concept_id": "nope"})
-            return {
-                "protocol": init.protocol_version,
-                "server": init.server_info.name,
-                "version": init.server_info.version,
-                "tools": sorted(t.name for t in tools.tools),
-                "schemas": {t.name: t.input_schema for t in tools.tools},
-                "hits": [c["id"] for c in hits.structured_content["result"]],
-                "concept": concept.structured_content["result"],
-                "neighbors": neighbors.structured_content,
-                "missing_is_error": missing.is_error,
-                "missing_text": missing.content[0].text if missing.content else "",
-            }
+    async with (
+        stdio_client(server_params()) as (read, write),
+        ClientSession(read, write) as session,
+    ):
+        init = await session.initialize()
+        tools = await session.list_tools()
+        hits = await session.call_tool("search_concepts", {"query": "validator"})
+        concept = await session.call_tool(
+            "read_concept", {"concept_id": "decisions/mcp-server"})
+        neighbors = await session.call_tool(
+            "get_neighbors", {"concept_id": "components/validator"})
+        missing = await session.call_tool("read_concept", {"concept_id": "nope"})
+        return {
+            "protocol": init.protocol_version,
+            "server": init.server_info.name,
+            "version": init.server_info.version,
+            "tools": sorted(t.name for t in tools.tools),
+            "schemas": {t.name: t.input_schema for t in tools.tools},
+            "hits": [c["id"] for c in hits.structured_content["result"]],
+            "concept": concept.structured_content["result"],
+            "neighbors": neighbors.structured_content,
+            "missing_is_error": missing.is_error,
+            "missing_text": missing.content[0].text if missing.content else "",
+        }
 
 
 class EndToEnd(unittest.TestCase):

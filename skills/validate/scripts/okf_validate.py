@@ -61,11 +61,11 @@ ACTOR_SHAPE = re.compile(r"^(?:[^\s:/]+:\S+|\S+/\S+)$")
 # of these, since it satisfies the generic `<prefix>:<id>` shape and so looks
 # entirely well-formed while §5.3 reads it as an agent. The lookahead keeps
 # `humanoid_agent/v1` out: only a non-identifier boundary makes it a near-miss.
-ACTOR_HUMANISH = re.compile(r"^(?:human|process)(?![A-Za-z0-9_])", re.I)
+ACTOR_HUMANISH = re.compile(r"^(?:human|process)(?![A-Za-z0-9_])", re.IGNORECASE)
 FENCE = re.compile(r"^(```|~~~)")
 # markdown link target capture: [text](target) — ignores images ![...]
 LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
-CITATIONS = re.compile(r"^#{1,6}[ \t]+Citations[ \t]*$", re.M)
+CITATIONS = re.compile(r"^#{1,6}[ \t]+Citations[ \t]*$", re.MULTILINE)
 # a footnote *reference* in the body; the definition line `[^id]: …` matches too,
 # which is harmless — both carry the same label, the join key into `sources`.
 FOOTNOTE = re.compile(r"\[\^([^\]\s]+)\]")
@@ -75,18 +75,18 @@ FOOTNOTE = re.compile(r"\[\^([^\]\s]+)\]")
 # A code span closes on a backtick run of exactly its opening length, and may wrap
 # lines within a paragraph but never crosses a blank line.
 FENCE_RUN = re.compile(r"^ {0,3}(`{3,}|~{3,})")
-CODE_SPAN = re.compile(r"(?<!`)(`+)(?!`)((?:(?!\n[ \t]*\n).)+?)(?<!`)\1(?!`)", re.S)
+CODE_SPAN = re.compile(r"(?<!`)(`+)(?!`)((?:(?!\n[ \t]*\n).)+?)(?<!`)\1(?!`)", re.DOTALL)
 
 
 # --migrate only. `timestamp` is a top-level key (§4.1), so anchor at column 0 —
 # an indented one belongs to something else and must not be hoisted.
-TIMESTAMP = re.compile(r"^timestamp:[ \t]*(.+?)[ \t]*$", re.M)
-HEADING = re.compile(r"^#{1,6}[ \t]", re.M)
+TIMESTAMP = re.compile(r"^timestamp:[ \t]*(.+?)[ \t]*$", re.MULTILINE)
+HEADING = re.compile(r"^#{1,6}[ \t]", re.MULTILINE)
 # same shape as LINK above, plus the link text — a citation written with a title
 # attribute, `[Src](url "Title")`, must not be dropped: the section is deleted
 # wholesale once anything parses, so a miss here is silent data loss.
 MD_LINK = re.compile(r"(?<!\!)\[([^\]]+)\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
-OKF_VERSION_LINE = re.compile(r"^(okf_version:[ \t]*)[\"']?0\.1[\"']?[ \t]*$", re.M)
+OKF_VERSION_LINE = re.compile(r"^(okf_version:[ \t]*)[\"']?0\.1[\"']?[ \t]*$", re.MULTILINE)
 # True, and it keeps the concept correctly `unverified` under §5.3: who wrote the
 # content before `generated` existed is not recoverable, and inventing a `human:`
 # actor would fake a review that never happened.

@@ -23,9 +23,9 @@ import argparse
 import json
 import random
 import re
+import shlex
 import shutil
 import subprocess
-import shlex
 import sys
 import tempfile
 import threading
@@ -39,7 +39,8 @@ GATE_DIR = Path(__file__).resolve().parent
 TRUST_DIR = GATE_DIR.parent / "trust"
 sys.path.insert(0, str(TRUST_DIR))
 
-from run import (  # noqa: E402  (the trust benchmark's module, hence the rename of this one)
+from grade import extract_answer, grade
+from run import (
     CLI_SETTINGS,
     CLI_TOOL_NAME,
     Item,
@@ -50,7 +51,6 @@ from run import (  # noqa: E402  (the trust benchmark's module, hence the rename
     split_frontmatter,
     strip_frontmatter_to_core,
 )
-from grade import extract_answer, grade  # noqa: E402
 
 # The gate, in the FastEndpoints spirit: a rule in prose, in the repository, that
 # says the task is not finished until the documentation is reconciled. Quoted in
@@ -181,8 +181,8 @@ def writer_prompt(item: Item, arm: str, root: Path) -> str:
     key = setting_key(item)
     parts = [
         f"The repository is at {root}.",
-        f"Apply this change: `{key}` in `config/settings.yaml` becomes "
-        f"{item.f_new} (it is currently {item.f_old}).",
+        (f"Apply this change: `{key}` in `config/settings.yaml` becomes "
+         f"{item.f_new} (it is currently {item.f_old})."),
     ]
     if arm == "gate":
         # The gate reaches the agent the way it reaches one in a real repository:
@@ -235,7 +235,7 @@ def grade_writer(run: WriterRun) -> dict:
 def run_writer(harness: dict, run: WriterRun) -> dict:
     command = build_writer_command(harness, run.prompt)
     completed = subprocess.run(command, cwd=run.root, capture_output=True, text=True,
-                               stdin=subprocess.DEVNULL, timeout=1200)
+                               stdin=subprocess.DEVNULL, timeout=1200, check=False)
     if completed.returncode != 0:
         raise RuntimeError(f"claude exited {completed.returncode}: {completed.stderr[-400:]}")
     payload = json.loads(completed.stdout)
@@ -372,7 +372,7 @@ def consumer_preflight(run: ConsumerRun, harness: dict) -> list[str]:
 def run_consumer(harness: dict, run: ConsumerRun) -> dict:
     command = build_consumer_command(harness, run.prompt)
     completed = subprocess.run(command, cwd=run.root, capture_output=True, text=True,
-                               stdin=subprocess.DEVNULL, timeout=900)
+                               stdin=subprocess.DEVNULL, timeout=900, check=False)
     if completed.returncode != 0:
         raise RuntimeError(f"claude exited {completed.returncode}: {completed.stderr[-400:]}")
     payload = json.loads(completed.stdout)
@@ -443,17 +443,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"resuming: {len(done)} run(s) already recorded", file=sys.stderr)
 
     jobs: list = []
-    if args.stage == "endtoend":
-        arms = (args.arms or "nogate,gate").split(",")
-        for arm in arms:
-            for item in items:
-                for rep in range(args.reps):
-                    if (arm, item.id, rep) in done:
-                        continue
-                    root = build_writer_repo(item, arm)
-                    jobs.append(WriterRun(item=item, arm=arm, rep=rep, root=root,
-                                           prompt=writer_prompt(item, arm, root)))
-    elif args.stage == "writer":
+    if args.stage == "endtoend" or args.stage == "writer":
         arms = (args.arms or "nogate,gate").split(",")
         for arm in arms:
             for item in items:
@@ -511,9 +501,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"FAILED {job.item.id}: {exc}", file=sys.stderr)
             return
         line = json.dumps(row) + "\n"
-        with lock:
-            with args.out.open("a", encoding="utf-8") as f:
-                f.write(line)
+        with lock, args.out.open("a", encoding="utf-8") as f:
+            f.write(line)
 
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         list(pool.map(execute, jobs))

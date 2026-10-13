@@ -4,6 +4,7 @@
 usage: compare.py <bench-dir> <arm> [<arm> ...]   (expects <bench>/arms/<arm>/rows.jsonl)
 """
 from __future__ import annotations
+
 import json
 import sys
 from pathlib import Path

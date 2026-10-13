@@ -30,10 +30,10 @@ import json
 import random
 import shlex
 import subprocess
-import threading
-import zlib
 import sys
 import tempfile
+import threading
+import zlib
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -49,7 +49,7 @@ CORPUS_DIR = TRUST_DIR / "corpus"
 sys.path.insert(
     0, str(Path(__file__).resolve().parents[2] / "skills" / "validate" / "scripts")
 )
-from okf_validate import split_frontmatter  # noqa: E402
+from okf_validate import split_frontmatter
 
 FRONTMATTER_KEEP = ("type", "title", "description")
 
@@ -311,8 +311,8 @@ def render_base_prompt(today: str, question: str, instruction: str | None, order
     """
     listing = "\n".join(f"- {name}" for name in order)
     parts = [
-        "Answer the question below using only the documents in this corpus, "
-        f"which you can read with the {tool_name} tool. Available documents:",
+        ("Answer the question below using only the documents in this corpus, "
+         f"which you can read with the {tool_name} tool. Available documents:"),
         listing,
         f"Today's date is {today}.",
     ]
@@ -568,7 +568,7 @@ def run_one_trial_cli(harness: dict, trial: Trial) -> dict:
     command = build_cli_command(harness, trial)
     completed = subprocess.run(
         command, cwd=trial.root, capture_output=True, text=True,
-        stdin=subprocess.DEVNULL, timeout=900,
+        stdin=subprocess.DEVNULL, timeout=900, check=False,
     )
     if completed.returncode != 0:
         raise PreflightError(f"claude exited {completed.returncode}: {completed.stderr[-500:]}")
@@ -733,9 +733,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"FAILED {trial.item.id} {trial.arm} rep{trial.rep}: {exc}", file=sys.stderr)
                 return
             line = json.dumps(row) + "\n"
-            with lock:
-                with (outdir / f"{trial.arm}.jsonl").open("a", encoding="utf-8") as f:
-                    f.write(line)
+            with lock, (outdir / f"{trial.arm}.jsonl").open("a", encoding="utf-8") as f:
+                f.write(line)
 
         with ThreadPoolExecutor(max_workers=args.jobs) as pool:
             for _ in pool.map(execute, ready):

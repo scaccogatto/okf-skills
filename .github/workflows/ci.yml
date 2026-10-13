@@ -21,6 +21,11 @@ jobs:
       - name: Validate plugin & marketplace manifests
         run: jq empty .claude-plugin/plugin.json .claude-plugin/marketplace.json .mcp.json
 
+      # Pinned so a ruff release that widens its default rule set is a reviewed
+      # bump here, not a red main. Keep in step with the Makefile's RUFF.
+      - name: Lint the Python scripts (ruff)
+        run: uvx ruff@0.16.10 check .
+
       - name: Unit tests — okf_validate internals
         run: uv run tests/test_okf_validate.py
 

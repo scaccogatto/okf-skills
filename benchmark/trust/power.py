@@ -32,7 +32,7 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from analyze import per_item_rates, select_n_and_k  # noqa: E402
+from analyze import per_item_rates, select_n_and_k
 
 TRUST_DIR = Path(__file__).resolve().parent
 

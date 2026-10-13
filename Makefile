@@ -5,8 +5,13 @@
 PAGES_LINK := https://github.com/scaccogatto/okf-skills
 PAGES_OG   := https://scaccogatto.github.io/okf-skills/assets/og.png
 VISUALIZE  := uv run skills/visualize/scripts/okf_visualize.py
+# Pinned: keep in step with the lint step in .github/workflows/ci.yml.
+RUFF       := uvx ruff@0.16.10
 
-.PHONY: docs test validate
+.PHONY: docs lint test validate
+
+lint:
+	$(RUFF) check .
 
 docs:
 	$(VISUALIZE) examples/sample-bundle -o docs/index.html \

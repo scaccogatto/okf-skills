@@ -16,11 +16,16 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from grade import extract_answer, grade, normalize  # noqa: E402
-from analyze import (  # noqa: E402
-    MissingTrials, analyze, bootstrap_bca, load_trials, per_item_rates, power_n,
+from analyze import (
+    MissingTrials,
+    analyze,
+    bootstrap_bca,
+    load_trials,
+    per_item_rates,
+    power_n,
     select_k,
 )
+from grade import extract_answer, grade, normalize
 
 F_OLD = "384 KiB"
 F_NEW = "112 KiB"

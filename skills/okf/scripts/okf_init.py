@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
@@ -94,8 +94,8 @@ def main() -> int:
         return 1
 
     title = args.title or humanize(args.target.resolve().name)
-    today = datetime.now(timezone.utc).date().isoformat()
-    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    today = datetime.now(UTC).date().isoformat()
+    now_iso = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     args.target.mkdir(parents=True, exist_ok=True)
     (args.target / "index.md").write_text(build_index(title), encoding="utf-8")

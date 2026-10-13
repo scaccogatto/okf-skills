@@ -17,16 +17,15 @@ Run:  uv run okf_backfill_events.py <repo-dir> [--out events.jsonl]
 from __future__ import annotations
 
 import argparse
-import glob as glob_module
 import fnmatch
+import glob as glob_module
 import json
 import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 
 # Skip rule predicates
@@ -91,10 +90,7 @@ def rule_session_command_noise(event: dict, skip_globs: list[str]) -> bool:
         return True
 
     # Too short after strip (< 20 chars) AND no useful outcome
-    if len(user) < 20 and not event.get("outcome"):
-        return True
-
-    return False
+    return len(user) < 20 and not event.get("outcome")
 
 
 SKIP_RULES = [
@@ -122,14 +118,14 @@ def normalize_ts(ts: str) -> float:
             # Date only
             dt = datetime.fromisoformat(ts + "T00:00:00")
         return dt.timestamp()
-    except Exception:
+    except (ValueError, TypeError):
         print(f"Warning: could not parse timestamp {ts!r}, using epoch 0", file=sys.stderr)
         return 0.0
 
 
 def epoch_to_iso_z(epoch: float) -> str:
     """Format a UTC epoch as ISO8601 with a Z suffix, second precision."""
-    return datetime.fromtimestamp(epoch, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.fromtimestamp(epoch, tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def git_log(repo_dir: Path, branches: list[str]) -> list[dict]:
@@ -166,7 +162,7 @@ def _resolve_branches(repo_dir: Path, branches: list[str]) -> list[str]:
             # Typically returns "refs/remotes/origin/main" or similar
             default_branch = result.stdout.strip().split("/")[-1]
             branches = [default_branch]
-    except Exception:
+    except OSError:
         pass
 
     if not branches:
@@ -177,7 +173,7 @@ def _resolve_branches(repo_dir: Path, branches: list[str]) -> list[str]:
                 capture_output=True, text=True, check=True
             )
             branches = [result.stdout.strip()]
-        except Exception:
+        except (subprocess.CalledProcessError, OSError):
             return []
 
     return branches
@@ -290,7 +286,7 @@ def _git_log_one_branch(repo_dir: Path, branch: str) -> list[dict]:
             }
             events.append(event)
 
-    except Exception:
+    except (subprocess.CalledProcessError, OSError):
         # Git command failed, return empty
         pass
 
@@ -308,7 +304,7 @@ def repo_slug(repo_abs: Path) -> str:
     return re.sub(r"[^A-Za-z0-9-]", "-", str(repo_abs))
 
 
-def sessions_from_transcripts(repo_dir: Path, sessions_dir: Optional[Path]) -> list[dict]:
+def sessions_from_transcripts(repo_dir: Path, sessions_dir: Path | None) -> list[dict]:
     """Extract events from Claude session transcripts."""
     events = []
 
@@ -340,7 +336,7 @@ def sessions_from_transcripts(repo_dir: Path, sessions_dir: Optional[Path]) -> l
         # Read raw lines, keeping the real 1-based line number of each record
         try:
             raw_lines = session_path.read_text(encoding="utf-8").splitlines()
-        except Exception:
+        except (OSError, ValueError):
             continue
 
         records = []  # list of (lineno, dict)
@@ -350,7 +346,7 @@ def sessions_from_transcripts(repo_dir: Path, sessions_dir: Optional[Path]) -> l
                 continue
             try:
                 rec = json.loads(line)
-            except Exception:
+            except ValueError:
                 continue
             if isinstance(rec, dict):
                 records.append((lineno, rec))
@@ -432,7 +428,7 @@ def sessions_from_transcripts(repo_dir: Path, sessions_dir: Optional[Path]) -> l
     return events
 
 
-def apply_skip_rules(event: dict, skip_globs: list[str]) -> Optional[str]:
+def apply_skip_rules(event: dict, skip_globs: list[str]) -> str | None:
     """Apply skip rules and return rule_id if should be skipped, None otherwise."""
     for rule in SKIP_RULES:
         if rule.check(event, skip_globs):
@@ -495,7 +491,7 @@ def check_coverage(events_path: Path, bundle_dir: Path) -> list[str]:
                         live_ids.append(event["id"])
                 except json.JSONDecodeError:
                     continue
-    except Exception as e:
+    except (OSError, ValueError, TypeError) as e:
         print(f"Error reading events: {e}", file=sys.stderr)
         sys.exit(1)
 
@@ -505,9 +501,9 @@ def check_coverage(events_path: Path, bundle_dir: Path) -> list[str]:
         for md_file in bundle_dir.rglob("*.md"):
             try:
                 bundle_text += md_file.read_text(encoding="utf-8") + "\n"
-            except Exception:
+            except (OSError, ValueError):
                 continue
-    except Exception as e:
+    except OSError as e:
         print(f"Error reading bundle: {e}", file=sys.stderr)
         sys.exit(1)
 
@@ -589,7 +585,7 @@ def cap_patch(
     max_diff_lines: int,
     max_line_chars: int,
     skip_globs: list[str],
-    only: Optional[str] = None,
+    only: str | None = None,
 ) -> tuple[list[str], dict]:
     """Cap patches per-file and globally.
 
@@ -634,9 +630,8 @@ def cap_patch(
     total = sum(len(b["header"]) + sum(len(h) for h in b["hunks"]) for b in eligible)
 
     # Validate --only path
-    if only is not None:
-        if only not in numstat_by_path:
-            raise KeyError(f"Path not found in commit: {only}")
+    if only is not None and only not in numstat_by_path:
+        raise KeyError(f"Path not found in commit: {only}")
 
     # Process blocks
     block_idx = 0
@@ -646,10 +641,7 @@ def cap_patch(
         # Check glob omission
         if matches_globs([block_path], globs):
             # Emit marker, consume nothing
-            if block_path in numstat_by_path:
-                add_str, del_str = numstat_by_path[block_path]
-            else:
-                add_str, del_str = "-", "-"
+            add_str, del_str = numstat_by_path.get(block_path, ("-", "-"))
             patch_lines.append(f"[patch omitted: {block_path} (generated), {add_str} {del_str}]")
             continue
 
@@ -782,7 +774,7 @@ def show_commit(
     repo_dir: Path,
     sha: str,
     *,
-    only: Optional[str] = None,
+    only: str | None = None,
     max_diff_lines: int = 300,
     per_file_lines: int = 120,
     max_line_chars: int = 400,
@@ -878,7 +870,7 @@ def main():
             bundle_dir = Path(args.check_coverage[1])
             unmapped = check_coverage(events_path, bundle_dir)
             if unmapped:
-                print(f"Unmapped events (exit 1):")
+                print("Unmapped events (exit 1):")
                 for event_id in unmapped:
                     print(f"  {event_id}")
                 sys.exit(1)

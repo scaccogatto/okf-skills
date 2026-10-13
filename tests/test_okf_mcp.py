@@ -19,7 +19,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "servers"))
-from okf_mcp import build  # noqa: E402
+from mcp.server.mcpserver.exceptions import ToolError
+from okf_mcp import build
 
 CONCEPT = ('---\ntype: Decision\ntitle: {title}\ndescription: {desc}\n'
            'tags: [adr]\nstatus: {status}\n---\n\n{body}\n')
@@ -77,7 +78,7 @@ class ServerTest(unittest.TestCase):
 
     def test_search_honours_limit_and_rejects_empty(self):
         self.assertEqual(len(call(self.mcp, "search_concepts", query="e", limit=1)), 1)
-        with self.assertRaises(Exception):
+        with self.assertRaisesRegex(ToolError, "must not be empty"):
             call(self.mcp, "search_concepts", query="   ")
 
     def test_read_returns_frontmatter_verbatim(self):
@@ -89,9 +90,9 @@ class ServerTest(unittest.TestCase):
         self.assertIn("okf_version", call(self.mcp, "read_concept", concept_id="index"))
 
     def test_read_refuses_escaping_the_bundle(self):
-        with self.assertRaises(Exception):
+        with self.assertRaisesRegex(ToolError, "no such concept"):
             call(self.mcp, "read_concept", concept_id="../../etc/passwd")
-        with self.assertRaises(Exception):
+        with self.assertRaisesRegex(ToolError, "no such concept"):
             call(self.mcp, "read_concept", concept_id="decisions/nope")
 
     def test_neighbors_both_directions_and_no_external_links(self):

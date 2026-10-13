@@ -7,6 +7,7 @@ Prints an aggregate JSON summary. With --rows, writes one row per expected live 
 (paired comparisons across arms join on event id).
 """
 from __future__ import annotations
+
 import json
 import re
 import sys

@@ -19,9 +19,15 @@ from pathlib import Path
 GATE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(GATE_DIR))
 
-from analyze import analyze, contrast  # noqa: E402
-from pipeline import (  # noqa: E402
+# Order matters: importing pipeline puts benchmark/trust first on sys.path,
+# and that directory has its own analyze.py. The gate's must be bound first.
+from analyze import analyze, contrast
+
+# isort: split
+import pipeline as gate_run
+from pipeline import (
     AGENTS_MD,
+    WriterRun,
     artifact_text,
     build_consumer_command,
     build_writer_command,
@@ -31,10 +37,9 @@ from pipeline import (  # noqa: E402
     writer_doc,
     writer_prompt,
 )
-from pipeline import WriterRun  # noqa: E402
-import pipeline as gate_run  # noqa: E402
+
 sys.path.insert(0, str(GATE_DIR.parent / "trust"))
-from run import load_harness, parsed_meta  # noqa: E402
+from run import load_harness, parsed_meta
 
 HARNESS = load_harness()
 

@@ -15,9 +15,16 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills" / "validate" / "scripts"))
-from okf_validate import (  # noqa: E402
-    Report, check_concept, check_index, check_links, check_log,
-    collect_link_targets, migrate, split_frontmatter, validate,
+from okf_validate import (
+    Report,
+    check_concept,
+    check_index,
+    check_links,
+    check_log,
+    collect_link_targets,
+    migrate,
+    split_frontmatter,
+    validate,
 )
 
 FULL_META = ('---\ntype: Reference\ntitle: t\ndescription: d\ntags: [x]\n'
@@ -52,7 +59,7 @@ class TestSplitFrontmatter(unittest.TestCase):
         self.assertEqual(split_frontmatter("just text"), (None, "just text"))
 
     def test_unterminated_is_absent(self):
-        raw, body = split_frontmatter("---\ntype: A\nno closing fence\n")
+        raw, _ = split_frontmatter("---\ntype: A\nno closing fence\n")
         self.assertIsNone(raw)
 
     def test_first_line_must_be_bare_dashes(self):
@@ -363,9 +370,9 @@ class TestCheckLinks(TmpBundle):
 
     def test_resolution_matrix(self):
         r = self.links(
-            ("a.md", "[ok](sub/b.md) [ok abs](/sub/b.md) [anchor](sub/b.md#x) "
-                     "[ext](https://example.com/x.md) [mail](mailto:x@y.z) "
-                     "[dir](sub/) [asset](img.png) [missing](nope.md)"),
+            ("a.md", ("[ok](sub/b.md) [ok abs](/sub/b.md) [anchor](sub/b.md#x) "
+                      "[ext](https://example.com/x.md) [mail](mailto:x@y.z) "
+                      "[dir](sub/) [asset](img.png) [missing](nope.md)")),
             ("sub/b.md", "[up ok](../a.md) [escape](../../etc/passwd.md)"),
         )
         warned = " ".join(r.warnings)

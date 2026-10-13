@@ -22,7 +22,7 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from run import (  # noqa: E402
+from run import (
     Item,
     PreflightError,
     assemble_trial,

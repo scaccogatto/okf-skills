@@ -18,7 +18,7 @@ import re
 # Multiline: the field can appear anywhere the model puts it, and revision 1's
 # grader-fidelity tests (§9) require taking the LAST such line when several
 # appear, so every match is collected rather than short-circuiting on the first.
-ANSWER_LINE = re.compile(r"^ANSWER:[ \t]*(.*?)[ \t]*$", re.M)
+ANSWER_LINE = re.compile(r"^ANSWER:[ \t]*(.*?)[ \t]*$", re.MULTILINE)
 
 def extract_answer(response_text: str) -> str | None:
     """Return the value of the LAST `ANSWER: <value>` line, or None if absent."""
@@ -51,8 +51,7 @@ def normalize(value: str) -> str:
     v = re.sub(r"\s+", " ", v).strip()
     # "the client" and "client" assert the same thing; the article is never the
     # difference between two values in an item.
-    if v.startswith("the "):
-        v = v[4:]
+    v = v.removeprefix("the ")
     return v
 
 

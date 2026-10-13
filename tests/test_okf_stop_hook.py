@@ -44,7 +44,7 @@ class TestStopHook(unittest.TestCase):
         """True when the hook blocks."""
         base = {k: v for k, v in os.environ.items() if k != "OKF_HOOK"}
         r = subprocess.run(["bash", str(HOOK)], cwd=self.repo, input=payload,
-                           capture_output=True, text=True, env={**base, **env})
+                           capture_output=True, text=True, env={**base, **env}, check=False)
         self.assertEqual(r.returncode, 0, r.stderr)
         return '"decision":"block"' in r.stdout
 
@@ -137,7 +137,7 @@ class TestStopHook(unittest.TestCase):
     def test_block_reason_does_not_demand_a_log_entry(self) -> None:
         self.edit_code()
         r = subprocess.run(["bash", str(HOOK)], cwd=self.repo, input=INACTIVE,
-                           capture_output=True, text=True)
+                           capture_output=True, text=True, check=False)
         self.assertIn("nothing under .okf/ changed", r.stdout)
         self.assertIn("only for a lifecycle event", r.stdout)
 

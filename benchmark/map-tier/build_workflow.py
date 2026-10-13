@@ -24,7 +24,7 @@ repo, bench = Path(args.repo_dir).resolve(), Path(args.bench_dir).resolve()
 
 
 def body_without_frontmatter(md: str) -> str:
-    return re.sub(r"\A---\n.*?\n---\n", "", md, count=1, flags=re.S).strip()
+    return re.sub(r"\A---\n.*?\n---\n", "", md, count=1, flags=re.DOTALL).strip()
 
 
 analyzer = body_without_frontmatter((repo / "agents/event-analyzer.md").read_text())
