@@ -346,6 +346,9 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           SKIP: ${{ contains(github.event.pull_request.labels.*.name, 'skip-version-check') }}
+    # A Dependabot PR whose only shipped change is an action.yml pin is exempt
+    # too: Dependabot cannot bump plugin.json, so it would sit red on this
+    # required check forever. The pin ships with the next real release.
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
@@ -362,6 +365,7 @@ jobs:
           shipped='^(\.claude-plugin/|skills/|agents/|hooks/|servers/|templates/|action\.yml|\.mcp\.json)'
           changed="$(git diff --name-only "$BASE" "$HEAD")"
           if ! echo "$changed" | grep -qE "$shipped"; then
+          AUTHOR: ${{ github.event.pull_request.user.login }}
             echo "No shipped-surface files changed; version bump not required."
             exit 0
           fi
@@ -381,6 +385,10 @@ jobs:
       # The plugin's Stop hook keeps `.okf/` and the changelog honest for anyone
       # running the plugin. Contributors who are not running it get nothing, so
       # the same two obligations are mirrored here. Same PR-only guard and same
+          if [ "$AUTHOR" = "dependabot[bot]" ] && [ "$(echo "$changed" | grep -E "$shipped")" = "action.yml" ]; then
+            echo "Dependabot pin bump limited to action.yml; it ships with the next release."
+            exit 0
+          fi
       # `skip-version-check` label as the gate above.
 
       - name: Require a changelog entry for the new version

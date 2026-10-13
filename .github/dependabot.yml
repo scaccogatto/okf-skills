@@ -2,7 +2,9 @@ version: 2
 updates:
   # The skills are PEP 723 inline-metadata scripts run with `uv run`: no
   # manifest or lockfile for Dependabot to read, so only the Actions pins
-  # (workflows and the composite action.yml) are tracked here.
+  # (workflows and the composite action.yml) are tracked here. A bump that
+  # touches action.yml passes ci.yml's version-bump gate without a plugin
+  # version change and ships with the next release.
   - package-ecosystem: github-actions
     directory: /
     schedule:
