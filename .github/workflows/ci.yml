@@ -40,6 +40,9 @@ jobs:
       - name: Behaviour tests — Stop hook gates
         run: uv run tests/test_okf_stop_hook.py
 
+      - name: Supply-chain tests (CDN SRI, bounded script dependencies)
+        run: uv run tests/test_supply_chain.py
+
       # The trust benchmark ships no runnable product, but its grader and its
       # analysis decide whether a published result is honest, so they are held to
       # the same gate as the skills. No API call is made: the runner is exercised

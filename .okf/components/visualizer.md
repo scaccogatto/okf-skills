@@ -5,7 +5,7 @@ description: Standalone bundle to viz.html renderer (Cytoscape, marked, DOMPurif
 resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/visualize/scripts/okf_visualize.py
 tags: [python, visualization, cytoscape]
 status: stable
-generated: { by: agent:claude-opus-5, at: "2026-09-01T00:00:00Z" }
+generated: { by: "agent:claude-opus-5-5", at: "2026-10-13T00:00:00Z" }
 ---
 
 # Overview
@@ -22,6 +22,15 @@ so legacy bundles still show a date.
 
 Concept bodies are untrusted content, so markdown output is passed through
 DOMPurify before it reaches `innerHTML`.
+
+The three CDN scripts (Cytoscape, marked, DOMPurify) are each pinned to an exact
+version and carry Subresource Integrity (`integrity` plus
+`crossorigin="anonymous"`). DOMPurify sanitizes what marked returns, so it cannot
+protect against a compromised marked: before 0.10.2 marked was loaded as
+`marked@14`, a floating range, with no SRI. `tests/test_supply_chain.py` fails
+any external script in the generator output or the committed `docs/` demos that
+lacks an exact version or SRI. Bumping a library means recomputing its hash
+(`openssl dgst -sha384 -binary | openssl base64 -A`) and running `make docs`.
 
 # Derived signals
 
