@@ -4,6 +4,20 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.10.1] - 2026-10-13
+
+### Fixed
+- **`validate` no longer reads regex classes in code as footnotes (#56).**
+  A `[^#?/]` inside a code span or a fenced block warned as a §5.1 footnote
+  naming no source, which made `--strict` unusable on bundles that document
+  regexes. Footnote labels are now collected after code spans and fences are
+  stripped, as CommonMark does.
+- **The Stop hook ignores the Claude Code settings files (#58).** A tracked
+  change to `.claude/settings.json` or `.claude/settings.local.json` alone no
+  longer blocks: `/plugin` writes the first, no concept documents it, and every
+  session in that checkout was blocked until it was committed. Other tracked
+  paths under `.claude/` (commands, hooks, skills) still count.
+
 ## [0.10.0] - 2026-09-28
 
 ### Changed
