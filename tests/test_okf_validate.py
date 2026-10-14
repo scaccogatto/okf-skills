@@ -71,6 +71,11 @@ class TestSplitFrontmatter(unittest.TestCase):
         self.assertEqual(raw, "type: A\n")
         self.assertEqual(body, "body")
 
+    def test_indented_dashes_in_block_scalar_do_not_close(self):
+        raw, body = split_frontmatter("---\ndescription: |\n  a\n  ---\n  b\ntitle: T\n---\nbody")
+        self.assertEqual(raw, "description: |\n  a\n  ---\n  b\ntitle: T\n")
+        self.assertEqual(body, "body")
+
     def test_empty_block(self):
         raw, body = split_frontmatter("---\n---\nbody")
         self.assertEqual(raw, "")
