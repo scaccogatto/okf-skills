@@ -179,7 +179,7 @@ def check_concept(path: Path, rel: str, bundle: Path, report: Report) -> None:
         return
     try:
         meta = yaml.safe_load(raw)
-    except yaml.YAMLError as exc:
+    except (yaml.YAMLError, ValueError) as exc:
         report.err(rel, f"§11.1 frontmatter is not valid YAML: {exc}".replace("\n", " "))
         return
     if not isinstance(meta, dict):
@@ -354,7 +354,7 @@ def check_index(path: Path, rel: str, is_root: bool, report: Report) -> None:
         else:
             try:
                 meta = yaml.safe_load(raw) or {}
-            except yaml.YAMLError:
+            except (yaml.YAMLError, ValueError):
                 report.warn(rel, "§12 root index.md frontmatter is not valid YAML")
                 meta = {}
             # `upkeep` rides along: the plugin's Stop hook reads its opt-in flag
@@ -461,7 +461,7 @@ def migrate_text(text: str, is_root_index: bool) -> str | None:
         return None if new_raw == raw else f"---\n{new_raw}---\n{body}"
     try:
         meta = yaml.safe_load(raw)
-    except yaml.YAMLError:
+    except (yaml.YAMLError, ValueError):
         return None
     if not isinstance(meta, dict):
         return None

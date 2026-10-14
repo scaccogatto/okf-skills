@@ -106,6 +106,11 @@ class TestCheckConcept(TmpBundle):
         r = self.run_check(check_concept, "c.md", self.bundle)
         self.assertIn("not valid YAML", r.errors[0])
 
+    def test_impossible_date_is_error_not_crash(self):
+        self.write("c.md", "---\ntype: A\ndecided: 2026-02-30\n---\nbody\n")
+        r = self.run_check(check_concept, "c.md", self.bundle)
+        self.assertIn("not valid YAML", r.errors[0])
+
     def test_non_mapping_frontmatter_is_error(self):
         self.write("c.md", "---\n- a\n- b\n---\nbody\n")
         r = self.run_check(check_concept, "c.md", self.bundle)
@@ -332,6 +337,11 @@ class TestCheckIndex(TmpBundle):
         self.write("sub/index.md", "---\nokf_version: '0.2'\n---\n")
         r = self.run_check(check_index, "sub/index.md", False)
         self.assertIn("§8", r.warnings[0])
+
+    def test_root_impossible_date_warns_not_crash(self):
+        self.write("index.md", "---\nokf_version: '0.2'\nd: 2026-13-45\n---\n")
+        r = self.run_check(check_index, "index.md", True)
+        self.assertIn("not valid YAML", r.warnings[0])
 
     def test_no_frontmatter_is_clean(self):
         self.write("sub/index.md", "# Plain index\n")
