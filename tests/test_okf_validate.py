@@ -162,6 +162,11 @@ class TestV02Families(TmpBundle):
             r = self.concept(f"generated: {{ by: human:t }}\nstatus: {status}\n")
             self.assertEqual((r.errors, r.warnings), ([], []), status)
 
+    def test_list_or_mapping_status_warns_and_does_not_crash(self):
+        for status in ("[draft, stable]", "{a: 1}"):
+            r = self.concept(f"generated: {{ by: human:t }}\nstatus: {status}\n")
+            self.assertIn("§5.4", self.only(r), status)
+
     def test_stale_after_must_be_an_absolute_date(self):
         # unquoted YAML dates resolve to date objects — both spellings must pass
         for ok in ("2026-09-23", "'2026-09-23'"):

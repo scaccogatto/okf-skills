@@ -257,7 +257,7 @@ def check_lifecycle(meta: dict, rel: str, report: Report) -> None:
     """§5.4 / §5.5 — `status` and `stale_after`. A concept is stale when
     `now >= stale_after`."""
     status = meta.get("status")
-    if status is not None and status not in STATUS_VALUES:
+    if status is not None and not (isinstance(status, str) and status in STATUS_VALUES):
         report.warn(rel, f"§5.4 unknown `status` `{status}` (expected "
                          f"{'|'.join(sorted(STATUS_VALUES))})")
     stale = meta.get("stale_after")
