@@ -395,6 +395,10 @@ class TestCheckLinks(TmpBundle):
         self.assertIn("passwd.md", warned)
         self.assertEqual(len(r.warnings), 2, r.warnings)
 
+    def test_percent_encoded_target_resolves(self):
+        r = self.links(("My Note.md", "x"), ("a.md", "[n](My%20Note.md)"))
+        self.assertEqual(r.warnings, [])
+
 
 class TestValidateEndToEnd(TmpBundle):
     def test_counts_and_conformance(self):

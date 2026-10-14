@@ -32,6 +32,7 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import unquote
 
 import yaml
 
@@ -410,7 +411,7 @@ def check_links(bundle: Path, md_files: list[Path], report: Report) -> None:
     for path in md_files:
         rel = path.relative_to(bundle).as_posix()
         for target in collect_link_targets(path):
-            t = target.split("#", 1)[0]
+            t = unquote(target.split("#", 1)[0])
             if not t or t.endswith("/"):
                 continue
             if re.match(r"^[a-z][a-z0-9+.-]*://", t) or t.startswith("mailto:"):
