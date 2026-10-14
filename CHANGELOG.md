@@ -4,6 +4,19 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.11.0] - 2026-10-14
+
+### Added
+- **The enforced-upkeep Stop hook can watch nested git repos.** A bundle that
+  documents separate repos checked out inside the project (say `repos/app-fe/`
+  and `repos/app-be/`, gitignored by the outer repo) never saw their changes, so
+  `upkeep: enforced` stayed quiet on real code edits. Add `upkeep_repos` to the
+  root `index.md` frontmatter, a glob relative to the project root
+  (`upkeep_repos: repos/*`) or a list (`upkeep_repos: [repos/*, vendor/lib]`), and
+  uncommitted changes to tracked files in those repos now count. The block
+  message names the nested repos. Bundles without the key behave as before, and
+  the validator accepts the key in the root index.
+
 ## [0.10.3] - 2026-10-13
 
 ### Added

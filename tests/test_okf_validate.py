@@ -312,6 +312,12 @@ class TestCheckIndex(TmpBundle):
         r = self.run_check(check_index, "index.md", True)
         self.assertEqual((r.errors, r.warnings), ([], []))
 
+    def test_root_upkeep_repos_is_clean(self):
+        # Read by the Stop hook alongside `upkeep`; same reasoning applies.
+        self.write("index.md", "---\nokf_version: '0.2'\nupkeep: enforced\nupkeep_repos: [repos/*]\n---\n# Index\n")
+        r = self.run_check(check_index, "index.md", True)
+        self.assertEqual((r.errors, r.warnings), ([], []))
+
     def test_root_extra_keys_warn(self):
         self.write("index.md", "---\nokf_version: '0.2'\ntype: X\n---\n")
         r = self.run_check(check_index, "index.md", True)

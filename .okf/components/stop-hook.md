@@ -5,7 +5,7 @@ description: Dormant Stop hook — a no-op unless a bundle opts in to enforced u
 resource: https://github.com/scaccogatto/okf-skills/blob/main/hooks/okf-stop-check.sh
 tags: [bash, hook, enforcement]
 status: stable
-generated: { by: "agent:claude-opus-5-5", at: "2026-10-13T00:00:00Z" }
+generated: { by: "agent:claude-opus-5-5", at: "2026-10-14T00:00:00Z" }
 ---
 
 # Overview
@@ -33,6 +33,8 @@ checked in order:
    `.claude/settings.json` and `.claude/settings.local.json`, are ignored even
    when tracked: `/plugin` writes the first, and no concept documents it.
    Every other tracked path under `.claude/` (commands, hooks, skills) counts.
+   The same rule applies to each nested repo named by `upkeep_repos` (see
+   [Activation](#activation)): their tracked changes join the outer repo's.
 6. nothing under `.okf/` is changed, untracked files included (a new concept
    starts untracked). Any bundle change means it was plausibly maintained this
    session, so the hook stays quiet.
@@ -60,6 +62,16 @@ A bundle turns this on by adding `upkeep: enforced` to `.okf/index.md`'s
 frontmatter. A user force-disables it regardless of bundle settings by
 setting `OKF_HOOK=off` in their environment.
 
+A bundle that documents separate git repos checked out *inside* the project
+(say `repos/devkit-fe/`, each its own repo, gitignored by the outer one) adds
+`upkeep_repos` to the same frontmatter: one line, a glob relative to the project
+root (`upkeep_repos: repos/*`) or a flow list (`upkeep_repos: [repos/*, vendor/lib]`,
+items may be quoted). Every match that is a git work tree rooted at that path
+has its tracked changes counted like the outer repo's; globs matching nothing
+and non-repos are skipped silently. When nested repos contribute changes, the
+block reason names them. Without the key nothing changes. The key is read only
+when `upkeep: enforced` is set, and the validator allows it in the root index.
+
 # The CI mirror
 
 The hook only reaches people running the plugin. A contributor sending a PR from
@@ -83,6 +95,8 @@ set of required status checks does not change.
   session satisfies gate 6 and silences the hook until it is committed. So does
   touching an unrelated concept: the gate checks that the bundle moved, not
   that the right concept did.
+* Committed changes in a nested repo are not seen, same as in the outer repo:
+  only uncommitted tracked modifications count.
 * Paths resolve from the session's working directory: a bundle not at
   `./.okf/` (monorepo subdirectory, session launched elsewhere) is never seen.
 * The loop guard greps the raw JSON for `"stop_hook_active": true` rather

@@ -141,6 +141,90 @@ class TestStopHook(unittest.TestCase):
         self.assertIn("nothing under .okf/ changed", r.stdout)
         self.assertIn("only for a lifecycle event", r.stdout)
 
+    def set_upkeep_repos(self, value: str) -> None:
+        """Declare upkeep_repos in the root index and commit it with a gitignored repos/."""
+        (self.repo / ".okf/index.md").write_text(
+            f"---\nupkeep: enforced\nupkeep_repos: {value}\n---\n# Bundle\n")
+        (self.repo / ".gitignore").write_text("repos/\n")
+        sh(self.repo, "git", "add", "-A")
+        sh(self.repo, "git", "commit", "-qm", "declare nested repos")
+
+    def add_nested(self, rel: str) -> Path:
+        nested = self.repo / rel
+        nested.mkdir(parents=True)
+        sh(nested, "git", "init", "-q")
+        sh(nested, "git", "config", "user.email", "test@example.com")
+        sh(nested, "git", "config", "user.name", "test")
+        (nested / "lib.py").write_text("x = 1\n")
+        sh(nested, "git", "add", "-A")
+        sh(nested, "git", "commit", "-qm", "init")
+        return nested
+
+    def hook_output(self) -> str:
+        r = subprocess.run(["bash", str(HOOK)], cwd=self.repo, input=INACTIVE,
+                           capture_output=True, text=True, check=False)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return r.stdout
+
+    def test_nested_repo_change_blocks(self) -> None:
+        self.set_upkeep_repos("repos/*")
+        nested = self.add_nested("repos/fe")
+        self.assertFalse(self.run_hook())
+        (nested / "lib.py").write_text("x = 2\n")
+        self.assertTrue(self.run_hook())
+
+    def test_nested_change_with_bundle_change_passes(self) -> None:
+        self.set_upkeep_repos("repos/*")
+        (self.add_nested("repos/fe") / "lib.py").write_text("x = 2\n")
+        (self.repo / ".okf/a.md").write_text("---\ntype: Thing\n---\nB\n")
+        self.assertFalse(self.run_hook())
+
+    def test_nested_repo_not_listed_is_ignored(self) -> None:
+        self.set_upkeep_repos("vendor/*")
+        (self.add_nested("repos/fe") / "lib.py").write_text("x = 2\n")
+        self.assertFalse(self.run_hook())
+
+    def test_flow_list_form(self) -> None:
+        self.set_upkeep_repos("[vendor/lib, repos/*]")
+        (self.add_nested("repos/fe") / "lib.py").write_text("x = 2\n")
+        self.assertTrue(self.run_hook())
+
+    def test_quoted_items(self) -> None:
+        self.set_upkeep_repos("['vendor/lib', \"repos/*\"]")
+        (self.add_nested("repos/fe") / "lib.py").write_text("x = 2\n")
+        self.assertTrue(self.run_hook())
+
+    def test_missing_glob_target_is_ignored(self) -> None:
+        self.set_upkeep_repos("[repos/*, vendor/lib]")
+        self.assertFalse(self.run_hook())
+
+    def test_plain_directory_is_not_a_nested_repo(self) -> None:
+        self.set_upkeep_repos("[repos/*, app]")
+        (self.repo / "app").mkdir()
+        (self.repo / "app/m.py").write_text("x = 1\n")
+        sh(self.repo, "git", "add", "-A")
+        sh(self.repo, "git", "commit", "-qm", "app")
+        self.assertFalse(self.run_hook())
+
+    def test_untracked_file_in_nested_repo_passes(self) -> None:
+        self.set_upkeep_repos("repos/*")
+        (self.add_nested("repos/fe") / "scratch.py").write_text("y = 1\n")
+        self.assertFalse(self.run_hook())
+
+    def test_block_reason_names_the_nested_repos(self) -> None:
+        self.set_upkeep_repos("repos/*")
+        (self.add_nested("repos/fe") / "lib.py").write_text("x = 2\n")
+        (self.add_nested("repos/be") / "lib.py").write_text("x = 2\n")
+        self.add_nested("repos/clean")
+        out = self.hook_output()
+        self.assertIn("nested repos: repos/be, repos/fe", out)
+        self.assertNotIn("repos/clean", out)
+        self.assertEqual(out.count("\n"), 1)
+
+    def test_block_reason_without_nested_repos_is_unchanged(self) -> None:
+        self.edit_code()
+        self.assertNotIn("nested", self.hook_output())
+
 
 if __name__ == "__main__":
     unittest.main()

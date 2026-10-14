@@ -357,10 +357,11 @@ def check_index(path: Path, rel: str, is_root: bool, report: Report) -> None:
             except yaml.YAMLError:
                 report.warn(rel, "§12 root index.md frontmatter is not valid YAML")
                 meta = {}
-            # `upkeep` rides along: the plugin's Stop hook reads its opt-in flag
-            # from here, so an enforced-mode bundle would otherwise fail its own
-            # `--strict` run. §11 forbids rejecting a bundle for unknown keys.
-            extra = set(meta) - {"okf_version", "upkeep"}
+            # `upkeep` and `upkeep_repos` ride along: the plugin's Stop hook reads
+            # its opt-in flag and nested-repo globs from here, so an enforced-mode
+            # bundle would otherwise fail its own `--strict` run. §11 forbids
+            # rejecting a bundle for unknown keys.
+            extra = set(meta) - {"okf_version", "upkeep", "upkeep_repos"}
             if extra:
                 report.warn(rel, f"§12 root index.md frontmatter may only carry `okf_version` (found {sorted(extra)})")
             declared = meta.get("okf_version")
