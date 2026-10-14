@@ -375,6 +375,10 @@ class TestCollectLinkTargets(TmpBundle):
         p = self.write("c.md", "[real](a.md)\n```\n[fake](in-fence.md)\n```\n~~~\n[fake2](tilde.md)\n~~~\n[also](b.md)\n")
         self.assertEqual(collect_link_targets(p), ["a.md", "b.md"])
 
+    def test_inline_code_span_is_skipped(self):
+        p = self.write("c.md", "[real](a.md) and `[fake](x.md)` and ``[fake2](y.md)``\n")
+        self.assertEqual(collect_link_targets(p), ["a.md"])
+
 
 class TestCheckLinks(TmpBundle):
     def links(self, *files: tuple[str, str]) -> Report:

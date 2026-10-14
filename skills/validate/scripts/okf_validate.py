@@ -63,7 +63,6 @@ ACTOR_SHAPE = re.compile(r"^(?:[^\s:/]+:\S+|\S+/\S+)$")
 # entirely well-formed while §5.3 reads it as an agent. The lookahead keeps
 # `humanoid_agent/v1` out: only a non-identifier boundary makes it a near-miss.
 ACTOR_HUMANISH = re.compile(r"^(?:human|process)(?![A-Za-z0-9_])", re.IGNORECASE)
-FENCE = re.compile(r"^(```|~~~)")
 # markdown link target capture: [text](target) — ignores images ![...]
 LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 CITATIONS = re.compile(r"^#{1,6}[ \t]+Citations[ \t]*$", re.MULTILINE)
@@ -394,13 +393,7 @@ def collect_link_targets(path: Path) -> list[str]:
     except (UnicodeDecodeError, OSError):
         return []
     targets: list[str] = []
-    in_fence = False
-    for line in text.splitlines():
-        if FENCE.match(line.strip()):
-            in_fence = not in_fence
-            continue
-        if in_fence:
-            continue
+    for line in strip_code(text).splitlines():
         targets.extend(LINK.findall(line))
     return targets
 
