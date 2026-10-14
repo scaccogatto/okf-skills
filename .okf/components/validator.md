@@ -40,6 +40,13 @@ The root `index.md` frontmatter carries only `okf_version` or `upkeep` (the Stop
 hook's opt-in flag rides along, so an enforced-upkeep bundle passes its own
 `--strict` run), and a declared `okf_version` matches the checked version.
 
+Frontmatter closes at the first `---` line at column 0 (trailing whitespace
+allowed), so an indented `---` inside a block scalar stays content. A frontmatter
+value that PyYAML rejects, a bad date such as `2026-02-30` included, is a
+per-file error, never a crash. A non-string `status` warns like an unknown one.
+The cross-link scan skips fenced blocks and inline code spans, and decodes
+percent-encoding (`My%20Note.md`) before it looks the file up.
+
 # The actor check (§7)
 
 Deliberately not a whitelist — the spec's own §5.1 example uses
