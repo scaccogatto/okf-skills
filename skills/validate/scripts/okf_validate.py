@@ -117,7 +117,8 @@ def split_frontmatter(text: str) -> tuple[str | None, str]:
     if lines[0].strip() != "---":
         return None, text
     for i in range(1, len(lines)):
-        if lines[i].strip() == "---":
+        # column 0 only: an indented `---` can sit inside a block scalar
+        if lines[i].rstrip() == "---":
             return "".join(lines[1:i]), "".join(lines[i + 1 :])
     return None, text  # unterminated block → treated as absent
 
