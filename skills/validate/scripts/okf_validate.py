@@ -171,9 +171,21 @@ class UniqueKeyLoader(yaml.SafeLoader):
         return super().construct_mapping(node, deep=deep)
 
 
+class ImpossibleValueError(yaml.YAMLError):
+    """A scalar YAML accepts but Python cannot build, such as `2026-02-30` (#63)."""
+
+
 def load_frontmatter(raw: str):
-    """Parse a frontmatter block with duplicate-key detection (§4)."""
-    return yaml.load(raw, Loader=UniqueKeyLoader)  # a SafeLoader subclass: no arbitrary objects
+    """Parse a frontmatter block with duplicate-key detection (§4).
+
+    PyYAML resolves an unquoted `2026-02-30` as a timestamp and then raises a bare
+    ValueError building it. Re-raised as a YAMLError, every caller reports it as a
+    per-file error instead of crashing the run.
+    """
+    try:
+        return yaml.load(raw, Loader=UniqueKeyLoader)  # a SafeLoader subclass: no arbitrary objects
+    except ValueError as exc:
+        raise ImpossibleValueError(f"impossible value: {exc}") from exc
 
 
 def is_empty(value) -> bool:
