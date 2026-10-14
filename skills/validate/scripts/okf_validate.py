@@ -451,7 +451,7 @@ def check_lifecycle(meta: dict, path: Path, bundle: Path, rel: str, report: Repo
     """§5.4 / §5.5 — `status`, `superseded_by` and `stale_after`. A concept is stale
     when `now >= stale_after`."""
     status = meta.get("status")
-    if not is_empty(status) and status not in STATUS_VALUES:
+    if not is_empty(status) and not (isinstance(status, str) and status in STATUS_VALUES):
         report.warn(rel, f"§5.4 unknown `status` `{status}` (expected "
                          f"{'|'.join(sorted(STATUS_VALUES))}): consumers treat it as "
                          f"not current")
