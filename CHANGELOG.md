@@ -4,6 +4,14 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.11.0] - 2026-10-15
+
+### Added
+- **The visualizer's detail panel is resizable.** Drag the bar between the graph
+  and the panel; double-click it to restore the default 400px. The width is
+  remembered per browser (`localStorage`). The graph re-runs the selected layout
+  when a drag ends and when the window resizes, so it fills the new space.
+
 ## [0.10.3] - 2026-10-13
 
 ### Added
