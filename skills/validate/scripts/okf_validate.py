@@ -32,6 +32,7 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import unquote
 
 import yaml
 
@@ -62,7 +63,6 @@ ACTOR_SHAPE = re.compile(r"^(?:[^\s:/]+:\S+|\S+/\S+)$")
 # entirely well-formed while §5.3 reads it as an agent. The lookahead keeps
 # `humanoid_agent/v1` out: only a non-identifier boundary makes it a near-miss.
 ACTOR_HUMANISH = re.compile(r"^(?:human|process)(?![A-Za-z0-9_])", re.IGNORECASE)
-FENCE = re.compile(r"^(```|~~~)")
 # markdown link target capture: [text](target) — ignores images ![...]
 LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 CITATIONS = re.compile(r"^#{1,6}[ \t]+Citations[ \t]*$", re.MULTILINE)
@@ -93,6 +93,82 @@ OKF_VERSION_LINE = re.compile(r"^(okf_version:[ \t]*)[\"']?0\.1[\"']?[ \t]*$", r
 MIGRATE_ACTOR = "process:okf-migrate"
 
 
+# Bounded YAML loading (a frontmatter block is untrusted input).
+# A YAML alias bomb is a small note whose aliases nest (`a: &a [x,x,...]`, `b: &b [*a,*a,...]`, and so on):
+# the file stays tiny while the document it describes holds billions of items. `str()` on such a value took
+# 4 s and 1094 MB on a 7-level bomb and 2.5 GB on a 9-level one. The node graph is cheap (an alias points at
+# the same node object), so its EXPANDED size is counted with a memo before anything is constructed, and a
+# document above the limit is refused as an ordinary invalid-YAML error.
+# Two SEPARATE limits: items (a nested bomb multiplies items) and scalar characters (one 1 MB scalar repeated
+# by 300 aliases is only 302 items but 300 MB once stringified). Both are far above any real frontmatter, which
+# is a few KB, and far below the sizes that exhaust memory. Merging them into one number loosened the item
+# limit tenfold and let a 12^5-leaf mapping bomb through (test LT-34h).
+# A third limit covers ONE scalar: int() on a 2,000,000-digit integer is quadratic on CPython < 3.11 and took 47 s
+# inside the character limit (test LT-34i). No real frontmatter value approaches 100,000 characters.
+MAX_EXPANDED_ITEMS = 1_000_000
+MAX_EXPANDED_CHARS = 10_000_000
+MAX_SCALAR_CHARS = 100_000
+
+
+class AliasBombError(yaml.YAMLError):
+    """The frontmatter's aliases expand to more than MAX_EXPANDED_ITEMS items or MAX_EXPANDED_CHARS characters."""
+
+
+def _children(node):
+    if isinstance(node, yaml.SequenceNode):
+        return list(node.value)
+    if isinstance(node, yaml.MappingNode):
+        return [part for pair in node.value for part in pair]
+    return []
+
+
+def _expanded_size(root) -> tuple[int, int]:
+    """(items, scalar characters) of the document with every alias expanded, on the shared graph (memoised)."""
+    memo: dict[int, tuple[int, int]] = {}
+    open_: set[int] = set()
+    stack = [(root, False)]
+    while stack:
+        node, done = stack.pop()
+        nid = id(node)
+        if nid in memo:
+            continue
+        kids = _children(node)
+        if isinstance(node, yaml.ScalarNode) and len(node.value) > MAX_SCALAR_CHARS:
+            raise AliasBombError(f"the YAML document holds a single scalar of {len(node.value)} characters, more than "
+                                 f"{MAX_SCALAR_CHARS} (an alias bomb, or a document too large to check)")
+        if not done:
+            open_.add(nid)
+            stack.append((node, True))
+            stack.extend((k, False) for k in kids if id(k) not in memo and id(k) not in open_)
+            continue
+        open_.discard(nid)
+        # a node that refers back to one still open (a recursive alias) counts once
+        chars = len(node.value) if isinstance(node, yaml.ScalarNode) else 0
+        items = 1 + sum(memo.get(id(k), (0, 0))[0] for k in kids)
+        chars += sum(memo.get(id(k), (0, 0))[1] for k in kids)
+        memo[nid] = (items, chars)
+        if items > MAX_EXPANDED_ITEMS or chars > MAX_EXPANDED_CHARS:
+            raise AliasBombError(f"the YAML document expands to more than {MAX_EXPANDED_ITEMS} items or "
+                                 f"{MAX_EXPANDED_CHARS} characters (an alias bomb, or a document too large to check)")
+    return memo[id(root)]
+
+
+def load_frontmatter(text):
+    """yaml.safe_load, except a document whose aliases expand beyond the limits, or that nests so deeply the parser
+    would overflow its stack, is refused as an ordinary invalid-YAML error."""
+    loader = yaml.SafeLoader(text)
+    try:
+        node = loader.get_single_node()
+        if node is None:
+            return None
+        _expanded_size(node)
+        return loader.construct_document(node)
+    except RecursionError:
+        raise AliasBombError("the YAML document is nested too deeply to check (the parser ran out of stack)") from None
+    finally:
+        loader.dispose()
+
+
 @dataclass
 class Report:
     errors: list[str] = field(default_factory=list)
@@ -117,7 +193,8 @@ def split_frontmatter(text: str) -> tuple[str | None, str]:
     if lines[0].strip() != "---":
         return None, text
     for i in range(1, len(lines)):
-        if lines[i].strip() == "---":
+        # column 0 only: an indented `---` can sit inside a block scalar
+        if lines[i].rstrip() == "---":
             return "".join(lines[1:i]), "".join(lines[i + 1 :])
     return None, text  # unterminated block → treated as absent
 
@@ -178,8 +255,8 @@ def check_concept(path: Path, rel: str, bundle: Path, report: Report) -> None:
                         "the bundle)")
         return
     try:
-        meta = yaml.safe_load(raw)
-    except yaml.YAMLError as exc:
+        meta = load_frontmatter(raw)
+    except (yaml.YAMLError, ValueError) as exc:
         report.err(rel, f"§11.1 frontmatter is not valid YAML: {exc}".replace("\n", " "))
         return
     if not isinstance(meta, dict):
@@ -257,7 +334,7 @@ def check_lifecycle(meta: dict, rel: str, report: Report) -> None:
     """§5.4 / §5.5 — `status` and `stale_after`. A concept is stale when
     `now >= stale_after`."""
     status = meta.get("status")
-    if status is not None and status not in STATUS_VALUES:
+    if status is not None and not (isinstance(status, str) and status in STATUS_VALUES):
         report.warn(rel, f"§5.4 unknown `status` `{status}` (expected "
                          f"{'|'.join(sorted(STATUS_VALUES))})")
     stale = meta.get("stale_after")
@@ -353,8 +430,8 @@ def check_index(path: Path, rel: str, is_root: bool, report: Report) -> None:
             report.warn(rel, "§8 index.md should contain no frontmatter")
         else:
             try:
-                meta = yaml.safe_load(raw) or {}
-            except yaml.YAMLError:
+                meta = load_frontmatter(raw) or {}
+            except (yaml.YAMLError, ValueError):
                 report.warn(rel, "§12 root index.md frontmatter is not valid YAML")
                 meta = {}
             # `upkeep` rides along: the plugin's Stop hook reads its opt-in flag
@@ -393,13 +470,7 @@ def collect_link_targets(path: Path) -> list[str]:
     except (UnicodeDecodeError, OSError):
         return []
     targets: list[str] = []
-    in_fence = False
-    for line in text.splitlines():
-        if FENCE.match(line.strip()):
-            in_fence = not in_fence
-            continue
-        if in_fence:
-            continue
+    for line in strip_code(text).splitlines():
         targets.extend(LINK.findall(line))
     return targets
 
@@ -410,7 +481,7 @@ def check_links(bundle: Path, md_files: list[Path], report: Report) -> None:
     for path in md_files:
         rel = path.relative_to(bundle).as_posix()
         for target in collect_link_targets(path):
-            t = target.split("#", 1)[0]
+            t = unquote(target.split("#", 1)[0])
             if not t or t.endswith("/"):
                 continue
             if re.match(r"^[a-z][a-z0-9+.-]*://", t) or t.startswith("mailto:"):
@@ -460,8 +531,8 @@ def migrate_text(text: str, is_root_index: bool) -> str | None:
         new_raw = OKF_VERSION_LINE.sub(rf'\g<1>"{OKF_VERSION}"', raw, count=1)
         return None if new_raw == raw else f"---\n{new_raw}---\n{body}"
     try:
-        meta = yaml.safe_load(raw)
-    except yaml.YAMLError:
+        meta = load_frontmatter(raw)
+    except (yaml.YAMLError, ValueError):
         return None
     if not isinstance(meta, dict):
         return None
