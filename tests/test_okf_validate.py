@@ -9,8 +9,10 @@ Run:  uv run tests/test_okf_validate.py
 """
 from __future__ import annotations
 
+import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -493,6 +495,54 @@ class TestMigrate(TmpBundle):
         self.write("c.md", FULL_META)
         self.assertEqual(migrate(self.bundle), [])
 
+
+
+def alias_bomb(levels: int = 9) -> str:
+    """A small note whose aliases nest: each level lists the previous one nine times, so the document it
+    describes holds 9**levels items while the file stays a few hundred bytes."""
+    lines = ["---", "type: Lesson", "x0: &a0 [x,x,x,x,x,x,x,x,x]"]
+    for i in range(1, levels):
+        lines.append("x%d: &a%d [%s]" % (i, i, ",".join(["*a%d" % (i - 1)] * 9)))
+    lines += ["title: *a%d" % (levels - 1), "description: d", "---", "", "body"]
+    return "\n".join(lines) + "\n"
+
+
+class TestYamlLimits(TmpBundle):
+    """A frontmatter block is untrusted input. yaml.safe_load builds every alias target, so a 9-level alias bomb used
+    2.5 GB and did not finish in 60 s; the loader now counts the expanded size on the shared node graph and refuses."""
+
+    def test_alias_bomb_is_a_validation_error_not_a_memory_blowup(self):
+        self.write("bomb.md", alias_bomb())
+        code = textwrap.dedent(f"""
+            import resource, sys
+            try:  # a memory cap where the platform honours one (Linux); elsewhere the 60 s timeout is the guard
+                resource.setrlimit(resource.RLIMIT_AS, (2 * 1024**3, 2 * 1024**3))
+            except (ValueError, OSError):
+                pass
+            sys.path.insert(0, {str(Path(__file__).resolve().parents[1] / "skills" / "validate" / "scripts")!r})
+            from pathlib import Path
+            from okf_validate import Report, check_concept
+            r = Report(); check_concept(Path({str(self.bundle / "bomb.md")!r}), "bomb.md", Path({str(self.bundle)!r}), r)
+            print("\\n".join(r.errors))
+        """)
+        done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=60)
+        self.assertEqual(done.returncode, 0, done.stderr[-300:])
+        self.assertIn("alias bomb", done.stdout)
+
+    def test_reused_anchor_still_loads(self):
+        self.write("ok.md", "---\ntype: Lesson\ntitle: &t T\ndescription: *t\ntags: [a]\n---\nbody\n")
+        r = self.run_check(check_concept, "ok.md", self.bundle)
+        self.assertEqual(r.errors, [])
+
+    def test_one_huge_scalar_is_refused(self):
+        self.write("big.md", "---\ntype: Lesson\nn: " + "9" * 150_000 + "\n---\nbody\n")
+        r = self.run_check(check_concept, "big.md", self.bundle)
+        self.assertTrue(any("single scalar" in e for e in r.errors), r.errors)
+
+    def test_deep_nesting_is_an_error_not_a_crash(self):
+        self.write("deep.md", "---\ntype: Lesson\nd: " + "[" * 3000 + "]" * 3000 + "\n---\nbody\n")
+        r = self.run_check(check_concept, "deep.md", self.bundle)
+        self.assertTrue(any("nested too deeply" in e for e in r.errors), r.errors)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
