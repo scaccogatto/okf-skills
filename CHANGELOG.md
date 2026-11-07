@@ -4,6 +4,31 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.12.0] - 2026-10-19
+
+### Added
+- **The enforced-upkeep Stop hook can watch nested git repos.** A bundle that
+  documents separate repos checked out inside the project (say `repos/app-fe/`
+  and `repos/app-be/`, gitignored by the outer repo) never saw their changes, so
+  `upkeep: enforced` stayed quiet on real code edits. Add `recursive: true` (or
+  a depth, `recursive: 3`: how many directory levels below the project root a
+  repo's directory may sit, so `repos/app` is 2; `true` means 6) to
+  the root `index.md` frontmatter and the hook finds nested repos by itself
+  (no list to maintain): uncommitted changes to tracked files in them now
+  count, and the block message names them. Discovery skips worktrees of the
+  outer repo, submodules, linked worktrees of repos inside the project, repos
+  with their own `.okf/` bundle, and heavy directories (`node_modules`, `.venv`,
+  `target`, `dist`, ...), so it stays within the hook timeout. Bundles without
+  the key behave as before, and the validator accepts the key in the root index.
+
+## [0.11.0] - 2026-10-15
+
+### Added
+- **The visualizer's detail panel is resizable.** Drag the bar between the graph
+  and the panel; double-click it to restore the default 400px. The width is
+  remembered per browser (`localStorage`). The graph re-runs the selected layout
+  when a drag ends and when the window resizes, so it fills the new space.
+
 ## [0.10.4] - 2026-10-14
 
 ### Fixed

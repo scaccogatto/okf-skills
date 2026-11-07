@@ -5,7 +5,7 @@ description: Dormant Stop hook — a no-op unless a bundle opts in to enforced u
 resource: https://github.com/scaccogatto/okf-skills/blob/main/hooks/okf-stop-check.sh
 tags: [bash, hook, enforcement]
 status: stable
-generated: { by: "agent:claude-opus-5-5", at: "2026-10-13T00:00:00Z" }
+generated: { by: "agent:claude-opus-5-5", at: "2026-10-19T00:00:00Z" }
 ---
 
 # Overview
@@ -37,7 +37,15 @@ checked in order:
    starts untracked). Any bundle change means it was plausibly maintained this
    session, so the hook stays quiet.
 
-Only when all six hold does it block, asking the agent to update the matching
+If the outer repo has tracked changes the hook blocks at once. Only otherwise,
+and only when the frontmatter also carries `recursive: true` (or a positive
+integer depth), does it look for
+nested repos (see [Activation](#activation)); their tracked changes count by
+the same rule as gate 5.
+
+It blocks when gates 1 to 4 hold and either the outer repo or (with
+`recursive: true`) a nested repo has tracked changes while nothing under `.okf/`
+changed, asking the agent to update the matching
 concept before finishing, and to add a `log.md` entry only for a lifecycle
 event.
 
@@ -59,6 +67,45 @@ against throwaway git repos.
 A bundle turns this on by adding `upkeep: enforced` to `.okf/index.md`'s
 frontmatter. A user force-disables it regardless of bundle settings by
 setting `OKF_HOOK=off` in their environment.
+
+A bundle that documents separate git repos checked out *inside* the project
+(say `repos/app/`, each its own repo, gitignored by the outer one) adds
+`recursive: true` to the same frontmatter: its own line, between the first two
+`---` lines, next to `upkeep: enforced`. The value is `true` (depth 6) or a
+positive integer `n` (depth n); anything else (`false`, `0`, `yes`, `True`, a
+quoted value) leaves discovery off. The hook then finds nested repos by
+itself, with no list to maintain, and counts their tracked changes like the
+outer repo's. When nested repos contribute changes, the block reason names them
+(paths relative to the project root). Without the key nothing changes. It is
+read only when `upkeep: enforced` is set, and the validator allows it in the
+root index.
+
+Order matters for cost: the bundle-touched check runs first, then the outer
+repo's own changes (which block without any discovery), and only then the
+`recursive` flag and the `find`.
+
+Discovery runs `find` for `.git` entries. Depth counts the directory levels below
+the project root at which a nested repo's own directory may sit: `app` is 1,
+`repos/app` is 2, `repos/app/inner` is 3 (nested repos inside nested repos are
+found). The search goes to depth + 1 for the `.git` entry. The hook timeout is 15 s and an unpruned `find` took
+over 13 s on a monorepo with dozens of nested worktrees; pruning `.git`,
+`.claude/worktrees`, `node_modules`, `.venv`, `venv`, `target`, `dist`, `build`,
+`.next`, `.turbo`, `.nx` and `__pycache__` brings it under 0.5 s. A hit is
+skipped when it is:
+
+* a linked worktree of the outer repo (same common git dir): a separate checkout,
+  usually an agent or parallel session with its own hook, deliberately ignored;
+* a submodule: the outer status already sees its pointer change;
+* a linked worktree of a repo that lives inside the project: ignored for the
+  same reason (linked worktrees of repos *outside* the project still count);
+* a repo with its own `.okf/` directory, touched or not: its own enforced hook
+  covers it.
+
+A repo that cannot be inspected is skipped (fail open).
+
+Known gaps: symlinked nested repos are not followed; a nested repo whose own
+directory is named like a pruned one (`build`, `dist`, `target`, ...) is not
+found; only the literal lowercase `recursive: true` enables discovery.
 
 # The CI mirror
 
@@ -83,6 +130,8 @@ set of required status checks does not change.
   session satisfies gate 6 and silences the hook until it is committed. So does
   touching an unrelated concept: the gate checks that the bundle moved, not
   that the right concept did.
+* Discovery only sees repos whose directory sits within the configured depth (default 6) and outside the pruned directories. Committed changes in a nested repo are not seen, same as in the outer repo:
+  only uncommitted tracked modifications count.
 * Paths resolve from the session's working directory: a bundle not at
   `./.okf/` (monorepo subdirectory, session launched elsewhere) is never seen.
 * The loop guard greps the raw JSON for `"stop_hook_active": true` rather

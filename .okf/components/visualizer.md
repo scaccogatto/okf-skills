@@ -5,7 +5,7 @@ description: Standalone bundle to viz.html renderer (Cytoscape, marked, DOMPurif
 resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/visualize/scripts/okf_visualize.py
 tags: [python, visualization, cytoscape]
 status: stable
-generated: { by: "agent:claude-opus-5-5", at: "2026-10-13T00:00:00Z" }
+generated: { by: "agent:claude-opus-5-5", at: "2026-10-15T00:00:00Z" }
 ---
 
 # Overview
@@ -31,6 +31,15 @@ protect against a compromised marked: before 0.10.2 marked was loaded as
 any external script in the generator output or the committed `docs/` demos that
 lacks an exact version or SRI. Bumping a library means recomputing its hash
 (`openssl dgst -sha384 -binary | openssl base64 -A`) and running `make docs`.
+
+# Layout
+
+The page is a three-column grid: graph area, a drag handle, detail panel. The
+title, controls and legend are overlays inside the graph area, so they never
+cover the panel. The panel width is a `--side-w` custom property set by dragging
+the handle (each side keeps at least 240px), reset by double-clicking it, and
+remembered in `localStorage`. After a drag ends or the window resizes, the graph
+re-runs the selected layout; it does not re-run during the drag.
 
 # Derived signals
 

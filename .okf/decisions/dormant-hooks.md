@@ -37,6 +37,9 @@ bundles that never set `upkeep: enforced`.
   was written to pass: without the opt-in frontmatter, the hook is a single
   file read and an exit, on every session, for every repo that doesn't ask for
   it.
+* With `recursive: true` the hook also runs a pruned `find` for nested repos;
+  that stays opt-in (same frontmatter) and bounded (depth 6 by default, heavy directories
+  pruned, run only after the cheaper checks).
 * Enforcement becomes distributable with the plugin instead of copy-pasted
   per project — see the [stop-hook component](/components/stop-hook.md).
 * [Ship no hooks](/decisions/no-hooks.md) is superseded by this decision.
