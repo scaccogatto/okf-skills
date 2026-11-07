@@ -29,6 +29,21 @@ OKF spec version it supports.
   remembered per browser (`localStorage`). The graph re-runs the selected layout
   when a drag ends and when the window resizes, so it fills the new space.
 
+## [0.10.4] - 2026-10-14
+
+### Fixed
+- **The validator no longer crashes on a list or mapping `status`.** It now
+  warns that the value is not draft, stable or deprecated, and checks the rest
+  of the bundle.
+- **An impossible date in frontmatter, such as `2026-02-30`, is a per-file
+  error.** It used to stop the whole run with a traceback.
+- **A percent-encoded link, such as `My%20Note.md`, resolves to the file.** It
+  no longer draws a false "cross-link target not found" warning.
+- **Link syntax inside an inline code span is not a link.** Text that explains
+  link syntax no longer draws a warning.
+- **An indented `---` inside a block scalar no longer ends the frontmatter.**
+  Only `---` at column 0 closes the block, so later keys are read again.
+
 ## [0.10.3] - 2026-10-13
 
 ### Added
