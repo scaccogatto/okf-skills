@@ -2,10 +2,10 @@
 type: Tool
 title: okf_visualize.py
 description: Standalone bundle to viz.html renderer (Cytoscape, marked, DOMPurify via CDN).
-resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/visualize/scripts/okf_visualize.py
+resource: https://github.com/ekar-is/okf-skills/blob/main/skills/visualize/scripts/okf_visualize.py
 tags: [python, visualization, cytoscape]
 status: stable
-generated: { by: "agent:claude-opus-5-5", at: "2026-10-15T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 ---
 
 # Overview

@@ -2,10 +2,10 @@
 type: Tool
 title: action.yml
 description: Composite GitHub Action that runs the OKF validator against a bundle in any repo's CI, no Claude Code needed.
-resource: https://github.com/scaccogatto/okf-skills/blob/main/action.yml
+resource: https://github.com/ekar-is/okf-skills/blob/main/action.yml
 tags: [ci, github-actions, validator]
 status: stable
-generated: { by: "agent:claude-opus-5-5", at: "2026-10-13T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 ---
 
 # Overview

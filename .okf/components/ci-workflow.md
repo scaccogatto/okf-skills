@@ -2,10 +2,10 @@
 type: Tool
 title: ci.yml
 description: GitHub Actions workflow that validates, exercises the action, and gates version bumps on every push and PR.
-resource: https://github.com/scaccogatto/okf-skills/blob/main/.github/workflows/ci.yml
+resource: https://github.com/ekar-is/okf-skills/blob/main/.github/workflows/ci.yml
 tags: [ci, github-actions, validation]
 status: stable
-generated: { by: "agent:claude-opus-5-5", at: "2026-10-13T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 ---
 
 # Overview

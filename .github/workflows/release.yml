@@ -52,7 +52,7 @@ jobs:
             --generate-notes
 
       - name: Move the floating `v1` tag to this release
-        # `uses: scaccogatto/okf-skills@v1` is what the README shows and what the
+        # `uses: ekar-is/okf-skills@v1` is what the README shows and what the
         # Actions ecosystem reads as "the latest 1.x". Nothing moved it, so it sat
         # frozen on a docs commit from 0.6.0 and served adopters a validator four
         # versions old. It follows every release now. The repo is pre-1.0, so `v1`

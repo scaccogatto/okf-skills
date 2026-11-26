@@ -4,6 +4,21 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.12.2] - 2026-11-26
+
+### Changed
+- **The repository moved to the `ekar-is` organization**: it now lives at
+  https://github.com/ekar-is/okf-skills (Pages at
+  https://ekar-is.github.io/okf-skills/). Old URLs redirect. New install commands:
+  `npx skills add ekar-is/okf-skills`,
+  `/plugin marketplace add ekar-is/okf-skills` then `/plugin install okf@ekar-is`,
+  and `uses: ekar-is/okf-skills@v1` for the GitHub Action.
+- **The marketplace is renamed from `scaccogatto` to `ekar-is`.** Existing
+  plugin users run `/plugin marketplace remove scaccogatto`, then add it again
+  with `/plugin marketplace add ekar-is/okf-skills`.
+- Author and copyright are now ekar.is (plugin manifest, marketplace owner,
+  action, LICENSE, README credits).
+
 ## [0.12.0] - 2026-10-19
 
 ### Added

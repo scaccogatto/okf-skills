@@ -2,10 +2,10 @@
 type: Skill
 title: visualize skill
 description: Render an OKF bundle as a single self-contained, interactive HTML graph.
-resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/visualize/SKILL.md
+resource: https://github.com/ekar-is/okf-skills/blob/main/skills/visualize/SKILL.md
 tags: [skill, visualization, graph]
 status: stable
-generated: { by: human:scaccogatto, at: "2026-06-28T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 ---
 
 # Overview

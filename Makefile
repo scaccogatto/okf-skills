@@ -2,8 +2,8 @@
 # invocation used to live nowhere, so they drifted: both pages shipped for weeks
 # without the DOMPurify sanitize fix that had already landed in the generator.
 # Pinning the command here — and diffing it in CI — is what stops that recurring.
-PAGES_LINK := https://github.com/scaccogatto/okf-skills
-PAGES_OG   := https://scaccogatto.github.io/okf-skills/assets/og.png
+PAGES_LINK := https://github.com/ekar-is/okf-skills
+PAGES_OG   := https://ekar-is.github.io/okf-skills/assets/og.png
 VISUALIZE  := uv run skills/visualize/scripts/okf_visualize.py
 # Pinned: keep in step with the lint step in .github/workflows/ci.yml.
 RUFF       := uvx ruff@0.16.10

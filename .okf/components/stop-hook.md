@@ -2,10 +2,10 @@
 type: Tool
 title: okf-stop-check.sh
 description: Dormant Stop hook — a no-op unless a bundle opts in to enforced upkeep.
-resource: https://github.com/scaccogatto/okf-skills/blob/main/hooks/okf-stop-check.sh
+resource: https://github.com/ekar-is/okf-skills/blob/main/hooks/okf-stop-check.sh
 tags: [bash, hook, enforcement]
 status: stable
-generated: { by: "agent:claude-opus-5-5", at: "2026-10-19T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 ---
 
 # Overview
