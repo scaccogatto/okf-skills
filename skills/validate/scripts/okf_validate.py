@@ -25,10 +25,14 @@ fallbacks: a bare path field that only resolves from the bundle root is accepted
 with a warning, and the v0.1 constructs (`timestamp`, a body `# Citations` list)
 are warned about with their replacements (Appendix B), never errors. `--migrate`
 rewrites both to v0.3 in place, textually, so `--strict` has a door and not just
-a wall. Warnings worded "okf-skills lint" are this plugin's advice, not the spec's.
+a wall.
+
+`--lint` adds this plugin's house style (warnings worded "okf-skills lint": missing
+`title`, `description`, `tags`, `generated`). It is a convention, not spec, so it
+is off by default and a concept with only `type` passes `--strict`.
 
 Run:  uv run scripts/okf_validate.py <bundle-dir>
-        [--strict | --max-warnings N] [--migrate] [--json]
+        [--strict | --max-warnings N] [--lint] [--migrate] [--json]
 """
 from __future__ import annotations
 
@@ -550,9 +554,10 @@ def check_computation(meta: dict, rel: str, report: Report) -> None:
 
 
 def check_concept(path: Path, rel: str, bundle: Path, report: Report, *,
-                  legacy: bool = True) -> None:
+                  legacy: bool = True, lint: bool = False) -> None:
     """Check one non-reserved `.md`. `legacy` is whether the bundle declares okf_version
-    0.2 or earlier (or none), which enables the §12.1 path fallback."""
+    0.2 or earlier (or none), which enables the §12.1 path fallback. `lint` adds the
+    okf-skills house-style warnings, which are not spec."""
     text = _read_text(path, rel, report)
     if text is None:
         return
@@ -580,12 +585,13 @@ def check_concept(path: Path, rel: str, bundle: Path, report: Report, *,
         return
     report.concepts += 1
     # §4.1: a concept with only `type` is fully conformant. These are this plugin's
-    # discovery advice, labelled so nobody reads them as spec requirements.
-    for key in RECOMMENDED:
-        if key not in meta:
-            report.warn(rel, f"okf-skills lint: `{key}` is absent (optional in OKF, "
-                             f"recommended for discovery)")
-    check_trust(meta, rel, report)
+    # discovery advice, opt-in via --lint and labelled so nobody reads them as spec.
+    if lint:
+        for key in RECOMMENDED:
+            if key not in meta:
+                report.warn(rel, f"okf-skills lint: `{key}` is absent (optional in OKF, "
+                                 f"recommended for discovery)")
+    check_trust(meta, rel, report, lint=lint)
     check_lifecycle(meta, rel, report)
     check_sources(meta, body, rel, report)
     if is_computation(meta):
@@ -615,14 +621,14 @@ def check_actor(value, where: str, rel: str, report: Report) -> None:
                          f"(`human:<id>`, `process:<id>`, or `<producer>/<version>`)")
 
 
-def check_trust(meta: dict, rel: str, report: Report) -> None:
+def check_trust(meta: dict, rel: str, report: Report, *, lint: bool = False) -> None:
     """§5.2 — `generated` / `verified`, with the v0.1 `timestamp` fallback."""
     gen = meta.get("generated")
     if is_empty(gen):
         if "timestamp" in meta:
             report.warn(rel, "legacy v0.1 `timestamp`: v0.2 and later record the last "
                              "content change as `generated: {by, at}` (Appendix B)")
-        else:
+        elif lint:
             # §5.3: every trust family is optional, so this is plugin advice.
             report.warn(rel, "okf-skills lint: `generated` is absent (optional in OKF, "
                              "recommended so the content records who changed it and when)")
@@ -1352,7 +1358,7 @@ def migrate(bundle: Path) -> Migration:
     return result
 
 
-def validate(bundle: Path) -> Report:
+def validate(bundle: Path, *, lint: bool = False) -> Report:
     report = Report()
     md_files = iter_bundle_md(bundle)
     legacy = is_legacy_version(declared_version(bundle))
@@ -1364,7 +1370,7 @@ def validate(bundle: Path) -> Report:
         elif name == "log.md":
             check_log(path, rel, report)
         else:
-            check_concept(path, rel, bundle, report, legacy=legacy)
+            check_concept(path, rel, bundle, report, legacy=legacy, lint=lint)
     check_links(bundle, md_files, report)
     return report
 
@@ -1391,6 +1397,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=f"Validate an OKF v{OKF_VERSION} bundle.")
     ap.add_argument("bundle", type=Path, help="path to the bundle directory")
     ap.add_argument("--strict", action="store_true", help="treat warnings as errors")
+    ap.add_argument("--lint", action="store_true",
+                    help="also warn on okf-skills house style (missing title, description, "
+                         "tags, generated): a convention, not spec")
     ap.add_argument("--max-warnings", type=int, default=None, metavar="N",
                     help="fail if warnings exceed N (--strict is the N=0 case)")
     ap.add_argument("--migrate", action="store_true",
@@ -1404,7 +1413,7 @@ def main() -> int:
 
     mig = migrate(args.bundle) if args.migrate else Migration()
 
-    r = validate(args.bundle)
+    r = validate(args.bundle, lint=args.lint)
     conformant = not r.errors
     max_warn = 0 if args.strict else args.max_warnings
     failed = bool(r.errors) or (max_warn is not None and len(r.warnings) > max_warn) \
@@ -1415,6 +1424,7 @@ def main() -> int:
             "bundle": str(args.bundle),
             "conformant": conformant,
             "passed": not failed,
+            "lint": args.lint,
             "counts": {"concepts": r.concepts, "indexes": r.indexes, "logs": r.logs},
             "errors": r.errors,
             "warnings": r.warnings,

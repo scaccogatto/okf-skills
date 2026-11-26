@@ -7,7 +7,8 @@ tags: [<tag>, <tag>]
 status: stable                    # draft | stable | deprecated; absent means stable
 # superseded_by: /path/to/replacement.md   # only with status: deprecated
 generated: { by: <actor>, at: "<RFC 3339 with offset, e.g. 2026-06-14T10:00:00Z>" }
-verified: { by: "human:<id>", at: "<RFC 3339>" }   # omit until someone confirms it
+# verified: added only when someone other than the producer confirms the content.
+#   Never write it for your own work, and never invent or infer a `human:<id>`.
 stale_after: "<YYYY-MM-DDTHH:MM:SSZ>"   # omit when no review date is known
 sources:                          # what this was derived from; omit if nothing
   - id: <short-key>
@@ -20,8 +21,8 @@ sources:                          # what this was derived from; omit if nothing
 <!--
   Actors (§7): `<producer>/<version>` for an agent, `human:<id>` for a person,
   `team:<id>` for a group, `process:<id>` for an automated job. Use `human:`
-  whenever a person authored or signed off, consumers key trust tiers off that
-  prefix. A `verified` event counts only when its `at` is at or after
+  only for a named person who wrote or confirmed the content, consumers key
+  trust tiers off that prefix. A `verified` event counts only when its `at` is at or after
   `generated.at` (§5.3). Timestamps are a date-time with an offset or a date
   only (§5). Your own extra keys: `x-<producer>-<name>` (§4.1).
 -->

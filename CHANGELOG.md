@@ -53,11 +53,29 @@ OKF spec version it supports.
   as okf-skills lint (OKF calls those fields optional), and the `/`-preferred
   path form and the lifecycle-only `log.md` policy are documented as okf-skills
   conventions, not spec.
+- **okf-skills lint is off by default.** The warnings for a missing `title`,
+  `description`, `tags` or `generated` appear only with the new `--lint` flag.
+  `--strict` counts the warnings that are emitted, so a concept with only
+  `type` passes `--strict`, as §4.1 says it is fully conformant. The JSON report
+  gains `lint`, whether the flag was on.
+- **Producers do not verify their own work.** The okf skill, the adoption
+  snippet and the backfill subagents now say it plainly: never write a
+  `verified` event for content you generated, never invent or infer a
+  `human:<id>`, and record yourself in `generated.by`. The concept template no
+  longer ships a `verified: { by: "human:<id>" }` line.
+- **The README states what okf-skills is**: an independent, community toolkit
+  for OKF, not the official project. It links the official `okf-generate` and
+  `okf-consume` skills, drops the "20+ agents" claim (tested in Claude Code,
+  other hosts untested) and lists what each part assumes. The okf skill's
+  triggers now cover data and business knowledge as well as software.
 - **The visualizer decides staleness when the page is viewed**, so a published
   `viz.html` turns a concept stale on time instead of freezing the verdict of
   the day it was rendered.
 
 ### Added
+- `examples/data-catalog/`, a second example bundle outside software: a small
+  retail analytics catalog with tables, a dataset, a metric backed by an
+  Attested Computation, a retention policy, a glossary term and a runbook.
 - `superseded_by` (§5.4): validated as a path field, warned about without
   `status: deprecated`, drawn as a graph edge and a "Superseded by" link.
 - Root `index.md` accepts the §8.1 bundle metadata (`title`, `description`,

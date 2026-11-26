@@ -18,16 +18,23 @@ This project keeps shared knowledge as an OKF bundle in `.okf/`.
   mean "check before relying on this". Treat broken links as not-yet-written
   knowledge, not errors.
 - **After a change** that affects a documented asset (service, API, schema,
-  metric, runbook, decision), update the matching concept: refresh its body and
+  table, metric, policy, runbook, decision), update the matching concept: refresh its body and
   `generated: { by, at }`, and fix cross-links. Create a new concept for any new
   asset. By okf-skills convention (OKF §9 only asks for a history of changes),
   append a dated entry to the bundle-root `log.md` only for a lifecycle event:
   a concept created, deprecated, superseded, regenerated after its source
   changed, or verified. Routine edits get no log entry.
+- **Trust is earned, not written.** Never add a `verified` event for content you
+  generated. Never invent or infer a `human:<id>` (not from git config, not from
+  the OS user): use `human:` only for a named person who wrote or confirmed the
+  content and whom you were told about. Record yourself in `generated.by` as
+  `<producer>/<version>`.
 - **Capturing new knowledge** → use the `/okf:okf` skill (modes: produce,
   maintain, consume).
 - **Before committing** bundle changes → run `/okf:validate .okf --strict` and
-  resolve every error.
+  resolve every error. Add `--lint` if this project also wants the okf-skills
+  house style (missing `title`, `description`, `tags`, `generated`), which is
+  optional and not spec.
 
 Conformance rule to respect: every concept file needs YAML frontmatter with a
 non-empty `type` (a `.md` without one is skipped as a non-concept). Everything

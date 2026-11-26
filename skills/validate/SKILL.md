@@ -7,7 +7,7 @@ description: >-
   eyeball pass. Also migrates a v0.1 or v0.2 bundle to v0.3 in place with
   `--migrate`.
 user-invocable: true
-argument-hint: "[bundle-dir] [--strict | --max-warnings N] [--migrate]"
+argument-hint: "[bundle-dir] [--strict | --max-warnings N] [--lint] [--migrate]"
 allowed-tools: Bash
 ---
 
@@ -53,9 +53,10 @@ Interpret the result:
   - a `.md` file with no frontmatter or no string `type`: not a concept,
     skipped (§3.2). Fine for a `README.md` or `AGENTS.md`. On a file meant as
     knowledge, add a `type`.
-  - `okf-skills lint`: a concept without `title`, `description`, `tags` or
-    `generated`. This is the plugin's discovery advice, not the spec: a concept
-    with only `type` is fully conformant (§4.1).
+  - `okf-skills lint`, only with `--lint`: a concept without `title`,
+    `description`, `tags` or `generated`. This is the plugin's house style, not
+    the spec: a concept with only `type` is fully conformant (§4.1) and passes
+    `--strict` when `--lint` is not given.
   - a broken cross-link, read from the body only: inline `[text](target)` and
     reference definitions `[label]: target` (footnotes `[^x]:` are not links).
     The spec explicitly tolerates these (§6.1). A link or path that resolves
@@ -159,4 +160,5 @@ list moves up.
 
 Non-zero if any error is present, or if warnings exceed the gate:
 `--strict` allows none, `--max-warnings N` allows N, the default allows any.
-Add `--json` for machine-readable output (useful in CI).
+The gate counts the warnings that were emitted, so `okf-skills lint` warnings
+count only when `--lint` is given. Add `--json` for machine-readable output (useful in CI).

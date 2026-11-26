@@ -9,6 +9,7 @@ Run:  uv run tests/test_okf_validate.py
 """
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import tempfile
@@ -160,11 +161,33 @@ class TestCheckConcept(TmpBundle):
         r = self.run_check(check_concept, "c.md", self.bundle)
         self.assertEqual(r.errors, [])
 
-    def test_missing_recommended_fields_warn_only(self):
+    def test_type_only_concept_is_clean_without_lint(self):
+        # §4.1: a concept with only `type` is fully conformant, so the default run
+        # (and therefore --strict) reports nothing.
         self.write("c.md", "---\ntype: A\n---\nbody\n")
         r = self.run_check(check_concept, "c.md", self.bundle)
+        self.assertEqual((r.errors, r.warnings, r.concepts), ([], [], 1))
+
+    def test_missing_recommended_fields_warn_only_with_lint(self):
+        self.write("c.md", "---\ntype: A\n---\nbody\n")
+        r = Report()
+        check_concept(self.bundle / "c.md", "c.md", self.bundle, r, lint=True)
         self.assertEqual(r.errors, [])
         self.assertEqual(len(r.warnings), 4)  # title, description, tags, generated
+        self.assertTrue(all("okf-skills lint:" in w for w in r.warnings), r.warnings)
+
+    def test_strict_passes_a_type_only_bundle_unless_lint_is_on(self):
+        self.write("c.md", "---\ntype: Policy\n---\nbody\n")
+        cmd = [sys.executable, str(SCRIPT), str(self.bundle), "--strict", "--json"]
+        plain = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        self.assertEqual(plain.returncode, 0, plain.stdout)
+        self.assertFalse(json.loads(plain.stdout)["lint"])
+        linted = subprocess.run(cmd + ["--lint"], capture_output=True, text=True, check=False)
+        self.assertEqual(linted.returncode, 1, linted.stdout)
+        report = json.loads(linted.stdout)
+        self.assertTrue(report["lint"])
+        self.assertTrue(report["conformant"])
+        self.assertEqual(len(report["warnings"]), 4)
 
     def test_non_utf8_file_is_a_per_file_error_not_a_crash(self):
         (self.bundle / "c.md").write_bytes(b"\xff\xfe invalid")
@@ -326,8 +349,13 @@ class TestV02Families(TmpBundle):
                       'superseded_by: ""\n'):
             r = self.concept(base + extra)
             self.assertEqual((r.errors, r.warnings), ([], []), extra)
-        # an empty `generated` still gets the recommendation
-        self.assertIn("okf-skills lint: `generated`", self.only(self.concept('generated: ""\n')))
+        # an empty `generated` gets the recommendation only under --lint
+        self.assertEqual(self.concept('generated: ""\n').warnings, [])
+        self.write("c.md", '---\ntype: Reference\ntitle: t\ndescription: d\ntags: [x]\n'
+                           'generated: ""\n---\n\nbody\n')
+        r = Report()
+        check_concept(self.bundle / "c.md", "c.md", self.bundle, r, lint=True)
+        self.assertIn("okf-skills lint: `generated`", self.only(r))
 
     def test_verified_event_without_at_is_ignored_with_a_warning(self):
         r = self.concept("generated: { by: human:t }\nverified: { by: human:t }\n")

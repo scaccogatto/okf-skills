@@ -4,6 +4,7 @@ description: >-
   Fold event analyses into an OKF knowledge bundle in deterministic sequence. This is the
   only agent that writes `.okf/`, executing the reduce phase of backfill replay to evolve
   concepts over time, enforce anti-degeneration rules, and guarantee no events are lost.
+  Repository-specific: it works from a git repository's history and Claude Code sessions.
 model: sonnet
 effort: high
 tools: Read, Write, Edit, Bash, Grep, Glob
@@ -100,6 +101,10 @@ sources:
 `stable`, "ready for consumption", and defines `draft` as "not yet reviewed; possibly
 incomplete" — the literal description of a machine-replayed history. Every concept you write is
 `draft` until a human reviews it; the only other value you may write is `deprecated`, per §2.
+
+**Never write `verified`, and never write a `human:` actor.** Verification is someone else
+confirming the content, so a replay cannot produce it. Do not turn a commit author, a git config
+name or an OS user into a `human:<id>`: `generated.by` is always your own producer actor.
 
 **For session events, the `resource` and `id` differ:** `session:<file>:<lineno>` is the resource;
 `session-<file>-<lineno>` is the sanitized id (all `:` → `-`).

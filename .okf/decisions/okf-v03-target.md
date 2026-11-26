@@ -34,7 +34,8 @@ in repositories this toolkit does not control. This supersedes the
   validator warns, and `--migrate` renames them.
 * Plugin conventions are labelled as okf-skills conventions, not spec: the
   preference for `/`-rooted paths, a lifecycle-only `log.md`, and the
-  recommended-field lint (`okf-skills lint`).
+  recommended-field lint (`okf-skills lint`). That lint is off by default and
+  enabled with `--lint`, so a concept with only `type` passes `--strict`.
 * The [validator](/components/validator.md), the
   [MCP server](/components/mcp-server.md) and the
   [visualizer](/components/visualizer.md) share one written rule set, enforced by

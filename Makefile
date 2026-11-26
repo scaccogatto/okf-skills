@@ -37,3 +37,5 @@ test:
 validate:
 	uv run skills/validate/scripts/okf_validate.py examples/sample-bundle --strict
 	uv run skills/validate/scripts/okf_validate.py .okf --strict
+	uv run skills/validate/scripts/okf_validate.py examples/data-catalog --strict
+	uv run skills/validate/scripts/okf_validate.py .okf --strict --lint

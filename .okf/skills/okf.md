@@ -18,6 +18,12 @@ memory of it. It writes the v0.3 trust, lifecycle, and provenance families
 superseded v0.1 constructs when it meets them, per the
 [dual-read decision](/decisions/okf-v02-dual-read.md).
 
+It holds producers to honesty rules: an agent never writes a `verified` event
+for its own content, never invents or infers a `human:<id>` (not from git config
+or the OS user), and records itself in `generated.by`. Its triggers cover data
+and business knowledge (tables, metrics, policies, glossaries) as well as
+software assets.
+
 For a brand-new bundle, `produce` mode reaches for
 [`okf_init.py`](/components/okf_init.md) first: it scaffolds a conformant
 `index.md`, `log.md`, and a starter concept with full recommended frontmatter,

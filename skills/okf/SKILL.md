@@ -3,11 +3,13 @@ name: okf
 description: >-
   Author, maintain, and consume Open Knowledge Format (OKF) knowledge bundles —
   portable markdown + YAML frontmatter that both humans and agents read. Use when
-  capturing project knowledge (services, APIs, schemas, metrics, runbooks,
-  decisions) into an OKF bundle, when updating one after code or docs change, or
-  when a repository contains an `.okf/` (or other OKF) bundle that should inform
-  the task. Triggers on: "document this in OKF", "update the knowledge bundle",
-  "capture this as a concept", or any work in a repo that has an OKF bundle.
+  capturing knowledge into an OKF bundle, whether software assets (services,
+  APIs, schemas, runbooks, decisions) or data and business knowledge (tables,
+  datasets, metrics, policies, processes, glossaries), when updating one after
+  its source changes, or when a project contains an `.okf/` (or other OKF)
+  bundle that should inform the task. Triggers on: "document this in OKF",
+  "update the knowledge bundle", "capture this as a concept", or any work in a
+  project that has an OKF bundle.
 user-invocable: true
 argument-hint: "[produce|maintain|consume] [path]"
 allowed-tools: Read Write Edit Grep Glob Bash
@@ -78,13 +80,21 @@ broken links, never reject a bundle over them.
   and when. `verified: [{ by, at }]` — who confirmed it since (a bare mapping is
   one entry, and both `by` and `at` are required). Write `by` in the **actor
   convention** (§7): `<producer>/<version>` for an agent, `human:<id>` for a
-  person, `team:<id>` for a group, `process:<id>` for an automated job. Use
-  `human:` whenever a person authored or signed off, consumers key trust tiers
-  off that prefix (a `team:` sign-off is only machine-confirmed). A
+  person, `team:<id>` for a group, `process:<id>` for an automated job.
+  Consumers key trust tiers off the `human:` prefix (a `team:` sign-off is only
+  machine-confirmed), so it must be true. A
   verification counts only when its `at` is at or after `generated.at` (§5.3):
   when you rewrite content, bump `generated.at` and leave older `verified`
   entries as history. The concept is no longer human-reviewed until a human
   confirms the new text.
+- **Honesty rules for producers.** These protect the one thing trust tiers are
+  for:
+  - Never write a `verified` event for content you generated. Verification is
+    someone else confirming it.
+  - Never invent or infer a `human:<id>`, not from git config and not from the
+    OS user. Use `human:` only when a named person actually wrote or confirmed
+    the content and you were told who. If you are unsure, ask.
+  - Record yourself in `generated.by` as `<producer>/<version>`.
 - **Timestamps (§5):** a date-time with an offset (`"2026-06-30T14:00:00Z"`)
   or a date only (`"2026-06-30"`, start of that day UTC). Quote them. A
   date-time without an offset is invalid. Use the date-time form for
@@ -123,7 +133,7 @@ Templates to copy: [concept](templates/concept.md), [index](templates/index.md),
 
 ## Default bundle location
 
-Use `.okf/` at the repository root unless the project already uses another
+By okf-skills convention (not spec), use `.okf/` at the repository root unless the project already uses another
 location. Commit it alongside the code it describes — knowledge as code.
 
 ## Modes
@@ -143,13 +153,16 @@ is given. Then extend it:
 
 1. Read [reference/SPEC.md](reference/SPEC.md).
 2. Pick the source(s): **code** (derive concepts from source, READMEs,
-   docstrings, config), **docs/wiki** (distill pages into concepts, record the
-   originals in `sources`), **manual** (decisions, playbooks, metrics).
+   docstrings, config), **data catalogs and warehouses** (tables, datasets,
+   metric definitions), **docs/wiki** (distill pages, policies and process
+   descriptions into concepts, record the originals in `sources`), **manual**
+   (decisions, playbooks, glossary terms).
 3. Choose a directory layout by domain (e.g. `services/`, `datasets/`,
    `decisions/`). One concept per file.
 4. Write each concept from [templates/concept.md](templates/concept.md): set a
-   descriptive `type`, fill recommended fields, record `generated` and the
-   `sources` you actually read, cross-link related concepts.
+   descriptive `type`, fill recommended fields, record `generated` with your
+   own actor and the `sources` you actually read, cross-link related concepts.
+   Do not add `verified` (see the honesty rules above).
 5. Add/refresh `index.md` per directory (and `okf_version: "0.3"`, `title`,
    `description` in the root index frontmatter, which you keep intact when you
    regenerate the listing). A new bundle gets a dated **Creation** entry in `log.md`. Extending
@@ -160,7 +173,8 @@ is given. Then extend it:
 1. Identify which concepts the change affects (search by `resource`, path, or
    topic). This bookkeeping is exactly what agents are good at — touch every
    affected file in one pass.
-2. Update the body and `generated.at` (with your own actor in `generated.by`);
+2. Update the body and `generated.at` (with your own actor in `generated.by`,
+   never a `verified` event for your own edit);
    fix or add cross-links; create new concepts for new assets; mark removed
    assets `status: deprecated` (with `superseded_by` when something replaces
    them) and note the deprecation in `log.md` rather than
@@ -196,4 +210,7 @@ uv run "${CLAUDE_SKILL_DIR}/../validate/scripts/okf_validate.py" <bundle-dir> --
 
 Resolve every `ERROR` (hard §11.1 failures). Under `--strict` warnings also fail
 the run (exit 1), so clear them too; drop `--strict` (or use `--max-warnings N`)
-if you only want §11 conformance gated.
+if you only want §11 conformance gated. A concept with only `type` passes
+`--strict`. Add `--lint` if the project wants the okf-skills house style too
+(warnings for a missing `title`, `description`, `tags` or `generated`): it is
+optional and not spec.

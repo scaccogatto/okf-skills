@@ -21,12 +21,14 @@ v0.1 `timestamp` or `# Citations` section still awaiting migration.
 ```bash
 uv run "${CLAUDE_SKILL_DIR}/scripts/okf_validate.py" <bundle-dir> --strict
 uv run "${CLAUDE_SKILL_DIR}/scripts/okf_validate.py" <bundle-dir> --migrate --strict
+uv run "${CLAUDE_SKILL_DIR}/scripts/okf_validate.py" <bundle-dir> --strict --lint  # house style too
 ```
 
 `--migrate` is the one non-read-only mode: it rewrites a v0.1 or v0.2 bundle to v0.3 in
 place (see the [validator](/components/validator.md)), so the skill announces
 what it will touch first. `--max-warnings N` sits between the permissive default
-and `--strict`.
+and `--strict`. `--lint` adds the okf-skills house-style warnings (missing
+`title`, `description`, `tags`, `generated`), which are off by default.
 
 `${CLAUDE_SKILL_DIR}` resolves whether this runs as a plugin or a standalone
 skills.sh skill — see the [self-contained-skills decision](/decisions/self-contained-skills.md).
