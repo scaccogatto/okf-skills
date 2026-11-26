@@ -1,0 +1,198 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OKF — Northwind Grocers · a data catalog in OKF</title>
+<meta property="og:title" content="OKF — Northwind Grocers · a data catalog in OKF">
+<meta property="og:description" content="9 concepts · interactive Open Knowledge Format knowledge graph">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
+<meta name="twitter:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js" integrity="sha384-IWROdLKRsN1UuJywMlWl7/blXQ8GEooN2n7dzTxfEPd7ybYIKCUJ2Ol/1Gpf3YV4" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@14.1.4/marked.min.js" integrity="sha384-lqPzN0kmFw9t2syAMwVPM4VbAyqsz/lPyYWbb2Xt6nSPM0WPNrpSWCUBgdcAdgnC" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.12/dist/purify.min.js" integrity="sha384-piCcpDdJ7qVeK4Tv8Z6Hpcr3ZBIgP16TxQTPVfsLFdZ5uDgwc3Y8Ho7oUnqf12qu" crossorigin="anonymous"></script>
+<style>
+ :root{--bg:#0e0f13;--panel:#16181f;--line:#262a35;--fg:#e6e8ee;--mut:#9aa3b2;--accent:#8ab4ff}
+ *{box-sizing:border-box} html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
+   font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+ /* The row must be stated. Left implicit it sizes to `auto`, i.e. to the tallest
+    item — a long concept body then stretched #side past the viewport and the page
+    grew its own scrollbar on top of the panel's, which in turn forced a spurious
+    horizontal one. Pinning the row to 100% keeps the panel scrolling inside. */
+ #app{display:grid;grid-template-columns:minmax(0,1fr) 6px var(--side-w,400px);grid-template-rows:100%;height:100vh}
+ #stage{position:relative;min-width:0;overflow:hidden}
+ #cy{position:absolute;inset:0}
+ #split{cursor:col-resize;background:var(--line);touch-action:none} #split:hover,#split.drag{background:var(--accent)}
+ #side{background:var(--panel);overflow:auto;padding:18px}
+ #top{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;flex-wrap:wrap;align-items:flex-start;
+   justify-content:space-between;gap:8px 16px;padding:12px 18px;pointer-events:none}
+ header{padding-top:2px;min-width:0}
+ h1{font-size:15px;margin:0;font-weight:650} .sub{color:var(--mut);font-size:12px;margin-top:2px}
+ #bar{display:flex;flex-wrap:wrap;gap:8px;pointer-events:auto;min-width:0}
+ #bar input,#bar select{background:var(--panel);border:1px solid var(--line);color:var(--fg);
+   border-radius:8px;padding:8px 10px;outline:none;font-size:13px}
+ #search{width:240px;max-width:100%}
+ #legend{position:absolute;bottom:14px;left:18px;right:18px;z-index:5;display:flex;flex-wrap:wrap;gap:6px}
+ .chip{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
+   border-radius:20px;padding:3px 10px;font-size:12px;color:var(--mut);cursor:pointer;user-select:none}
+ .chip.off{opacity:.4} .dot{width:10px;height:10px;border-radius:50%}
+ #side h2{font-size:17px;margin:.2em 0} .type{display:inline-block;border-radius:6px;padding:2px 8px;
+   font-size:11px;font-weight:600;color:#0e0f13} .desc{color:var(--mut);margin:8px 0 12px}
+ .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+ .tag{background:#1d2230;border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-size:11px;color:var(--mut)}
+ .meta{margin:10px 0;font-size:12px;color:var(--mut)} .meta div{padding:1px 0} .meta b{color:var(--fg);font-weight:600}
+ .sig{color:var(--mut)}
+ .badges{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+ .badge{border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;border:1px solid}
+ .t-unverified{color:#9aa3b2;border-color:#3a4150;background:#1d2230}
+ .t-machine{color:#8ab4ff;border-color:#2b4570;background:#141c2b}
+ .t-human{color:#4ade80;border-color:#276b45;background:#12211a}
+ .b-stale{color:#fca5a5;border-color:#7f2b2b;background:#241416}
+ .b-deprecated{color:#fbbf24;border-color:#7a5312;background:#241d10}
+ .b-unknown{color:#9aa3b2;border-color:#3a4150;background:#1d2230}
+ .rel{margin:10px 0} .rel h4{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+ .rel a{display:block;color:var(--accent);cursor:pointer;font-size:13px;padding:1px 0;text-decoration:none}
+ .rel a:hover{text-decoration:underline}
+ .body{border-top:1px solid var(--line);padding-top:12px;margin-top:12px} .body table{border-collapse:collapse;display:block;overflow:auto}
+ .body td,.body th{border:1px solid var(--line);padding:4px 8px} .body code{background:#1d2230;padding:1px 5px;border-radius:4px}
+ .body pre{background:#1d2230;padding:10px;border-radius:8px;overflow:auto} .body img{max-width:100%}
+ .empty{color:var(--mut)} a{color:var(--accent)}
+ .src{pointer-events:auto;color:var(--accent);margin-left:10px;text-decoration:none} .src:hover{text-decoration:underline}
+</style></head><body>
+<div id="app"><div id="stage"><div id="cy"></div>
+<div id="top"><header><h1>Northwind Grocers · a data catalog in OKF</h1><div class="sub">9 concepts · 19 links · OKF v0.3 <a class="src" href="https://ekar-is.github.io/okf-skills/" target="_blank" rel="noopener">source ↗</a></div></header>
+<div id="bar">
+ <input id="search" placeholder="search concepts…">
+ <select id="type"><option value="">all types</option></select>
+ <select id="layout">
+  <option value="cose">force</option><option value="concentric">concentric</option>
+  <option value="breadthfirst">breadth-first</option><option value="circle">circle</option><option value="grid">grid</option>
+ </select>
+</div></div>
+<div id="legend"></div></div>
+<div id="split" role="separator" aria-orientation="vertical" title="drag to resize · double-click to reset"></div><div id="side"><p class="empty">Click a concept to inspect it.</p></div></div>
+<script>
+const NODES=[{"id": "computations/weekly-basket-size", "type": "Attested Computation", "title": "Weekly average basket size", "description": "Mean paid amount per basket for one ISO week, across all stores and online.", "tags": ["sales", "basket", "kpi"], "group": "computations", "sz": 26, "status": "stable", "state": "", "superseded_by": "", "superseded_cid": null, "stale_after": "", "stale_at": "", "tier": "unverified", "generated": {"by": "catalog-agent/1.2", "at": "2026-10-15T09:00:00Z"}, "verified": [], "sources": [{"title": "Finance KPI definitions", "resource": "https://example.com/northwind/finance/kpi-definitions", "cid": null, "author": "team:finance", "usage_count": null, "usage_window": "", "last_modified": "2026-09-30T00:00:00Z"}], "body": "# Computation\n\n```sql\nSELECT AVG(total_amount) AS avg_basket_eur\nFROM `northwind-analytics.sales.orders`\nWHERE order_date BETWEEN @week_start AND DATE_ADD(@week_start, INTERVAL 6 DAY)\n  AND (@store_id IS NULL OR store_id = @store_id)\n```\n\nFinance defines basket size on paid amount including VAT, before refunds.[^finance-kpi-sheet]\nIt reads [Orders](/tables/orders.md). No one has confirmed this query since it\nwas written, so it carries no `verified` event.\n\n[^finance-kpi-sheet]: Finance KPI definitions"}, {"id": "datasets/sales", "type": "BigQuery Dataset", "title": "Sales dataset", "description": "BigQuery dataset holding Northwind Grocers store and online sales.", "tags": ["sales", "bigquery", "warehouse"], "group": "datasets", "sz": 27, "status": "stable", "state": "", "superseded_by": "", "superseded_cid": null, "stale_after": "", "stale_at": "", "tier": "human-reviewed", "generated": {"by": "catalog-agent/1.2", "at": "2026-10-15T09:00:00Z"}, "verified": [{"by": "human:priya.shah", "at": "2026-11-02T14:30:00Z", "current": true}], "sources": [{"title": "BigQuery console, northwind-analytics project", "resource": "https://console.cloud.google.com/bigquery?project=northwind-analytics", "cid": null, "author": "team:data-platform", "usage_count": null, "usage_window": "", "last_modified": "2026-10-14T00:00:00Z"}], "body": "# Overview\n\nThe `sales` dataset holds every completed sale from the 42 stores and the\nonline shop, in the EU multi-region.[^warehouse-console] The data platform team\nowns it. Analysts read it, only the load jobs write it.\n\n# Tables\n\n| Table | What it holds |\n|-------|---------------|\n| [orders](/tables/orders.md) | One row per completed order, loaded hourly. |\n| [orders_daily_export](/tables/orders-legacy.md) | Deprecated daily export, kept until its retention ends. |\n\nRetention follows the [sales data retention policy](/policies/data-retention.md).\n\n[^warehouse-console]: BigQuery console, northwind-analytics project"}, {"id": "glossary/basket", "type": "Glossary Term", "title": "Basket", "description": "One paid checkout by one customer, in a store or online.", "tags": ["glossary", "sales"], "group": "glossary", "sz": 25, "status": "", "state": "", "superseded_by": "", "superseded_cid": null, "stale_after": "", "stale_at": "", "tier": "unverified", "generated": {"by": "catalog-agent/1.2", "at": "2026-10-15T09:00:00Z"}, "verified": [], "sources": [], "body": "# Definition\n\nA basket is one paid checkout: one row in [Orders](/tables/orders.md). A\ncustomer who pays twice in a visit makes two baskets. A refunded basket still\ncounts, because [average basket size](/metrics/average-basket-size.md) is\nmeasured before refunds."}, {"id": "metrics/average-basket-size", "type": "Metric", "title": "Average basket size", "description": "Mean paid amount per basket in EUR, reported weekly.", "tags": ["sales", "basket", "kpi"], "group": "metrics", "sz": 26, "status": "stable", "state": "", "superseded_by": "", "superseded_cid": null, "stale_after": "2026-11-15", "stale_at": "2026-11-15T00:00:00.000Z", "tier": "unverified", "generated": {"by": "catalog-agent/1.2", "at": "2026-10-15T09:00:00Z"}, "verified": [], "sources": [{"title": "Weekly trading dashboard", "resource": "https://example.com/northwind/bi/weekly-trading", "cid": null, "author": "team:finance", "usage_count": "310", "usage_window": "2026-09-01T00:00:00Z\u21922026-09-30T00:00:00Z", "last_modified": "2026-10-01T00:00:00Z"}], "body": "# Definition\n\nThe mean `total_amount` per [basket](/glossary/basket.md) over one ISO week.\nGet the number by running\n[the weekly basket size computation](/computations/weekly-basket-size.md) with\n`week_start` bound. Do not write a new query.\n\nIt is the headline figure on the weekly trading dashboard, viewed 310 times in\nSeptember.[^weekly-dashboard]\n\n# Watch-outs\n\nThe review date has passed: finance planned to switch the definition to\nexclude VAT in November. Check with the finance team before quoting it.\n\n[^weekly-dashboard]: Weekly trading dashboard"}, {"id": "policies/data-retention", "type": "Policy", "title": "Sales data retention", "description": "How long Northwind Grocers keeps order data, and when it must be deleted or anonymized.", "tags": ["policy", "retention", "privacy", "gdpr"], "group": "policies", "sz": 26, "status": "stable", "state": "", "superseded_by": "", "superseded_cid": null, "stale_after": "2027-10-01", "stale_at": "2027-10-01T00:00:00.000Z", "tier": "unverified", "generated": {"by": "catalog-agent/1.2", "at": "2026-10-15T09:00:00Z"}, "verified": [], "sources": [{"title": "Data retention policy v3", "resource": "https://example.com/northwind/legal/data-retention-policy-v3.pdf", "cid": null, "author": "team:legal", "usage_count": null, "usage_window": "", "last_modified": "2026-07-01T00:00:00Z"}], "body": "# Rule\n\n| Data | Keep for | Then |\n|------|----------|------|\n| Order rows without `customer_id` | 10 years | Delete. |\n| `customer_id` on order rows | 3 years after the last purchase | Set to null. |\n| [Orders (legacy)](/tables/orders-legacy.md) export | Until 2027-11-19 | Drop the table. |\n\nThe ten-year period follows tax record rules, the three-year period follows the\nloyalty programme terms.[^retention-policy] It applies to every table in the\n[sales dataset](/datasets/sales.md).\n\n[^retention-policy]: Data retention policy v3"}, {"id": "references/run-on-bigquery", "type": "Reference", "title": "Run a computation on BigQuery", "description": "How a runner executes an Attested Computation with runtime bigquery and what it returns.", "tags": ["reference", "bigquery", "attestation"], "group": "references", "sz": 26, "status": "", "state": "", "superseded_by": "", "superseded_cid": null, "stale_after": "", "stale_at": "", "tier": "unverified", "generated": {"by": "catalog-agent/1.2", "at": "2026-10-15T09:00:00Z"}, "verified": [], "sources": [], "body": "# Steps\n\n1. Take the SQL from the concept's `Computation` section unchanged.\n2. Bind each declared parameter as a BigQuery query parameter. Never edit the SQL.\n3. Run it as a query job in the `northwind-analytics` project.\n4. Return the receipt: `job_id`, `executed_sql` (from the job metadata) and\n   `result`.\n\nThe [SQL equality attester](attesters/sql_equality.py) then compares\n`executed_sql` with its own binding of the same computation."}, {"id": "runbooks/late-orders-load", "type": "Runbook", "title": "Late orders load", "description": "What to do when the hourly orders load is more than two hours behind.", "tags": ["runbook", "incident", "data-quality"], "group": "runbooks", "sz": 26, "status": "draft", "state": "", "superseded_by": "", "superseded_cid": null, "stale_after": "", "stale_at": "", "tier": "unverified", "generated": {"by": "catalog-agent/1.2", "at": "2026-10-15T09:00:00Z"}, "verified": [], "sources": [], "body": "# Trigger\n\nThe freshness alert fires when the newest `order_date` partition in\n[Orders](/tables/orders.md) has no rows from the last two hours.\n\n# Steps\n\n1. Check the load job history in the [sales dataset](/datasets/sales.md). A\n   quota error usually clears on the next run.\n2. If two runs failed in a row, post in the data incident channel and mark the\n   weekly trading dashboard as delayed.\n3. Do not backfill by hand from the\n   [legacy export](/tables/orders-legacy.md): it lacks `customer_id`.\n4. Once the load catches up, rerun the dbt tests before clearing the alert."}, {"id": "tables/orders-legacy", "type": "BigQuery Table", "title": "Orders (legacy)", "description": "The old daily orders export, replaced by the hourly orders table.", "tags": ["sales", "orders", "bigquery", "legacy"], "group": "tables", "sz": 25, "status": "deprecated", "state": "deprecated", "superseded_by": "/tables/orders.md", "superseded_cid": "tables/orders", "stale_after": "", "stale_at": "", "tier": "unverified", "generated": {"by": "catalog-agent/1.2", "at": "2026-11-20T08:00:00Z"}, "verified": [], "sources": [], "body": "# Overview\n\nA daily CSV import that ran until 2026-11-19. It has the same columns as\n[Orders](/tables/orders.md) except `customer_id`. Do not build new reports on\nit. It is kept read-only until the\n[retention policy](/policies/data-retention.md) lets it be dropped."}, {"id": "tables/orders", "type": "BigQuery Table", "title": "Orders", "description": "One row per completed order, in stores and online, loaded hourly.", "tags": ["sales", "orders", "bigquery"], "group": "tables", "sz": 28, "status": "stable", "state": "", "superseded_by": "", "superseded_cid": null, "stale_after": "2027-05-20", "stale_at": "2027-05-20T00:00:00.000Z", "tier": "machine-confirmed", "generated": {"by": "catalog-agent/1.2", "at": "2026-11-20T08:00:00Z"}, "verified": [{"by": "process:dbt-tests", "at": "2026-11-25T03:00:00Z", "current": true}], "sources": [{"title": "dbt model sales.orders", "resource": "https://example.com/northwind/dbt/models/sales/orders.sql", "cid": null, "author": "team:data-platform", "usage_count": null, "usage_window": "", "last_modified": "2026-11-19T16:00:00Z"}], "body": "# Overview\n\nEach row is one [basket](/glossary/basket.md) that reached payment. The table is\npartitioned by `order_date` and clustered by `store_id`.[^dbt-model] It lives in\nthe [sales dataset](/datasets/sales.md) and replaces the\n[legacy daily export](/tables/orders-legacy.md).\n\nThe nightly dbt tests check uniqueness of `order_id` and that `total_amount` is\nnever negative. Their last passing run is recorded as a `process:` verification.\n\n# Schema\n\n| Column | Type | Description |\n|--------|------|-------------|\n| `order_id` | STRING | Unique order id. |\n| `order_date` | DATE | Local store date of payment. Partition column. |\n| `store_id` | STRING | Store code, `online` for the web shop. |\n| `customer_id` | STRING | Loyalty id, null for anonymous buyers. |\n| `item_count` | INT64 | Number of line items. |\n| `total_amount` | NUMERIC | Paid amount in EUR, after discounts, including VAT. |\n\n[^dbt-model]: dbt model sales.orders"}], EDGES=[{"source": "computations/weekly-basket-size", "target": "tables/orders"}, {"source": "computations/weekly-basket-size", "target": "references/run-on-bigquery"}, {"source": "datasets/sales", "target": "tables/orders"}, {"source": "datasets/sales", "target": "tables/orders-legacy"}, {"source": "datasets/sales", "target": "policies/data-retention"}, {"source": "glossary/basket", "target": "tables/orders"}, {"source": "glossary/basket", "target": "metrics/average-basket-size"}, {"source": "metrics/average-basket-size", "target": "glossary/basket"}, {"source": "metrics/average-basket-size", "target": "computations/weekly-basket-size"}, {"source": "policies/data-retention", "target": "tables/orders-legacy"}, {"source": "policies/data-retention", "target": "datasets/sales"}, {"source": "runbooks/late-orders-load", "target": "tables/orders"}, {"source": "runbooks/late-orders-load", "target": "datasets/sales"}, {"source": "runbooks/late-orders-load", "target": "tables/orders-legacy"}, {"source": "tables/orders-legacy", "target": "tables/orders"}, {"source": "tables/orders-legacy", "target": "policies/data-retention"}, {"source": "tables/orders", "target": "glossary/basket"}, {"source": "tables/orders", "target": "datasets/sales"}, {"source": "tables/orders", "target": "tables/orders-legacy"}];
+const PALETTE=["#6E56CF","#D97757","#22C55E","#3B82F6","#EAB308","#EC4899","#14B8A6","#F97316","#A855F7","#0EA5E9","#84CC16","#EF4444","#64748B"];
+const byId=Object.fromEntries(NODES.map(n=>[n.id,n]));
+const outL={}, inL={};
+NODES.forEach(n=>{outL[n.id]=[];inL[n.id]=[];});
+EDGES.forEach(e=>{outL[e.source].push(e.target);inL[e.target].push(e.source);});
+const types=[...new Set(NODES.map(n=>n.type))].sort();
+const color=Object.fromEntries(types.map((t,i)=>[t,PALETTE[i%PALETTE.length]]));
+const off=new Set();
+const cy=cytoscape({container:document.getElementById('cy'),minZoom:.2,maxZoom:1.6,wheelSensitivity:.2,
+ elements:[...NODES.map(n=>({data:{...n,c:color[n.type]}})),...EDGES.map(e=>({data:e}))],
+ style:[
+  {selector:'node',style:{'background-color':'data(c)','label':'data(title)','color':'#e6e8ee',
+   'font-size':10,'text-wrap':'wrap','text-max-width':120,'text-valign':'bottom','text-margin-y':4,
+   'text-outline-width':2,'text-outline-color':'#0e0f13','min-zoomed-font-size':6,
+   'width':'data(sz)','height':'data(sz)'}},
+  {selector:'edge',style:{'width':1.2,'line-color':'#3a4150','target-arrow-color':'#3a4150',
+   'target-arrow-shape':'triangle','arrow-scale':.8,'curve-style':'bezier','opacity':.7}},
+  {selector:'.dim',style:{'opacity':.10}},{selector:'.hl',style:{'border-width':3,'border-color':'#fff'}}
+ ],
+ layout:{name:'breadthfirst',animate:false,nodeRepulsion:9000,idealEdgeLength:90,padding:40}});
+const side=document.getElementById('side');
+const app=document.getElementById('app'),split=document.getElementById('split'),SIDE_KEY='okf-viz-side-w';
+let sideW=null,dragFrom=null,relayoutT;
+function setSideW(w){sideW=w==null?null:Math.round(Math.max(240,Math.min(w,innerWidth-240)));
+ if(sideW==null)app.style.removeProperty('--side-w');else app.style.setProperty('--side-w',sideW+'px');cy.resize();}
+function relayout(){clearTimeout(relayoutT);relayoutT=setTimeout(()=>
+ cy.layout({name:curLayout,animate:true,padding:40,nodeRepulsion:9000,idealEdgeLength:90}).run(),150);}
+try{const w=+localStorage.getItem(SIDE_KEY);if(w){setSideW(w);relayout();}}catch(e){}
+split.onpointerdown=e=>{e.preventDefault();split.setPointerCapture(e.pointerId);split.classList.add('drag');dragFrom=sideW;};
+split.onpointermove=e=>{if(split.hasPointerCapture(e.pointerId))setSideW(innerWidth-e.clientX-3);};
+split.onpointerup=split.onpointercancel=()=>{split.classList.remove('drag');
+ if(sideW!==dragFrom)relayout();
+ try{if(sideW!=null)localStorage.setItem(SIDE_KEY,sideW);}catch(e){}};
+split.ondblclick=()=>{setSideW(null);relayout();try{localStorage.removeItem(SIDE_KEY);}catch(e){}};
+addEventListener('resize',()=>{if(sideW!=null)setSideW(sideW);else cy.resize();relayout();});
+const esc=s=>(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function relList(title,arr){if(!arr.length)return'';
+ return `<div class="rel"><h4>${title}</h4>${arr.map(id=>`<a data-go="${esc(id)}">${esc((byId[id]||{}).title||id)}</a>`).join('')}</div>`;}
+// §5.3: the tier is derived in Python at build time (current events only).
+// §5.5: staleness is decided here, at view time, against the UTC instant Python
+// normalized: a page opened long after it was rendered must not show a frozen
+// "fresh". Advisory signals, not access control.
+const TIER_CLS={'unverified':'t-unverified','machine-confirmed':'t-machine','human-reviewed':'t-human'};
+const staleOf=n=>!n.stale_at?'':n.stale_at==='malformed'?'malformed':Date.now()>=Date.parse(n.stale_at)?'stale':'fresh';
+function badges(n){const out=[`<span class="badge ${TIER_CLS[n.tier]||'t-unverified'}">${esc(n.tier)}</span>`],st=staleOf(n);
+ if(st==='stale')out.push(`<span class="badge b-stale">stale since ${esc(n.stale_after)}</span>`);
+ if(st==='malformed')out.push(`<span class="badge b-stale">stale_after malformed: ${esc(n.stale_after)}</span>`);
+ if(n.state==='deprecated')out.push('<span class="badge b-deprecated">deprecated</span>');
+ if(n.state==='unknown')out.push(`<span class="badge b-unknown">status: ${esc(n.status)}</span>`);
+ return `<div class="badges">${out.join('')}</div>`;}
+// OKF v0.3 trust (§5.2) + lifecycle (§5.4/§5.5). A v0.1 `timestamp` arrives here
+// as generated.at with an empty `by`, so legacy bundles still show a date. An event
+// older than generated.at stays listed as history, never counted in the tier (§5.3).
+function metaBlock(n){const g=n.generated||{},rows=[];
+ if(n.status)rows.push(`<div>status <b>${esc(n.status)}</b></div>`);
+ if(g.at||g.by)rows.push(`<div>generated${g.at?` <b>${esc(g.at)}</b>`:''}${g.by?` by ${esc(g.by)}`:''}</div>`);
+ (n.verified||[]).forEach(v=>rows.push(`<div>verified${v.at?` <b>${esc(v.at)}</b>`:''}${v.by?` by ${esc(v.by)}`:''}${v.current?'':' <span class="sig">(verified before the last change)</span>'}</div>`));
+ if(n.stale_after)rows.push(`<div>stale after <b>${esc(n.stale_after)}</b></div>`);
+ return rows.length?`<div class="meta">${rows.join('')}</div>`:'';}
+// Provenance (§5.1). A source may be another concept (graph link), an external
+// URL, or a scope descriptor that is not followable at all.
+function srcList(n){const s=n.sources||[];if(!s.length)return'';
+ return `<div class="rel"><h4>Sources</h4>${s.map(x=>{
+  const used=x.usage_count!=null?`used ${x.usage_count}×${x.usage_window?` (${x.usage_window})`:''}`:'';
+  const sig=[x.author,used,x.last_modified].filter(Boolean).join(' · ');
+  const label=esc(x.title||x.resource)+(sig?` <span class="sig">(${esc(sig)})</span>`:'');
+  if(x.cid&&byId[x.cid])return `<a data-go="${esc(x.cid)}">${label}</a>`;
+  if(/^https?:\/\//i.test(x.resource))return `<a href="${esc(x.resource)}" target="_blank" rel="noopener">${label}</a>`;
+  return `<span class="empty">${label}</span>`;}).join('')}</div>`;}
+// Resolve an in-body markdown link href to a concept id, mirroring resolve() (§6):
+// strip #fragment, percent-decode, a URI scheme is external, a leading / starts at
+// the bundle root, anything else at the current concept's dir. Null when it is not
+// a concept (or leaves the root).
+function resolveHref(cid,href){let t=(href||'').split('#')[0];
+ try{t=decodeURIComponent(t);}catch(e){return null;}
+ if(/^[a-z][a-z0-9+.-]*:/i.test(t)||!t.endsWith('.md'))return null;
+ const base=t[0]==='/'?[]:cid.split('/').slice(0,-1);
+ for(const seg of t.slice(0,-3).split('/')){if(seg===''||seg==='.')continue;
+  if(seg==='..'){if(!base.length)return null;base.pop();}else base.push(seg);}
+ const tgt=base.join('/');
+ return byId[tgt]?tgt:null;}
+// §5.4 — a clickable link when the replacement resolves to a concept, else the raw
+// value so a dangling pointer is still visible.
+function supersededBy(n){if(!n.superseded_by)return'';
+ return n.superseded_cid?relList('Superseded by',[n.superseded_cid])
+  :`<div class="rel"><h4>Superseded by</h4><span class="empty">${esc(n.superseded_by)}</span></div>`;}
+function show(id){const n=byId[id];if(!n)return;const c=color[n.type];
+ side.innerHTML=`<span class="type" style="background:${c}">${esc(n.type)}</span>
+ <h2>${esc(n.title)}</h2><div class="desc">${esc(n.description)||'<span class=empty>no description</span>'}</div>
+ <div class="tags">${(n.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+ ${badges(n)}${metaBlock(n)}${supersededBy(n)}${srcList(n)}${relList('Links to',outL[id])}${relList('Cited by',inL[id])}
+ <div class="body">${n.body?DOMPurify.sanitize(marked.parse(n.body)):'<span class=empty>empty body</span>'}</div>`;
+ side.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));
+ side.querySelectorAll('.body a[href]').forEach(a=>{const tgt=resolveHref(id,a.getAttribute('href'));
+  if(tgt)a.onclick=e=>{e.preventDefault();select(tgt);};});}
+function select(id){const ele=cy.getElementById(id);if(!ele.length)return;show(id);
+ cy.elements().removeClass('hl').addClass('dim');const nb=ele.closedNeighborhood();nb.removeClass('dim');ele.addClass('hl');
+ cy.animate({center:{eles:ele},duration:250});
+ try{if(decodeURIComponent((location.hash||'').slice(1))!==id)location.hash=encodeURIComponent(id);}catch(e){}}
+cy.on('tap','node',e=>select(e.target.id()));
+cy.on('tap',e=>{if(e.target===cy)cy.elements().removeClass('dim hl');});
+function applyFilter(){const q=document.getElementById('search').value.toLowerCase();const ty=document.getElementById('type').value;
+ cy.batch(()=>cy.nodes().forEach(n=>{const d=n.data();
+  const m=(!q||(d.title+' '+d.type+' '+d.description+' '+(d.tags||[]).join(' ')).toLowerCase().includes(q))
+        &&(!ty||d.type===ty)&&!off.has(d.type);
+  n.style('display',m?'element':'none');}));}
+let debounce;
+document.getElementById('search').oninput=()=>{clearTimeout(debounce);debounce=setTimeout(applyFilter,150);};
+document.getElementById('type').oninput=applyFilter;
+const tysel=document.getElementById('type');types.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;tysel.appendChild(o);});
+let curLayout='breadthfirst';
+document.getElementById('layout').onchange=e=>{const v=e.target.value;
+ if(v==='cose'&&NODES.length>1000&&!confirm(`force layout on ${NODES.length} concepts can freeze this tab — run anyway?`)){e.target.value=curLayout;return;}
+ curLayout=v;cy.layout({name:v,animate:true,padding:40,nodeRepulsion:9000,idealEdgeLength:90}).run();};
+document.getElementById('legend').innerHTML=types.map(t=>`<span class="chip" data-t="${esc(t)}"><span class="dot" style="background:${color[t]}"></span>${esc(t)} (${NODES.filter(n=>n.type===t).length})</span>`).join('');
+document.querySelectorAll('#legend .chip').forEach(ch=>ch.onclick=()=>{const t=ch.getAttribute('data-t');
+ if(off.has(t)){off.delete(t);ch.classList.remove('off');}else{off.add(t);ch.classList.add('off');}applyFilter();});
+document.getElementById('layout').value='breadthfirst';
+const Q=new URLSearchParams(location.search),QL=Q.get('layout'),QS=Q.get('select');
+if(QL&&[...document.querySelectorAll('#layout option')].some(o=>o.value===QL)){document.getElementById('layout').value=QL;curLayout=QL;cy.layout({name:QL,animate:false,padding:40,nodeRepulsion:9000,idealEdgeLength:90}).run();}
+function fromHash(){try{const h=decodeURIComponent((location.hash||'').slice(1));if(h&&byId[h])select(h);}catch(e){}}
+addEventListener('hashchange',fromHash);
+if(QS&&byId[QS])select(QS);else fromHash();
+</script></body></html>

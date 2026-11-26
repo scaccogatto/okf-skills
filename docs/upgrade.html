@@ -13,9 +13,6 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
 <link rel="canonical" href="https://ekar-is.github.io/okf-skills/upgrade.html">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&amp;family=JetBrains+Mono:wght@300;400&amp;display=swap">
 <link rel="stylesheet" href="assets/site.css">
 <script src="assets/site.js"></script>
 </head>
@@ -34,7 +31,8 @@
 <li><a href="conventions.html">Conventions</a></li>
 <li><a href="upgrade.html" aria-current="page">Upgrade to v0.3</a></li>
 <li><a href="contribute.html">Contribute</a></li>
-<li><a href="demo.html">Live demo</a></li>
+<li><a href="demo.html">Demo: storefront</a></li>
+<li><a href="catalog.html">Demo: data catalog</a></li>
 <li><a href="self.html">This repo&#x27;s own bundle</a></li>
 </ul>
 </nav>
@@ -43,7 +41,7 @@
 <main id="main">
 <h1>Upgrading to OKF v0.3</h1>
 
-<p class="lede">OKF v0.3 mostly makes the v0.2 text more precise. Two changes alter how a reader interprets an existing v0.2 bundle. This page explains both, what our <code>--migrate</code> flag does about them, and the separate rename of the okf-skills plugin.</p>
+<p class="lede">OKF v0.3 mostly makes the v0.2 text more precise. Two changes alter how a reader interprets an existing v0.2 bundle. Below: both changes, what our <code>--migrate</code> flag does about them, and the separate rename of the okf-skills plugin.</p>
 
 <h2 id="spec">What changed in the spec</h2>
 
@@ -55,7 +53,7 @@
 
 <figure class="file">
 <figcaption>metrics/revenue.md, before and after</figcaption>
-<pre><code># v0.2 meant /references/run-on-bq.md. v0.3 reads metrics/references/run-on-bq.md.
+<pre tabindex="0"><code># v0.2 meant /references/run-on-bq.md. v0.3 reads metrics/references/run-on-bq.md.
 executor:
   resource: references/run-on-bq.md
 
@@ -76,9 +74,9 @@ executor:
 
 <p><code>--migrate</code> rewrites a v0.1 or v0.2 bundle in place, then validates it. It is the only mode of the validator that writes files, so commit or back up the bundle first and read the diff afterwards.</p>
 
-<pre><code>uv run skills/validate/scripts/okf_validate.py .okf --migrate</code></pre>
+<pre tabindex="0"><code>uv run skills/validate/scripts/okf_validate.py .okf --migrate</code></pre>
 
-<p>It edits the text, not a re-serialized copy: comments, key order, quoting, line endings and a byte order mark are kept. Running it twice changes nothing the second time. On concepts it:</p>
+<p>It changes only the lines it has to: comments, key order, quoting, line endings and a byte order mark are kept. Running it twice changes nothing the second time. On concepts it:</p>
 
 <ul>
 <li>adds a leading <code>/</code> to block-style path fields that only resolve from the bundle root (in a bundle that declares 0.2 or older, or no version),</li>
@@ -101,7 +99,7 @@ executor:
 
 <p>The plugin was renamed from <code>okf</code> to <code>okf-skills</code>, and the marketplace moved to <code>ekar-is</code>. The old name was the same as the official OKF plugin's, which made it look like the official one. To move an existing install, remove the old marketplace and install again:</p>
 
-<pre><code>/plugin marketplace remove scaccogatto
+<pre tabindex="0"><code>/plugin marketplace remove scaccogatto
 /plugin marketplace add ekar-is/okf-skills
 /plugin install okf-skills@ekar-is</code></pre>
 
@@ -111,7 +109,7 @@ executor:
 
 <p>The keys that configure the Stop hook moved to the prefix that the spec reserves for extensions:</p>
 
-<div class="table-wrap"><table>
+<div tabindex="0" class="table-wrap"><table>
 <thead><tr><th>Old key</th><th>New key</th></tr></thead>
 <tbody>
 <tr><td><code>upkeep: enforced</code></td><td><code>x-okf-skills-upkeep: enforced</code></td></tr>

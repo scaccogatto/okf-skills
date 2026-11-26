@@ -13,9 +13,6 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
 <link rel="canonical" href="https://ekar-is.github.io/okf-skills/">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&amp;family=JetBrains+Mono:wght@300;400&amp;display=swap">
 <link rel="stylesheet" href="assets/site.css">
 <script src="assets/site.js"></script>
 </head>
@@ -34,7 +31,8 @@
 <li><a href="conventions.html">Conventions</a></li>
 <li><a href="upgrade.html">Upgrade to v0.3</a></li>
 <li><a href="contribute.html">Contribute</a></li>
-<li><a href="demo.html">Live demo</a></li>
+<li><a href="demo.html">Demo: storefront</a></li>
+<li><a href="catalog.html">Demo: data catalog</a></li>
 <li><a href="self.html">This repo&#x27;s own bundle</a></li>
 </ul>
 </nav>
@@ -43,15 +41,15 @@
 <main id="main">
 <h1>Knowledge as plain files</h1>
 
-<p class="lede">The Open Knowledge Format (OKF) is a way to write down what you know about your data, systems and processes, so that both people and AI agents can read it.</p>
+<p class="lede">The Open Knowledge Format (OKF) is a way to write down what you know about your data, systems and processes, so that both people and AI agents can read it. This site is by okf-skills, an independent toolkit. The format has its own home at <a href="https://github.com/open-knowledge-format/open-knowledge-format">open-knowledge-format/open-knowledge-format</a>.</p>
 
-<p>In the spec's words, the format is "a directory of Markdown files with YAML frontmatter". There is no schema registry, no central authority and no required tool. If you can open a text file, you can read it. If you can share a folder or a git repository, you can share it. The <a href="https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md">specification</a> is short, Apache-2.0 licensed, and developed in the open at <a href="https://github.com/open-knowledge-format/open-knowledge-format">open-knowledge-format/open-knowledge-format</a>. It is at version 0.3.</p>
+<p>In the spec's words, the format is "a directory of Markdown files with YAML frontmatter". There is nothing to install and nobody to register with. If you can open a text file, you can read it. If you can share a folder or a git repository, you can share it. The <a href="https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md">specification</a> is short, Apache-2.0 licensed, and developed in the open at <a href="https://github.com/open-knowledge-format/open-knowledge-format">open-knowledge-format/open-knowledge-format</a>. It is at version 0.3.</p>
 
 <p>Each file is one concept: a table, a metric, a policy, a service, a runbook, anything worth explaining. A short block of metadata at the top says what kind of thing it is. The rest is ordinary Markdown. Here is a complete, valid concept:</p>
 
 <figure class="file">
 <figcaption>policies/expense-approval.md</figcaption>
-<pre><code>---
+<pre tabindex="0"><code>---
 type: Policy
 ---
 
@@ -63,9 +61,9 @@ before you pay. Keep the receipt for seven years.</code></pre>
 
 <p>Only <code>type</code> is required. Everything else is optional. <a href="format.html">OKF in plain words</a> walks through the rest of the format.</p>
 
-<h2 id="who">Who this site is for</h2>
+<h2 id="who">Find your way</h2>
 
-<div class="table-wrap"><table>
+<div tabindex="0" class="table-wrap"><table>
 <thead><tr><th>I want to...</th><th>Go to</th></tr></thead>
 <tbody>
 <tr><td>Understand what OKF is and how a bundle is laid out</td><td><a href="format.html">OKF in plain words</a></td></tr>
@@ -75,14 +73,14 @@ before you pay. Keep the receipt for seven years.</code></pre>
 <tr><td>Tell the spec apart from this project's habits</td><td><a href="conventions.html">Spec and our conventions</a></td></tr>
 <tr><td>Move an older bundle or plugin install to OKF v0.3</td><td><a href="upgrade.html">Upgrading to v0.3</a></td></tr>
 <tr><td>Report a bug, propose a change, or send a pull request</td><td><a href="contribute.html">Contribute</a></td></tr>
-<tr><td>See a bundle before reading anything</td><td><a href="demo.html">Live demo</a></td></tr>
+<tr><td>See a bundle before reading anything</td><td>Live demos: <a href="demo.html">storefront</a>, <a href="catalog.html">data catalog</a>, <a href="self.html">this repo&#x27;s own bundle</a></td></tr>
 </tbody>
 </table></div>
 
 <div class="callout strong">
 <span class="label">You don't need us to use OKF</span>
 <p>A bundle is a folder of text files. Any editor works, and the example above is fully conformant as it is. okf-skills is an independent community project, maintained by ekar.is. It is not the official OKF tooling and is not affiliated with the authors of the spec.</p>
-<p>The OKF project ships its own agent skills, <a href="https://github.com/open-knowledge-format/open-knowledge-format/tree/main/skills/okf-generate">okf-generate</a> and <a href="https://github.com/open-knowledge-format/open-knowledge-format/tree/main/skills/okf-consume">okf-consume</a>. Start there if you are building a data catalog from existing sources, or answering questions with attested computations. Those are the cases the spec's own samples cover.</p>
+<p>The OKF project ships its own agent skills, <a href="https://github.com/open-knowledge-format/open-knowledge-format/tree/main/skills/okf-generate">okf-generate</a> and <a href="https://github.com/open-knowledge-format/open-knowledge-format/tree/main/skills/okf-consume">okf-consume</a>. Start there if you are building a data catalog from existing sources, or answering questions with attested computations. Those are the cases the OKF repository's sample bundles cover.</p>
 </div>
 
 <h2 id="adds">What okf-skills adds</h2>
@@ -104,25 +102,17 @@ before you pay. Keep the receipt for seven years.</code></pre>
 
 <figure class="code">
 <figcaption>Terminal</figcaption>
-<pre><code>git clone https://github.com/ekar-is/okf-skills
+<pre tabindex="0"><code>git clone https://github.com/ekar-is/okf-skills
 uv run okf-skills/skills/okf/scripts/okf_init.py my-bundle
 uv run okf-skills/skills/validate/scripts/okf_validate.py my-bundle</code></pre>
 </figure>
 
 <p>The first command gets the scripts. The second creates a small starter bundle in <code>my-bundle/</code>. The third checks it. Then edit the files, add your own concepts, and run the check again. To see the result as a graph:</p>
 
-<pre><code>uv run okf-skills/skills/visualize/scripts/okf_visualize.py my-bundle -o viz.html</code></pre>
+<pre tabindex="0"><code>uv run okf-skills/skills/visualize/scripts/okf_visualize.py my-bundle -o viz.html</code></pre>
 
 <p>If you use Claude Code or another AI coding agent, <a href="start.html#agent">Getting started</a> shows the plugin and skill installs.</p>
 
-<h2 id="next">Where to go next</h2>
-
-<div class="cards">
-<a class="card" href="format.html"><span class="label">Read</span><span>OKF in plain words</span></a>
-<a class="card" href="start.html"><span class="label">Do</span><span>Getting started, three ways</span></a>
-<a class="card" href="demo.html"><span class="label">See</span><span>A sample bundle as a graph</span></a>
-<a class="card" href="self.html"><span class="label">See</span><span>This repository's own bundle</span></a>
-</div>
 </main>
 <footer class="site-footer">
 <div class="bar">

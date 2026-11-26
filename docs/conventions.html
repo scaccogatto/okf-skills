@@ -13,9 +13,6 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
 <link rel="canonical" href="https://ekar-is.github.io/okf-skills/conventions.html">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&amp;family=JetBrains+Mono:wght@300;400&amp;display=swap">
 <link rel="stylesheet" href="assets/site.css">
 <script src="assets/site.js"></script>
 </head>
@@ -34,7 +31,8 @@
 <li><a href="conventions.html" aria-current="page">Conventions</a></li>
 <li><a href="upgrade.html">Upgrade to v0.3</a></li>
 <li><a href="contribute.html">Contribute</a></li>
-<li><a href="demo.html">Live demo</a></li>
+<li><a href="demo.html">Demo: storefront</a></li>
+<li><a href="catalog.html">Demo: data catalog</a></li>
 <li><a href="self.html">This repo&#x27;s own bundle</a></li>
 </ul>
 </nav>
@@ -47,20 +45,20 @@
 
 <h2 id="table">Side by side</h2>
 
-<div class="table-wrap wide"><table>
+<div tabindex="0" class="table-wrap wide"><table>
 <thead><tr><th>Topic</th><th>The spec says</th><th>okf-skills does</th><th>Why we chose it</th></tr></thead>
 <tbody>
 <tr>
 <td>Where the bundle lives</td>
 <td>Anywhere. A bundle is any folder, a repository, or an archive (§3).</td>
-<td>Defaults to <code>.okf/</code> at the repository root. Every tool accepts another path.</td>
+<td>Defaults to <code>.okf/</code> at the repository root. The validator, the visualizer, the MCP server, the Action and the okf skill accept any other path. The Stop hook and the backfill skill only use <code>.okf/</code>.</td>
 <td>A predictable place lets the skills, the hook and the MCP server find the bundle without configuration. The dot keeps it out of the way of the code.</td>
 </tr>
 <tr>
 <td>Path fields</td>
 <td>A leading <code>/</code> resolves from the bundle root, anything else from the file's folder. Both are valid, neither is preferred (§6).</td>
 <td>Writes in-bundle path fields such as <code>superseded_by</code> with a leading <code>/</code>.</td>
-<td>A rooted path still points at the right file after you move the concept that contains it. And a bare path that a v0.2 bundle meant from the root changes meaning under v0.3, so the rooted form is the one that reads the same under both.</td>
+<td>A rooted path still points at the right file after you move the concept that contains it. It also reads the same under v0.2 and v0.3. A bare path does not.</td>
 </tr>
 <tr>
 <td>What goes in <code>log.md</code></td>
@@ -95,14 +93,9 @@
 <li>An agent records itself in <code>generated.by</code> as <code>&lt;producer&gt;/&lt;version&gt;</code>, for example <code>claude/opus-5.5</code>.</li>
 </ul>
 
-<p>Put another way: trust is earned by someone checking, not written into the file by the one who wants it. A concept that an agent wrote and nobody checked is unverified, and that is a useful thing for a reader to know.</p>
+<p>Put another way: trust is earned by someone checking, not written into the file by the one who wants it. A concept that an agent wrote and nobody checked is unverified. That is accurate, and it is useful for a reader to know.</p>
 
-<h2 id="not-spec">What these conventions are not</h2>
-
-<ul>
-<li>They are not part of OKF. Proposals to change the format belong in the <a href="https://github.com/open-knowledge-format/open-knowledge-format/issues">OKF repository</a>, not here.</li>
-<li>Passing our validator with <code>--strict --lint</code> is a house style. Conformance is defined by §11.1 of the spec. See <a href="format.html#conformance">what conformance means</a>.</li>
-</ul>
+<p>None of this is part of OKF. Format proposals go to the <a href="https://github.com/open-knowledge-format/open-knowledge-format/issues">OKF repository</a>.</p>
 </main>
 <footer class="site-footer">
 <div class="bar">

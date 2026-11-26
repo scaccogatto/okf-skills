@@ -13,9 +13,6 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
 <link rel="canonical" href="https://ekar-is.github.io/okf-skills/contribute.html">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&amp;family=JetBrains+Mono:wght@300;400&amp;display=swap">
 <link rel="stylesheet" href="assets/site.css">
 <script src="assets/site.js"></script>
 </head>
@@ -34,7 +31,8 @@
 <li><a href="conventions.html">Conventions</a></li>
 <li><a href="upgrade.html">Upgrade to v0.3</a></li>
 <li><a href="contribute.html" aria-current="page">Contribute</a></li>
-<li><a href="demo.html">Live demo</a></li>
+<li><a href="demo.html">Demo: storefront</a></li>
+<li><a href="catalog.html">Demo: data catalog</a></li>
 <li><a href="self.html">This repo&#x27;s own bundle</a></li>
 </ul>
 </nav>
@@ -43,7 +41,7 @@
 <main id="main">
 <h1>Contribute</h1>
 
-<p class="lede">Bug reports, questions and pull requests are welcome. This page says how the project is run, so you know what to expect.</p>
+<p class="lede">Bug reports, questions and pull requests are welcome. Here is how the project is run, so you know what to expect.</p>
 
 <h2 id="how">How the project is run</h2>
 
@@ -69,6 +67,7 @@
 <li>Changes one thing, and says why in the description.</li>
 <li>Comes with a test when it changes behaviour. The tests are plain Python scripts in <code>tests/</code>, run with <code>make test</code>.</li>
 <li>Passes <code>make lint</code> and <code>make validate</code> locally.</li>
+<li>Merged work keeps its author: we merge your commits or add <code>Co-authored-by</code>, and name you in the changelog.</li>
 </ul>
 
 <p>You do not need to bump the version, write the changelog entry or update the <code>.okf/</code> bundle. The maintainers do that before merging. Your part is the code, the tests and a clear description. The local commands are in <a href="https://github.com/ekar-is/okf-skills/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>

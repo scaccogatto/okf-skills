@@ -165,16 +165,20 @@ jobs:
 
       - name: The committed GitHub Pages demos match the generator
         run: |
-          # docs/demo.html and docs/self.html are generator output committed to
-          # the repo (the other docs/ pages are hand-written). Nothing checked
-          # it, so both pages shipped for weeks without the DOMPurify sanitize fix
-          # that had already landed in okf_visualize.py. `make docs` pins the exact
-          # invocation; this asserts the committed files are what it produces.
+          # docs/demo.html, docs/catalog.html and docs/self.html are generator
+          # output committed to the repo (the other docs/ pages are hand-written).
+          # Nothing checked them, so the first two shipped for weeks without the
+          # DOMPurify sanitize fix that had already landed in okf_visualize.py.
+          # `make docs` pins the exact invocation; this asserts the committed
+          # files are what it produces.
           make docs
-          git diff --exit-code -- docs/ || {
+          # status, not diff: a generated page that was never committed is
+          # untracked, and `git diff` would not see it.
+          if [ -n "$(git status --porcelain -- docs/)" ]; then
+            git status --short -- docs/
             echo "docs/ is stale — run 'make docs' and commit the result" >&2
             exit 1
-          }
+          fi
           echo "ok: the live demos match the generator"
 
       - name: Self-test — okf_init.py scaffold passes strict validation clean

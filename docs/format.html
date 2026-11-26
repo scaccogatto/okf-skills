@@ -13,9 +13,6 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
 <link rel="canonical" href="https://ekar-is.github.io/okf-skills/format.html">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&amp;family=JetBrains+Mono:wght@300;400&amp;display=swap">
 <link rel="stylesheet" href="assets/site.css">
 <script src="assets/site.js"></script>
 </head>
@@ -34,7 +31,8 @@
 <li><a href="conventions.html">Conventions</a></li>
 <li><a href="upgrade.html">Upgrade to v0.3</a></li>
 <li><a href="contribute.html">Contribute</a></li>
-<li><a href="demo.html">Live demo</a></li>
+<li><a href="demo.html">Demo: storefront</a></li>
+<li><a href="catalog.html">Demo: data catalog</a></li>
 <li><a href="self.html">This repo&#x27;s own bundle</a></li>
 </ul>
 </nav>
@@ -43,51 +41,69 @@
 <main id="main">
 <h1>OKF in plain words</h1>
 
-<p class="lede">This page explains the Open Knowledge Format v0.3 with examples. It is a reading aid, not a replacement. When this page and the <a href="https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md">spec</a> disagree, the spec is right, and we would like to hear about it.</p>
+<p class="lede">The Open Knowledge Format v0.3, explained with examples. It is a reading aid, not a replacement. When this explanation and the <a href="https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md">spec</a> disagree, the spec is right, and we would like to hear about it.</p>
 
 <h2 id="bundle">The bundle</h2>
 
 <p>A bundle is a folder. Every Markdown file in it that has a <code>type</code> in its frontmatter is a concept. Subfolders group concepts however you like: the spec does not prescribe a layout, and it does not depend on your domain (<a href="https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md#3-bundle-structure">§3</a>).</p>
 
 <figure class="diagram">
-<svg viewBox="0 0 560 250" role="img" aria-labelledby="tree-title">
+<svg class="diagram-wide" viewBox="0 0 600 292" role="img" aria-labelledby="tree-title">
 <title id="tree-title">A bundle folder with index.md, log.md and three subfolders of concepts</title>
 <g fill="none" stroke="currentColor" stroke-width="1">
 <rect x="1" y="1" width="150" height="30"/>
-<path d="M30 31V226M30 66H60M30 106H60M30 146H60M30 186H60M30 226H60"/>
-<path class="svg-muted" d="M200 146H230M200 146V186H230"/>
+<path d="M30 31V278M30 62H60M30 98H60M30 134H60M30 242H60M30 278H60"/>
+<path class="svg-muted" d="M80 140V206M80 170H92M80 206H92"/>
 </g>
 <g font-family="JetBrains Mono, monospace" font-size="13" fill="currentColor">
 <text x="12" y="21">finance-kb/</text>
-<text x="68" y="70">index.md</text>
-<text x="68" y="110">log.md</text>
-<text x="68" y="150">tables/</text>
-<text x="68" y="190">metrics/</text>
-<text x="68" y="230">policies/</text>
-<text x="238" y="150">orders.md</text>
-<text x="238" y="190">refunds.md</text>
+<text x="68" y="66">index.md</text>
+<text x="68" y="102">log.md</text>
+<text x="68" y="138">tables/</text>
+<text x="100" y="174">orders.md</text>
+<text x="100" y="210">refunds.md</text>
+<text x="68" y="246">metrics/</text>
+<text x="68" y="282">policies/</text>
 </g>
-<g font-family="JetBrains Mono, monospace" font-size="10.5" class="svg-muted" fill="currentColor">
-<text x="180" y="70">listing + bundle metadata (optional)</text>
-<text x="180" y="110">history of changes (optional)</text>
-<text x="360" y="150">one file = one concept</text>
-<text x="180" y="230">group folders any way you like</text>
+<g font-family="JetBrains Mono, monospace" font-size="13" class="svg-muted" fill="currentColor">
+<text x="220" y="66">listing + bundle metadata (optional)</text>
+<text x="220" y="102">history of changes (optional)</text>
+<text x="220" y="174">one file = one concept</text>
+<text x="220" y="282">group folders any way you like</text>
 </g>
 </svg>
-<figcaption>A small bundle. The path of a file, without <code>.md</code>, is the concept's ID: <code>tables/orders</code>.</figcaption>
+<svg class="diagram-narrow" viewBox="0 0 200 292" role="img" aria-labelledby="tree-title-narrow">
+<title id="tree-title-narrow">A bundle folder with index.md, log.md and three subfolders of concepts</title>
+<g fill="none" stroke="currentColor" stroke-width="1">
+<rect x="1" y="1" width="150" height="30"/>
+<path d="M30 31V278M30 62H60M30 98H60M30 134H60M30 242H60M30 278H60"/>
+<path class="svg-muted" d="M80 140V206M80 170H92M80 206H92"/>
+</g>
+<g font-family="JetBrains Mono, monospace" font-size="13" fill="currentColor">
+<text x="12" y="21">finance-kb/</text>
+<text x="68" y="66">index.md</text>
+<text x="68" y="102">log.md</text>
+<text x="68" y="138">tables/</text>
+<text x="100" y="174">orders.md</text>
+<text x="100" y="210">refunds.md</text>
+<text x="68" y="246">metrics/</text>
+<text x="68" y="282">policies/</text>
+</g>
+</svg>
+<figcaption>A small bundle. <code>index.md</code> lists what is there and holds the bundle metadata. <code>log.md</code> is the history of changes. Both are optional. Every other file is one concept, and folders group concepts any way you like. The path of a file, without <code>.md</code>, is the concept's ID: <code>tables/orders</code>.</figcaption>
 </figure>
 
 <p>A bundle can be its own git repository, a zip file, or a subfolder of a larger repository. The spec recommends git, because it gives you history and diffs for free. Files and folders whose names start with a dot are not part of the bundle. Non-Markdown files (images, SQL files, scripts) are assets: concepts can link to them, but they are not concepts.</p>
 
 <h2 id="concept">A concept: frontmatter and body</h2>
 
-<p>A concept file has two parts. The frontmatter is a YAML block between two <code>---</code> lines at the very top. The body is everything after it, written in CommonMark with GitHub-style tables and footnotes (<a href="https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md#4-concept-documents">§4</a>).</p>
+<p>A concept file has two parts. The frontmatter is a YAML block between two <code>---</code> lines at the very top. The body is everything after it, written in standard Markdown (CommonMark), plus tables and footnotes (<a href="https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md#4-concept-documents">§4</a>).</p>
 
 <p><code>type</code> is the only key that is always required. It is a short label of your choice, such as <code>Table</code>, <code>Metric</code>, <code>Policy</code> or <code>Runbook</code>. There is no official list, and readers must accept types they have never seen. The common optional keys are <code>title</code>, <code>description</code> (one sentence), <code>tags</code>, and <code>resource</code>, a URI for the real thing the concept describes, when there is one.</p>
 
 <figure class="file">
 <figcaption>tables/orders.md</figcaption>
-<pre><code>---
+<pre tabindex="0"><code>---
 type: Warehouse Table
 title: Orders
 description: One row per completed customer order, all channels.
@@ -113,7 +129,7 @@ tags: [sales, orders]
 
 <p>Some frontmatter keys hold a path instead of prose. The spec calls them path fields: <code>resource</code>, <code>sources[].resource</code>, <code>superseded_by</code>, and the computation keys. Links and path fields follow the same rule, and both forms below are valid:</p>
 
-<div class="table-wrap"><table>
+<div tabindex="0" class="table-wrap"><table>
 <thead><tr><th>Written as</th><th>Resolves from</th><th>Example</th></tr></thead>
 <tbody>
 <tr><td>Starts with <code>/</code></td><td>The bundle root</td><td><code>/tables/customers.md</code></td></tr>
@@ -132,7 +148,7 @@ tags: [sales, orders]
 
 <figure class="file">
 <figcaption>index.md (bundle root)</figcaption>
-<pre><code>---
+<pre tabindex="0"><code>---
 okf_version: "0.3"
 title: Finance knowledge
 description: Tables, metrics and policies for the finance team. Use it for revenue and refund questions.
@@ -152,7 +168,7 @@ license: CC-BY-4.0
 
 <figure class="file">
 <figcaption>log.md</figcaption>
-<pre><code># Update log
+<pre tabindex="0"><code># Update log
 
 ## 2026-11-20
 * **Deprecation**: retired the old [refund policy](policies/refunds-2024.md).
@@ -161,7 +177,7 @@ license: CC-BY-4.0
 * **Creation**: added the [orders table](tables/orders.md).</code></pre>
 </figure>
 
-<h2 id="families">The optional families</h2>
+<h2 id="families">Optional metadata: source, trust, freshness</h2>
 
 <p>When agents write and rewrite most of a bundle, a reader needs a few more answers: where did this come from, who checked it, is it still current. The spec groups the keys that answer these into families (<a href="https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md#5-provenance-trust-and-lifecycle">§5</a>). All of them are optional. A concept without them is still valid. It simply tells the reader less.</p>
 
@@ -171,7 +187,7 @@ license: CC-BY-4.0
 
 <figure class="file">
 <figcaption>metrics/monthly-churn.md</figcaption>
-<pre><code>---
+<pre tabindex="0"><code>---
 type: Metric
 title: Monthly customer churn
 description: Share of paying customers at the start of a month who cancel during it.
@@ -211,7 +227,7 @@ on the first day of that month.[^board-pack] Trial accounts do not count.
 
 <figure class="file">
 <figcaption>policies/refunds-2024.md</figcaption>
-<pre><code>---
+<pre tabindex="0"><code>---
 type: Policy
 title: Refund policy (2024)
 status: deprecated
@@ -225,7 +241,7 @@ Replaced in November 2026. See the [current refund policy](refunds.md).</code></
 
 <figure class="file">
 <figcaption>runbooks/payment-provider-outage.md</figcaption>
-<pre><code>---
+<pre tabindex="0"><code>---
 type: Runbook
 title: Payment provider outage
 description: What on-call does when card payments start failing.
@@ -247,11 +263,11 @@ The card failure rate stays above 5% for ten minutes.
 
 <h3 id="attested">Attested computations</h3>
 
-<p>Some numbers must be computed one approved way. An Attested Computation is a concept that holds that approved query or script, the parameters an agent may fill in, and pointers to code that can check, after a run, that the approved computation is the one that ran (<a href="https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md#10-attested-computations">§10</a>). The agent supplies values, never the query. OKF describes the contract. It does not run anything.</p>
+<p>Some numbers must be computed one approved way. An Attested Computation is a concept that holds that approved query or script, the parameters an agent may fill in, and a pointer to a checker. After each run, the checker confirms that the approved query is the one that ran (<a href="https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md#10-attested-computations">§10</a>). The agent supplies values, never the query. OKF only describes the contract: running it is up to your tools.</p>
 
 <figure class="file">
 <figcaption>computations/refund-rate.md</figcaption>
-<pre><code>---
+<pre tabindex="0"><code>---
 type: Attested Computation
 title: Refund rate for a month
 runtime: postgres
@@ -288,11 +304,11 @@ WHERE date_trunc('month', placed_at) = :month
 <li><code>index.md</code> and <code>log.md</code> follow their rules when they are present.</li>
 </ol>
 
-<p>That is all. A Markdown file without frontmatter, such as a <code>README.md</code>, is not a concept and does not break anything. Most of the rest of the spec is guidance for producers ("SHOULD") and rules for readers ("MUST accept broken links", "MUST NOT reject unknown keys"). Readers must not reject a bundle for missing optional fields, unknown types, unknown keys, broken links or missing index files.</p>
+<p>That is all. A Markdown file without frontmatter, such as a <code>README.md</code>, is not a concept and does not make a bundle non-conformant. Most of the rest of the spec is guidance for producers ("SHOULD") and rules for readers ("MUST accept broken links", "MUST NOT reject keys that they do not know"). Readers must not reject a bundle for missing optional fields, unknown types, unknown keys, broken links or missing index files.</p>
 
 <div class="callout">
-<span class="label">Note</span>
-<p>Our validator follows this split. Only §11.1 problems are errors. Spec guidance shows up as warnings, and our own style advice is off unless you ask for it with <code>--lint</code>. Passing our validator with extra flags is a choice you make for your bundle. It is not what conformance means. See <a href="tools.html#validate">The toolkit</a>.</p>
+<span class="label">How our validator maps to this</span>
+<p>Our validator follows this split. Only §11.1 problems are errors. Spec guidance shows up as warnings, and our own style advice is off unless you ask for it with <code>--lint</code>. A <code>README.md</code> inside the bundle and a link to a file that does not exist yet are both warnings, so <code>--strict</code> fails on them. Use <code>--max-warnings</code> if you want to keep them. Passing our validator with extra flags is a choice you make for your bundle, and conformance asks for less. See <a href="tools.html#validate">The toolkit</a>.</p>
 </div>
 </main>
 <footer class="site-footer">

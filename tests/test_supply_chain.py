@@ -36,7 +36,7 @@ SHIPPED_SCRIPT_DIRS = ("skills", "servers", "hooks")
 PEP723 = re.compile(r"^# /// script$\n(?P<body>(?:^#(?: .*)?$\n)+?)^# ///$", re.MULTILINE)
 UPPER_BOUND = re.compile(r"<\s*\d")
 # The `make docs` output. The other docs/ pages are hand-written.
-GENERATED_PAGES = ("demo.html", "self.html")
+GENERATED_PAGES = ("demo.html", "catalog.html", "self.html")
 
 
 class _Scripts(HTMLParser):

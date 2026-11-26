@@ -53,11 +53,13 @@ Runs on `ubuntu-latest` with `astral-sh/setup-uv`. Steps, in order:
    demos must match what the generator produces, so a fix like the DOMPurify
    sanitize change cannot land in the generator without also landing in the
    published pages. GitHub Pages serves `docs/` on `main` with no build step:
-   `docs/demo.html` (the sample bundle) and `docs/self.html` (this bundle) are
-   generator output, the other pages (`index.html` and the guide pages, styled
+   `docs/demo.html` (the sample bundle), `docs/catalog.html` (the data-catalog
+   example) and `docs/self.html` (this bundle) are generator output, the other pages (`index.html` and the guide pages, styled
    by `docs/assets/site.css`) are hand-written. `tests/test_docs_site.py`
    checks that every internal link on them resolves, every page has a title,
-   and no hand-written page contains an em-dash.
+   no hand-written page contains an em-dash, and no hand-written page or the
+   stylesheet loads anything from a third-party origin (the fonts are
+   self-hosted under `docs/assets/fonts/`).
 
 # The `action` job
 

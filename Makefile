@@ -2,7 +2,7 @@
 # invocation used to live nowhere, so they drifted: both pages shipped for weeks
 # without the DOMPurify sanitize fix that had already landed in the generator.
 # Pinning the command here — and diffing it in CI — is what stops that recurring.
-PAGES_LINK := https://github.com/ekar-is/okf-skills
+PAGES_LINK := https://ekar-is.github.io/okf-skills/
 PAGES_OG   := https://ekar-is.github.io/okf-skills/assets/og.png
 VISUALIZE  := uv run skills/visualize/scripts/okf_visualize.py
 # Pinned: keep in step with the lint step in .github/workflows/ci.yml.
@@ -16,6 +16,9 @@ lint:
 docs:
 	$(VISUALIZE) examples/sample-bundle -o docs/demo.html \
 	  --title "Storefront · a live OKF bundle" \
+	  --link "$(PAGES_LINK)" --og-image "$(PAGES_OG)" --layout breadthfirst
+	$(VISUALIZE) examples/data-catalog -o docs/catalog.html \
+	  --title "Northwind Grocers · a data catalog in OKF" \
 	  --link "$(PAGES_LINK)" --og-image "$(PAGES_OG)" --layout breadthfirst
 	$(VISUALIZE) .okf -o docs/self.html \
 	  --title "okf-skills · documented in its own format" \

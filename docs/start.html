@@ -13,9 +13,6 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
 <link rel="canonical" href="https://ekar-is.github.io/okf-skills/start.html">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&amp;family=JetBrains+Mono:wght@300;400&amp;display=swap">
 <link rel="stylesheet" href="assets/site.css">
 <script src="assets/site.js"></script>
 </head>
@@ -34,7 +31,8 @@
 <li><a href="conventions.html">Conventions</a></li>
 <li><a href="upgrade.html">Upgrade to v0.3</a></li>
 <li><a href="contribute.html">Contribute</a></li>
-<li><a href="demo.html">Live demo</a></li>
+<li><a href="demo.html">Demo: storefront</a></li>
+<li><a href="catalog.html">Demo: data catalog</a></li>
 <li><a href="self.html">This repo&#x27;s own bundle</a></li>
 </ul>
 </nav>
@@ -57,7 +55,7 @@
 
 <figure class="file">
 <figcaption>services/invoice-service.md</figcaption>
-<pre><code>---
+<pre tabindex="0"><code>---
 type: Service
 title: Invoice service
 description: Turns paid orders into PDF invoices and emails them to customers.
@@ -87,18 +85,18 @@ The billing team owns it. Incidents follow the
 
 <p><a href="format.html">OKF in plain words</a> has examples of each part. You can stop here: nothing in this project is required to write or read OKF.</p>
 
-<h3>Check it</h3>
+<h3 id="hand-check">Check it by hand</h3>
 
 <p>The validator is a single Python script. It needs <a href="https://docs.astral.sh/uv/">uv</a> and Python 3.11 or newer.</p>
 
-<pre><code>git clone https://github.com/ekar-is/okf-skills
+<pre tabindex="0"><code>git clone https://github.com/ekar-is/okf-skills
 uv run okf-skills/skills/validate/scripts/okf_validate.py my-bundle</code></pre>
 
 <p>Errors mean the bundle breaks a conformance rule. Warnings are spec guidance, and are fine to leave for later. Without uv, <code>pip install pyyaml</code> and run the script with <code>python3</code>.</p>
 
-<h3>See it</h3>
+<h3 id="hand-see">See it in the browser</h3>
 
-<pre><code>uv run okf-skills/skills/visualize/scripts/okf_visualize.py my-bundle -o viz.html</code></pre>
+<pre tabindex="0"><code>uv run okf-skills/skills/visualize/scripts/okf_visualize.py my-bundle -o viz.html</code></pre>
 
 <p>Open <code>viz.html</code> in a browser. It is one file you can share. The <a href="demo.html">live demo</a> is what it looks like.</p>
 
@@ -110,18 +108,18 @@ uv run okf-skills/skills/validate/scripts/okf_validate.py my-bundle</code></pre>
 
 <p>The plugin installs everything: the four skills, the subagents the backfill skill needs, the optional Stop hook and the MCP server.</p>
 
-<pre><code>/plugin marketplace add ekar-is/okf-skills
+<pre tabindex="0"><code>/plugin marketplace add ekar-is/okf-skills
 /plugin install okf-skills@ekar-is</code></pre>
 
 <p>Then ask in plain words ("document the invoice service in OKF"), or call the skill directly:</p>
 
-<pre><code>/okf-skills:okf produce .okf</code></pre>
+<pre tabindex="0"><code>/okf-skills:okf produce .okf</code></pre>
 
-<p>The skills are <code>/okf-skills:okf</code> (write, update and read bundles), <code>/okf-skills:validate</code>, <code>/okf-skills:visualize</code> and <code>/okf-skills:backfill</code>. The default bundle location is <code>.okf/</code>, which is our convention, not the spec's. Pass any other path.</p>
+<p>The skills are <code>/okf-skills:okf</code> (write, update and read bundles), <code>/okf-skills:validate</code>, <code>/okf-skills:visualize</code> and <code>/okf-skills:backfill</code>. The default bundle location is <code>.okf/</code>, which is our convention, not the spec's. The skills accept any other path. The Stop hook only looks at <code>.okf/</code>.</p>
 
 <h3>Agent skills via skills.sh</h3>
 
-<pre><code>npx skills add ekar-is/okf-skills</code></pre>
+<pre tabindex="0"><code>npx skills add ekar-is/okf-skills</code></pre>
 
 <p>This installs the skill folders only, without the plugin's subagents, hook or MCP server, so the backfill skill does not work from this install.</p>
 
@@ -130,13 +128,13 @@ uv run okf-skills/skills/validate/scripts/okf_validate.py my-bundle</code></pre>
 <p>We have tested the skills in Claude Code only. Other agents that support the Agent Skills format may load them, but we have not tried them, and the skill text is written with Claude Code in mind. If you run them elsewhere, an issue telling us what happened is welcome.</p>
 </div>
 
-<h3>Check it</h3>
+<h3 id="agent-check">Check it with the agent</h3>
 
-<pre><code>/okf-skills:validate .okf</code></pre>
+<pre tabindex="0"><code>/okf-skills:validate .okf</code></pre>
 
-<h3>See it</h3>
+<h3 id="agent-see">See it with the agent</h3>
 
-<pre><code>/okf-skills:visualize .okf</code></pre>
+<pre tabindex="0"><code>/okf-skills:visualize .okf</code></pre>
 
 <h2 id="ci">Path 3: in CI</h2>
 
@@ -144,7 +142,7 @@ uv run okf-skills/skills/validate/scripts/okf_validate.py my-bundle</code></pre>
 
 <figure class="file">
 <figcaption>.github/workflows/okf.yml</figcaption>
-<pre><code>name: OKF bundle
+<pre tabindex="0"><code>name: OKF bundle
 on: [push, pull_request]
 jobs:
   validate:
@@ -163,7 +161,7 @@ jobs:
 
 <p>Any other CI can run the scripts directly from a checkout of okf-skills:</p>
 
-<pre><code>uv run okf-skills/skills/validate/scripts/okf_validate.py docs/knowledge --strict
+<pre tabindex="0"><code>uv run okf-skills/skills/validate/scripts/okf_validate.py docs/knowledge --strict
 uv run okf-skills/skills/validate/scripts/okf_validate.py docs/knowledge --json</code></pre>
 
 <p>The exit code is non-zero when the bundle fails. <code>--json</code> prints a machine-readable report.</p>
@@ -172,9 +170,9 @@ uv run okf-skills/skills/validate/scripts/okf_validate.py docs/knowledge --json<
 
 <p>Render the graph as a build artifact or publish it with your docs:</p>
 
-<pre><code>uv run okf-skills/skills/visualize/scripts/okf_visualize.py docs/knowledge -o viz.html --title "Finance knowledge"</code></pre>
+<pre tabindex="0"><code>uv run okf-skills/skills/visualize/scripts/okf_visualize.py docs/knowledge -o viz.html --title "Finance knowledge"</code></pre>
 
-<p>That is how this site's <a href="demo.html">live demo</a> and <a href="self.html">this repo's own bundle</a> are built.</p>
+<p>That is how this site's live demos are built: the <a href="demo.html">storefront</a>, the <a href="catalog.html">data catalog</a> and <a href="self.html">this repo's own bundle</a>.</p>
 </main>
 <footer class="site-footer">
 <div class="bar">

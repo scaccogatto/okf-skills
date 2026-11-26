@@ -1,9 +1,20 @@
 /* okf-skills documentation site. One stylesheet, no build step. */
 
+/* Self-hosted fonts (SIL OFL 1.1, licenses next to the files): the site loads
+   nothing from third-party origins. Latin subset, variable weight. */
+@font-face {
+  font-family: "Inter"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("fonts/inter-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono"; font-style: normal; font-weight: 100 800; font-display: swap;
+  src: url("fonts/jetbrains-mono-latin.woff2") format("woff2");
+}
+
 :root {
   --bg: #ffffff;
   --fg: #000000;
-  --muted: #888888;
+  --muted: #666666;
   --border: #e8e8e8;
   --plate: #f5f5f5;
   --accent: #c64526;
@@ -36,7 +47,7 @@ body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--sans);
-  font-weight: 300;
+  font-weight: 400;
   font-size: 16px;
   line-height: 1.55;
   overflow-wrap: break-word;
@@ -48,7 +59,7 @@ a { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; 
 a:hover { text-decoration-color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-strong, b { font-weight: 400; }
+strong, b { font-weight: 600; }
 
 .skip {
   position: absolute; left: -9999px; top: 0;
@@ -72,11 +83,11 @@ strong, b { font-weight: 400; }
 .nav-toggle {
   display: none; background: none; color: var(--fg);
   border: 1px solid var(--border); padding: 6px 10px; cursor: pointer;
-  font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
 }
 .site-nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 18px; }
 .site-nav a {
-  font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
   text-decoration: none; color: var(--muted); padding: 4px 0; display: inline-block;
 }
 .site-nav a:hover, .site-nav a[aria-current="page"] { color: var(--fg); }
@@ -97,7 +108,7 @@ h2 a, h3 a { text-decoration: none; }
 .lede { font-size: 18px; margin: 0 0 24px; }
 
 .label {
-  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
 }
 
 p, ul, ol { margin: 0 0 16px; }
@@ -108,11 +119,11 @@ code, kbd, pre { font-family: var(--mono); font-size: 13px; }
 
 figure.file, figure.code { margin: 0 0 20px; }
 figure.file figcaption, figure.code figcaption {
-  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
   margin-bottom: 4px;
 }
 pre {
-  background: var(--plate); border: 1px solid var(--border);
+  background-color: var(--plate); border: 1px solid var(--border);
   padding: 14px 16px; margin: 0 0 20px; overflow-x: auto; line-height: 1.5;
 }
 figure pre { margin: 0; }
@@ -124,7 +135,7 @@ table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
 th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border); }
 tr:last-child td { border-bottom: 0; }
 th {
-  font-family: var(--mono); font-weight: 400; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase;
+  font-family: var(--mono); font-weight: 400; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--muted); background: var(--plate);
 }
 
@@ -150,7 +161,14 @@ th {
 /* Diagrams */
 
 figure.diagram { margin: 0 0 24px; }
-figure.diagram svg { display: block; width: 100%; max-width: 560px; height: auto; color: var(--fg); }
+figure.diagram svg { display: block; width: 100%; max-width: 600px; height: auto; color: var(--fg); }
+/* The bundle tree: annotations are unreadable once scaled to a phone, so narrow
+   screens get the bare tree and read the annotations in the caption. */
+figure.diagram svg.diagram-narrow { display: none; max-width: 260px; }
+@media (max-width: 600px) {
+  figure.diagram svg.diagram-wide { display: none; }
+  figure.diagram svg.diagram-narrow { display: block; }
+}
 figure.diagram figcaption { font-size: 14px; color: var(--muted); margin-top: 6px; }
 .svg-muted { color: var(--muted); }
 .svg-accent { color: var(--accent); }
@@ -163,7 +181,7 @@ figure.diagram figcaption { font-size: 14px; color: var(--muted); margin-top: 6p
 }
 .site-footer p { margin: 0 0 8px; }
 .site-footer ul { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 4px 18px; }
-.site-footer a { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; }
+.site-footer a { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; }
 .site-footer a:hover { color: var(--fg); }
 
 /* Mobile */
@@ -180,6 +198,33 @@ figure.diagram figcaption { font-size: 14px; color: var(--muted); margin-top: 6p
   h1 { font-size: 24px; }
   h2 { font-size: 17px; }
 }
+
+/* Scroll hint: a shadow on the right edge while there is more content to the
+   right. The "local" layers cover it once you scroll to the end. CSS only. */
+pre, .table-wrap {
+  background-image:
+    linear-gradient(to left, var(--plate), var(--plate)),
+    linear-gradient(to left, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0));
+  background-position: right center, right center;
+  background-repeat: no-repeat;
+  background-size: 24px 100%, 12px 100%;
+  background-attachment: local, scroll;
+}
+.table-wrap { background-color: var(--bg); }
+.table-wrap {
+  background-image:
+    linear-gradient(to left, var(--bg), var(--bg)),
+    linear-gradient(to left, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0));
+}
+@media (prefers-color-scheme: dark) {
+  pre, .table-wrap { background-image:
+    linear-gradient(to left, var(--plate), var(--plate)),
+    linear-gradient(to left, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0)); }
+  .table-wrap { background-image:
+    linear-gradient(to left, var(--bg), var(--bg)),
+    linear-gradient(to left, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0)); }
+}
+pre:focus-visible, .table-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Wide comparison tables scroll sideways on narrow screens instead of crushing columns. */
 .table-wrap.wide table { min-width: 680px; }

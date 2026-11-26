@@ -4,7 +4,7 @@
   Source of truth for docs/assets/og.png, the repository's social preview card.
 
   The PNG it produces is what renders on every share of the repo link, so it goes
-  stale silently — the first version shipped in 0.3.0 and still said "OKF v0.1
+  stale silently: the first version shipped in 0.3.0 and still said "OKF v0.1
   spec" long after the toolkit had moved to v0.2. Keeping the card as markup
   means the next correction is a one-line edit rather than a redesign.
 
@@ -19,61 +19,43 @@
   and contributors never have to have Chrome.
 
   Note that GitHub does not read this file. The social preview is an uploaded
-  copy — after regenerating, re-upload it under Settings > General > Social
+  copy. After regenerating, re-upload it under Settings > General > Social
   preview, or the card stays whatever was uploaded last.
 -->
 <style>
- *{margin:0;padding:0;box-sizing:border-box}
- /* Same stack the generated viz.html uses, so the card and the thing it depicts
-    are set in one typeface rather than two that nearly match. */
- body{width:1280px;height:640px;overflow:hidden;background:#0b0c10;
-   font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-   color:#fff;position:relative}
- /* the purple bloom sits top-right, behind the graph */
- .glow{position:absolute;top:-280px;right:-200px;width:900px;height:760px;border-radius:50%;
-   background:radial-gradient(closest-side,rgba(110,86,207,.42),rgba(110,86,207,0));filter:blur(10px)}
- /* Flex column rather than absolute positioning: the text is set in whatever the
-    rendering machine resolves system-ui to, so line widths are not knowable in
-    advance. A column cannot overlap itself when a line wraps unexpectedly. */
- .wrap{position:relative;height:100%;width:790px;padding:58px 0 48px 64px;
-   display:flex;flex-direction:column}
- .mark{display:flex;align-items:center;gap:12px;font-size:28px;font-weight:800;letter-spacing:-.01em}
- .dot{width:13px;height:13px;border-radius:50%;background:#6E56CF}
- h1{margin-top:28px;font-size:64px;line-height:1.08;font-weight:800;letter-spacing:-.03em}
- .b{color:#6C9BFF} .p{color:#8B72E8}
- .sub{margin-top:26px;font-size:26px;line-height:1.4;color:#9aa3b2;max-width:660px}
- .sub b{color:#e6e8ee;font-weight:700}
- .chips{margin-top:32px;display:flex;gap:12px;flex-wrap:wrap}
- .chip{border:1px solid #2b3040;background:#14161d;border-radius:999px;
-   padding:10px 20px;font-size:19px;color:#c7cdda;white-space:nowrap}
- .chip.hot{border-color:#4a3d86;background:#191532;color:#c3b6ff}
- .url{margin-top:auto;padding-top:24px;font-size:22px;font-weight:700;color:#e6e8ee}
- svg{position:absolute;right:96px;top:196px}
+ /* Same look as the documentation site: black, white mono heading, one accent,
+    hairlines, no rounding, and the site's own self-hosted fonts. */
+ @font-face{font-family:"Inter";font-weight:100 900;src:url("fonts/inter-latin.woff2") format("woff2")}
+ @font-face{font-family:"JetBrains Mono";font-weight:100 800;src:url("fonts/jetbrains-mono-latin.woff2") format("woff2")}
+ *{margin:0;padding:0;box-sizing:border-box;border-radius:0}
+ body{width:1280px;height:640px;overflow:hidden;background:#000;color:#fff;
+   font-family:"Inter",system-ui,sans-serif;font-weight:400;position:relative}
+ /* Flex column rather than absolute positioning, so a line that wraps
+    unexpectedly pushes the rest down instead of overlapping it. */
+ .wrap{position:relative;height:100%;padding:56px 64px 48px;display:flex;flex-direction:column}
+ .mark{display:flex;align-items:center;gap:16px;font-family:"JetBrains Mono",monospace;font-size:28px;
+   padding-bottom:28px;border-bottom:1px solid #333}
+ .mark svg{width:32px;height:32px}
+ h1{margin-top:44px;font-family:"JetBrains Mono",monospace;font-weight:300;font-size:52px;line-height:1.18;
+   letter-spacing:.01em;text-transform:uppercase;max-width:1100px}
+ h1 .a{color:#c64526}
+ .sub{margin-top:26px;font-size:25px;line-height:1.45;color:#a0a0a0;max-width:1040px}
+ .chips{margin-top:auto;padding-top:24px;border-top:1px solid #333;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+ .chip{border:1px solid #333;padding:9px 16px;font-family:"JetBrains Mono",monospace;font-size:17px;
+   letter-spacing:.08em;text-transform:uppercase;color:#fff;white-space:nowrap}
+ .chip.hot{border-color:#c64526;color:#c64526}
+ .url{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:19px;color:#a0a0a0}
 </style></head><body>
-<div class="glow"></div>
 <div class="wrap">
- <div class="mark"><span class="dot"></span>okf-skills</div>
- <h1>A community toolkit<br>for the <span class="b">Open Knowledge</span><br><span class="p">Format</span></h1>
- <div class="sub">Write, check and <b>explore</b> plain markdown knowledge that people and agents both read. Independent, MIT, works on any OKF bundle.</div>
+ <div class="mark"><svg viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" fill="#fff"/><path d="M12 0H22V10Z" fill="#c64526"/></svg>okf-skills</div>
+ <h1>A community toolkit for the <span class="a">Open Knowledge Format</span></h1>
+ <div class="sub">Write, check and explore plain Markdown knowledge that people and agents both read. Independent and MIT. The validator and visualizer work on any OKF bundle.</div>
  <div class="chips">
   <span class="chip">Claude Code plugin</span>
   <span class="chip">skills.sh</span>
   <span class="chip">GitHub Action</span>
-  <span class="chip hot">OKF v0.3 spec</span>
+  <span class="chip hot">OKF v0.3</span>
+  <span class="url">ekar-is.github.io/okf-skills</span>
  </div>
- <div class="url">github.com/ekar-is/okf-skills</div>
 </div>
-<svg width="340" height="270" viewBox="0 0 340 270" fill="none">
- <g stroke="#3a4150" stroke-width="3">
-  <path d="M170 40 L60 130"/><path d="M170 40 L280 130"/>
-  <path d="M60 130 L280 130"/><path d="M60 130 L110 230"/><path d="M280 130 L235 230"/>
- </g>
- <g stroke="#0b0c10" stroke-width="7">
-  <circle cx="170" cy="40" r="34" fill="#6E56CF"/>
-  <circle cx="60" cy="130" r="34" fill="#3B82F6"/>
-  <circle cx="280" cy="130" r="34" fill="#EAB308"/>
-  <circle cx="110" cy="230" r="30" fill="#22C55E"/>
-  <circle cx="235" cy="230" r="30" fill="#D97757"/>
- </g>
-</svg>
 </body></html>
