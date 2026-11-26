@@ -124,7 +124,7 @@ uv run "${CLAUDE_SKILL_DIR}/scripts/okf_backfill_events.py" <repo-dir>
 uv run "${CLAUDE_SKILL_DIR}/scripts/okf_backfill_events.py" <repo-dir> --show <sha>
   [--only <path>] [--max-diff-lines 300] [--per-file-lines 120] [--max-line-chars 400]
 
-/okf:backfill <repo-dir> [--no-sessions]
+/okf-skills:backfill <repo-dir> [--no-sessions]
 ```
 
 The extractor runs standalone; the skill drives it and the replay loop per the

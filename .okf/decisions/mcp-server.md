@@ -58,7 +58,7 @@ Scope is the minimum that buys parity:
 # Consequences
 
 * For Claude Code the server is redundant with Read and Grep, by construction.
-  That is accepted, not solved. `/okf:okf` consume mode stays the recommended path.
+  That is accepted, not solved. `/okf-skills:okf` consume mode stays the recommended path.
 * One more dependency (`mcp>=2`) and one more surface to keep alive across SDK
   churn. The SDK renamed `FastMCP` to `MCPServer` in 2.0; the tests dispatch through
   the SDK's own machinery so the next rename fails in CI and not at connect time.

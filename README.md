@@ -40,7 +40,7 @@ and validated on every push.
 
 | Channel | Command | Notes |
 |---|---|---|
-| Claude Code plugin | `/plugin marketplace add ekar-is/okf-skills` then `/plugin install okf@ekar-is` | Skills, subagents, Stop hook and MCP server. The full toolchain. |
+| Claude Code plugin | `/plugin marketplace add ekar-is/okf-skills` then `/plugin install okf-skills@ekar-is` | Skills, subagents, Stop hook and MCP server. The full toolchain. |
 | Agent skills ([skills.sh](https://skills.sh/ekar-is/okf-skills)) | `npx skills add ekar-is/okf-skills` | Claude Code, Cursor, Codex and 20+ agents. Installs the okf, validate, visualize and backfill skills; backfill needs the plugin's subagents, see below. |
 | GitHub Action | `uses: ekar-is/okf-skills@v1` | Validates a bundle in CI, no agent needed. |
 | MCP server | `uv run servers/okf_mcp.py .okf` | Any MCP host. Bundled with the plugin, nothing to configure there. |
@@ -58,7 +58,7 @@ backfill works from the plugin install only.
 **Capture knowledge.** Ask Claude to "document the auth service in OKF", or:
 
 ```shell
-/okf:okf produce .okf
+/okf-skills:okf produce .okf
 ```
 
 **Backfill a repo that predates the bundle.** Event-sources git history and
@@ -66,14 +66,14 @@ Claude session transcripts into concepts, with a deterministic extractor and an
 auditable map/reduce over subagents:
 
 ```shell
-/okf:backfill .
+/okf-skills:backfill .
 ```
 
 **Validate** before committing. The checker is deterministic, §11 of the spec,
 not an eyeball pass. `--migrate` rewrites v0.1 constructs in place:
 
 ```shell
-/okf:validate .okf --strict
+/okf-skills:validate .okf --strict
 uv run skills/validate/scripts/okf_validate.py .okf --strict      # zero-config
 uv run skills/validate/scripts/okf_validate.py .okf --max-warnings 5
 ```
@@ -97,14 +97,14 @@ stores neither, so both are computed at render time. Above 1000 concepts the
 layout falls back to linear; `--layout cose` overrides, `--max-nodes N` refuses.
 
 ```shell
-/okf:visualize .okf
+/okf-skills:visualize .okf
 uv run skills/visualize/scripts/okf_visualize.py .okf -o viz.html \
   --title "My project" --link "https://github.com/me/project"
 ```
 
 **Read a bundle over MCP.** Three read-only tools; nothing writes and no id
 resolves outside the bundle root. Inside Claude Code the server starts with the
-plugin on `./.okf` and appears as `mcp__plugin_okf_bundle__*`. For Claude Code
+plugin on `./.okf` and appears as `mcp__plugin_okf-skills_bundle__*`. For Claude Code
 it duplicates Read and Grep, and [the decision record](.okf/decisions/mcp-server.md)
 says so; it ships for the hosts that have nothing else.
 
@@ -236,4 +236,4 @@ Report vulnerabilities privately, as [SECURITY.md](SECURITY.md) describes.
   team, Apache-2.0, at [GoogleCloudPlatform/open-knowledge-format](https://github.com/GoogleCloudPlatform/open-knowledge-format)
   (the earlier copy under `knowledge-catalog/okf` is a frozen snapshot).
   `skills/okf/reference/SPEC.md` is vendored verbatim with attribution.
-- This plugin's own code and content: **MIT** © ekar.is ([@ekar-is](https://github.com/ekar-is)).
+- This plugin's own code and content: **MIT** © ekar.is and the okf-skills contributors ([@ekar-is](https://github.com/ekar-is)).

@@ -148,7 +148,7 @@ is given. Then extend it:
 ## Validation (do this before declaring done)
 
 Never eyeball conformance — run the deterministic checker. Invoke the companion
-**`validate`** skill (`/okf:validate <bundle-dir> --strict`), which ships the
+**`validate`** skill (`/okf-skills:validate <bundle-dir> --strict`), which ships the
 checker. If that skill is not installed, run it directly:
 
 ```bash

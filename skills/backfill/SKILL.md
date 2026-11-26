@@ -87,7 +87,7 @@ The replay is now structured in two phases to enforce semantic depth and anti-de
 
 #### Phase 1: Map (parallel analysis, per-event)
 
-Launch `okf:event-analyzer` agents for the live events (those without `skip` field), in waves of
+Launch `okf-skills:event-analyzer` agents for the live events (those without `skip` field), in waves of
 4 to 10 (see the cost note in §5), via Claude Code's Workflow `agentType` parameter. Each analyzer
 receives its event ids, the `events.jsonl` path, the repo path, the output directory and the
 emitter path, and:
@@ -115,7 +115,7 @@ system prompt as `agents/event-analyzer.md`, one per event, collecting analyses 
 
 #### Phase 2: Reduce (sequential folding, one agent)
 
-Run a single `okf:bundle-weaver` agent that:
+Run a single `okf-skills:bundle-weaver` agent that:
 - Reads all analyses in chronological order
 - Folds them into `.okf/`, updating or creating concepts
 - Enforces anti-degeneration rules (§4)

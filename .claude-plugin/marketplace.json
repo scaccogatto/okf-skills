@@ -8,7 +8,7 @@
   },
   "plugins": [
     {
-      "name": "okf",
+      "name": "okf-skills",
       "source": "./",
       "description": "Author, maintain, backfill, validate, visualize and serve (MCP) Open Knowledge Format (OKF) bundles.",
       "category": "documentation",

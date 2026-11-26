@@ -1,5 +1,5 @@
 {
-  "name": "okf",
+  "name": "okf-skills",
   "displayName": "Open Knowledge Format",
   "version": "0.12.2",
   "description": "Author, maintain, backfill, validate, visualize and serve (MCP) Open Knowledge Format (OKF) bundles: portable markdown knowledge for humans and agents.",
