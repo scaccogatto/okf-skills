@@ -9,12 +9,17 @@ Run:  uv run tests/test_okf_validate.py
 """
 from __future__ import annotations
 
+import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills" / "validate" / "scripts"))
+SCRIPT = Path(__file__).resolve().parents[1] / "skills" / "validate" / "scripts" / "okf_validate.py"
+sys.path.insert(0, str(SCRIPT.parent))
+import okf_validate
 from okf_validate import (
     Report,
     check_concept,
@@ -322,7 +327,7 @@ class TestV02Families(TmpBundle):
             r = self.concept(base + extra)
             self.assertEqual((r.errors, r.warnings), ([], []), extra)
         # an empty `generated` still gets the recommendation
-        self.assertIn("recommended field `generated`", self.only(self.concept('generated: ""\n')))
+        self.assertIn("okf-skills lint: `generated`", self.only(self.concept('generated: ""\n')))
 
     def test_verified_event_without_at_is_ignored_with_a_warning(self):
         r = self.concept("generated: { by: human:t }\nverified: { by: human:t }\n")
@@ -424,8 +429,11 @@ class TestV02Families(TmpBundle):
         self.assertIn("resolves only from the bundle root", self.only(check("sub/c.md", bare, True)))
         self.assertIn("`/references/att.py`", check("sub/c.md", bare, True).warnings[0])
         r = check("sub/c.md", bare, False)
-        self.assertIn("does not exist", self.only(r))
+        self.assertIn("names no file", self.only(r))
         self.assertIn("did you mean `/references/att.py`?", r.warnings[0])
+        self.assertIn("Both path forms are valid (§13.2)", r.warnings[0])
+        self.assertIn("required to keep this meaning under v0.3",
+                      check("sub/c.md", bare, True).warnings[0])
 
     def test_validate_reads_the_declared_version_for_the_path_fallback(self):
         self.write("references/att.py", "print(1)\n")
@@ -456,18 +464,21 @@ class TestCheckIndex(TmpBundle):
         r = self.run_check(check_index, "index.md", True)
         self.assertEqual((r.errors, r.warnings, r.indexes), ([], [], 1))
 
-    def test_root_upkeep_flag_is_clean(self):
-        # The Stop hook's opt-in lives here; warning on it would make every
-        # enforced-mode bundle fail its own `--strict` run.
-        self.write("index.md", "---\nokf_version: '0.3'\nupkeep: enforced\n---\n# Index\n")
+    def test_root_plugin_keys_are_clean(self):
+        # The Stop hook's flags live here, named as §4.1 extensions; warning on them
+        # would make every enforced-mode bundle fail its own `--strict` run.
+        self.write("index.md", "---\nokf_version: '0.3'\nx-okf-skills-upkeep: enforced\n"
+                               "x-okf-skills-recursive: true\n---\n# Index\n")
         r = self.run_check(check_index, "index.md", True)
         self.assertEqual((r.errors, r.warnings), ([], []))
 
-    def test_root_recursive_is_clean(self):
-        # Read by the Stop hook alongside `upkeep`; same reasoning applies.
-        self.write("index.md", "---\nokf_version: '0.3'\nupkeep: enforced\nrecursive: true\n---\n# Index\n")
+    def test_unprefixed_plugin_keys_are_deprecated_aliases(self):
+        self.write("index.md", "---\nokf_version: '0.3'\nupkeep: enforced\nrecursive: true\n---\n")
         r = self.run_check(check_index, "index.md", True)
-        self.assertEqual((r.errors, r.warnings), ([], []))
+        self.assertEqual(r.errors, [])
+        self.assertEqual(r.warnings, [
+            "index.md: deprecated plugin key `upkeep`, rename to `x-okf-skills-upkeep` (§4.1)",
+            "index.md: deprecated plugin key `recursive`, rename to `x-okf-skills-recursive` (§4.1)"])
 
     def test_root_extra_keys_warn_and_suggest_the_x_prefix(self):
         self.write("index.md", "---\nokf_version: '0.3'\ntype: X\n---\n")
@@ -502,10 +513,11 @@ class TestCheckIndex(TmpBundle):
             r = self.run_check(check_index, "index.md", True)
             self.assertEqual(len(r.errors), 1, (raw, r.errors))
 
-    def test_non_root_frontmatter_warns(self):
+    def test_non_root_frontmatter_is_an_error(self):
+        # §8 plus §11.1 rule 2: a conformance rule, not guidance.
         self.write("sub/index.md", "---\nokf_version: '0.3'\n---\n")
         r = self.run_check(check_index, "sub/index.md", False)
-        self.assertIn("§8", r.warnings[0])
+        self.assertIn("§11.1 rule 2", r.errors[0])
 
     def test_root_impossible_date_is_an_error_not_a_crash(self):
         # §11.1 rule 1 covers the root index's frontmatter too, so since v0.3 this
@@ -526,15 +538,21 @@ class TestCheckLog(TmpBundle):
         r = self.run_check(check_log, "log.md")
         self.assertEqual((r.errors, r.warnings, r.logs), ([], [], 1))
 
-    def test_non_iso_heading_warns(self):
-        self.write("log.md", "## January 2026\n")
-        r = self.run_check(check_log, "log.md")
-        self.assertIn("not ISO 8601", r.warnings[0])
+    def test_non_iso_heading_is_an_error(self):
+        for heading in ("January 2026", "2026-13-45", "2026-1-5"):
+            self.write("log.md", f"## {heading}\n")
+            r = self.run_check(check_log, "log.md")
+            self.assertIn("not an ISO 8601", r.errors[0], heading)
 
-    def test_frontmatter_warns(self):
+    def test_frontmatter_is_an_error(self):
         self.write("log.md", "---\ntype: Log\n---\n## 2026-01-01\n")
         r = self.run_check(check_log, "log.md")
-        self.assertIn("§9", r.warnings[0])
+        self.assertEqual(len(r.errors), 1, r.errors)
+        self.assertIn("§9", r.errors[0])
+
+    def test_headings_in_a_fence_are_not_date_headings(self):
+        self.write("log.md", "## 2026-01-01\n\n```\n## not a date\n```\n")
+        self.assertEqual(self.run_check(check_log, "log.md").errors, [])
 
 
 class TestCollectLinkTargets(TmpBundle):
@@ -690,11 +708,11 @@ class TestMigrate(TmpBundle):
 
     def test_v02_root_index_version_is_bumped_quoted_or_not(self):
         for line in ('okf_version: "0.2"', "okf_version: 0.2", "okf_version: '0.1'"):
-            self.write("index.md", f"---\n{line}\nupkeep: enforced\n---\n# Root\n")
-            self.assertEqual(migrate(self.bundle), ["index.md"], line)
+            self.write("index.md", f"---\n{line}\nx-okf-skills-upkeep: enforced\n---\n# Root\n")
+            self.assertEqual(migrate(self.bundle).changed, ["index.md"], line)
             self.assertEqual((self.bundle / "index.md").read_text(encoding="utf-8"),
-                             '---\nokf_version: "0.3"\nupkeep: enforced\n---\n# Root\n')
-            self.assertEqual(migrate(self.bundle), [])
+                             '---\nokf_version: "0.3"\nx-okf-skills-upkeep: enforced\n---\n# Root\n')
+            self.assertEqual(migrate(self.bundle).changed, [])
 
     def test_bare_root_relative_path_fields_get_a_leading_slash(self):
         self.write("references/att.py", "print(1)\n")
@@ -709,14 +727,14 @@ class TestMigrate(TmpBundle):
             "superseded_by: new.md\n"
             "---\nbody\n")
         self.write("sub/c.md", original)
-        self.assertEqual(migrate(self.bundle), ["sub/c.md"])
+        self.assertEqual(migrate(self.bundle).changed, ["sub/c.md"])
         out = (self.bundle / "sub/c.md").read_text(encoding="utf-8")
         self.assertEqual(out, original
                          .replace("computation: references", "computation: /references")
                          .replace("'references/run.md'", "'/references/run.md'")
                          .replace('"references/att.py#frag"', '"/references/att.py#frag"')
                          .replace("superseded_by: new.md", "superseded_by: /new.md"))
-        self.assertEqual(migrate(self.bundle), [])
+        self.assertEqual(migrate(self.bundle).changed, [])
 
     def test_path_fields_that_already_resolve_or_are_flow_style_are_left_alone(self):
         self.write("references/att.py", "print(1)\n")
@@ -730,13 +748,14 @@ class TestMigrate(TmpBundle):
         self.write("other/c.md",
                    "---\ntype: Attested Computation\nruntime: x\n"
                    "attester: { resource: references/att.py }\n---\nbody\n")  # root-only, flow
-        self.assertEqual(migrate(self.bundle), [])
+        self.assertEqual(migrate(self.bundle).changed, [])
 
-    def test_path_rewrite_does_not_touch_non_concept_dot_paths_or_nested_resource(self):
+    def test_path_rewrite_does_not_touch_dot_paths_or_non_concepts(self):
         self.write("references/att.py", "print(1)\n")
         self.write(".hidden/c.md", "---\ntype: A\nsuperseded_by: references/att.py\n---\n")
-        self.write("sub/c.md", "---\ntype: A\nsources:\n  - resource: references/att.py\n---\n")
-        self.assertEqual(migrate(self.bundle), [])
+        self.write("sub/n.md", "---\ntitle: no type\nsuperseded_by: references/att.py\n---\n")
+        self.write("sub/t.md", "---\ntype: 42\nsuperseded_by: references/att.py\n---\n")
+        self.assertEqual(migrate(self.bundle).changed, [])
 
     def test_migrated_v02_bundle_validates_clean(self):
         self.write("index.md", '---\nokf_version: "0.2"\n---\n# Root\n')
@@ -756,12 +775,285 @@ class TestMigrate(TmpBundle):
     def test_idempotent(self):
         self.legacy()
         before = (self.bundle / "c.md").read_text(encoding="utf-8")
-        self.assertEqual(migrate(self.bundle), [])
+        self.assertEqual(migrate(self.bundle).changed, [])
         self.assertEqual((self.bundle / "c.md").read_text(encoding="utf-8"), before)
 
     def test_a_v02_concept_is_left_alone(self):
         self.write("c.md", FULL_META)
-        self.assertEqual(migrate(self.bundle), [])
+        self.assertEqual(migrate(self.bundle).changed, [])
+
+
+
+BOMB = ("a: &a [x, x, x, x, x, x, x, x, x, x]\n"
+        "b: &b [*a, *a, *a, *a, *a, *a, *a, *a, *a, *a]\n"
+        "c: &c [*b, *b, *b, *b, *b, *b, *b, *b, *b, *b]\n"
+        "d: &d [*c, *c, *c, *c, *c, *c, *c, *c, *c, *c]\n"
+        "e: &e [*d, *d, *d, *d, *d, *d, *d, *d, *d, *d]\n"
+        "f: &f [*e, *e, *e, *e, *e, *e, *e, *e, *e, *e]\n"
+        "g: &g [*f, *f, *f, *f, *f, *f, *f, *f, *f, *f]\n"
+        "h: &h [*g, *g, *g, *g, *g, *g, *g, *g, *g, *g]\n")
+
+
+class TestSharedRules(TmpBundle):
+    """The consumer rules the validator shares with the MCP server and visualizer."""
+
+    def concept(self, meta: str, body: str = "body\n", rel: str = "c.md") -> Report:
+        self.write(rel, f"---\ntype: Reference\ntitle: t\ndescription: d\ntags: [x]\n"
+                        f"generated: {{ by: human:t }}\n{meta}---\n\n{body}")
+        return self.run_check(check_concept, rel, self.bundle)
+
+    def warned(self, r: Report) -> str:
+        self.assertEqual(r.errors, [])
+        return " | ".join(r.warnings)
+
+    def test_r1_the_opening_delimiter_is_at_column_0(self):
+        self.assertIsNone(split_frontmatter(" ---\ntype: A\n---\n")[0])
+
+    def test_r2_deep_nesting_is_an_error_not_a_crash(self):
+        self.write("c.md", "---\ntype: A\nx: " + "[" * 5000 + "\n---\nbody\n")
+        r = validate(self.bundle)
+        self.assertIn("nesting too deep", r.errors[0])
+
+    def test_r3_a_non_string_type_is_a_non_concept(self):
+        for value in ("42", "true", "[x]", "{a: 1}"):
+            self.write("c.md", f"---\ntype: {value}\n---\nbody\n")
+            r = self.run_check(check_concept, "c.md", self.bundle)
+            self.assertEqual((r.errors, r.concepts), ([], 0), value)
+            self.assertIn("§3.2", r.warnings[0])
+
+    def test_r4_an_alias_bomb_is_never_stringified(self):
+        start = time.monotonic()
+        for field in ("status: *h", "stale_after: *h", "generated2: *h\nverified: { by: *h }"):
+            r = self.concept(BOMB + field + "\n")
+            self.assertTrue(all(len(w) < 400 for w in r.warnings), field)
+        self.assertIn("`<list>`", self.warned(self.concept(BOMB + "status: *h\n")))
+        self.assertLess(time.monotonic() - start, 5)
+
+    def test_r4_quoted_values_are_truncated(self):
+        r = self.concept(f"status: {'x' * 500}\n")
+        self.assertLess(len(r.warnings[0]), 300)
+
+    def test_r5_a_timestamp_must_name_a_real_instant(self):
+        for bad in ('"2099-02-30"', '"2026-01-01T24:00:00Z"', '" 2099-01-01"',
+                    '"2026-02-30T10:00:00+02:00"'):
+            self.assertIn("`stale_after`", self.warned(self.concept(f"stale_after: {bad}\n")), bad)
+        for ok in ('"2026-01-01t10:00:00z"', '"2026-01-01 10:00:00Z"', '"2028-02-29"'):
+            self.assertEqual(self.concept(f"stale_after: {ok}\n").warnings, [], ok)
+
+    def test_r6_only_the_exact_vocabulary_is_a_known_status(self):
+        for bad in ('" stable "', "false", "0", "Stable"):
+            self.assertIn("unknown `status`", self.warned(self.concept(f"status: {bad}\n")), bad)
+        for absent in ("", '""', "[]", "{}"):
+            self.assertEqual(self.concept(f"status: {absent}\n").warnings, [], absent)
+
+    def test_r7_an_empty_version_is_no_version(self):
+        self.write("references/att.py", "print(1)\n")
+        self.write("sub/c.md", "---\ntype: A\ntitle: t\ndescription: d\ntags: [x]\n"
+                               "generated: { by: human:t }\nresource: references/att.py\n---\nb\n")
+        for line, legacy in (('okf_version: ""', True), ("okf_version:", True),
+                             ('okf_version: "0.2.1"', True), ('okf_version: "v0.2"', False),
+                             ('okf_version: " 0.2"', False)):
+            self.write("index.md", f"---\n{line}\n---\n# Root\n")
+            warned = " ".join(validate(self.bundle).warnings)
+            self.assertEqual("resolves only from the bundle root" in warned, legacy, line)
+
+    def test_r7_version_messages_tell_older_from_newer(self):
+        for version, expected in (("0.2", "§12.1 fallbacks applied"),
+                                  ("0.4", "newer than this checker, checked best-effort as v0.3 (§12)"),
+                                  ("1.0", "newer than this checker"),
+                                  ("next", "not a `<major>.<minor>` version")):
+            self.write("index.md", f"---\nokf_version: '{version}'\n---\n")
+            r = self.run_check(check_index, "index.md", True)
+            self.assertIn(expected, r.warnings[0], version)
+
+    def test_r9_resource_and_sources_resource_are_path_fields(self):
+        self.write("references/att.py", "print(1)\n")
+        self.write("sub/local.sql", "select 1\n")
+        for meta in ("resource: /references/att.py\n", "resource: local.sql\n",
+                     "resource: https://x/y\n", "resource: projects/acme/tables/orders\n",
+                     "resource: acme-prod.sales.orders\n",
+                     "sources:\n  - resource: ../references/att.py\n",
+                     "sources:\n  - resource: all orders since 2024\n"):
+            self.assertEqual(self.concept(meta, rel="sub/c.md").warnings, [], meta)
+        for meta, label in (("resource: gone.md\n", "`resource`"),
+                            ("resource: /gone\n", "`resource`"),
+                            ("sources:\n  - resource: https://x\n  - resource: ./gone.sql\n",
+                             "`sources[1].resource`"),
+                            ("sources: { resource: ../gone.py }\n", "`sources[0].resource`")):
+            self.assertIn(f"§6.2 {label}", self.warned(self.concept(meta, rel="sub/c.md")), meta)
+        legacy = self.concept("sources:\n  - resource: references/att.py\n", rel="sub/c.md")
+        self.assertIn("resolves only from the bundle root", self.warned(legacy))
+
+    def test_r10_links_come_from_the_body_only(self):
+        self.write("index.md", "---\nokf_version: '0.3'\n---\n")
+        self.write("c.md", '---\ntype: A\ndescription: "see [x](missing.md)"\n---\nbody\n')
+        self.assertEqual(collect_link_targets(self.bundle / "c.md"), [])
+        self.assertFalse(any("cross-link" in w for w in validate(self.bundle).warnings))
+
+    def test_r10_reference_definitions_are_links_footnotes_are_not(self):
+        p = self.write("c.md", "---\ntype: A\n---\n[a][ref] and [^n]\n\n"
+                               "[ref]: <gone.md> \"T\"\n   [other]: b.md\n[^n]: note.md\n"
+                               "    [indented]: code.md\n")
+        self.assertEqual(collect_link_targets(p), ["gone.md", "b.md"])
+
+
+def legacy_bundle(t: TmpBundle, version: str = '"0.2"') -> None:
+    t.write("index.md", f"---\nokf_version: {version}\n---\n# Root\n")
+    t.write("references/att.py", "print(1)\n")
+
+
+AC_HEAD = "---\ntype: Attested Computation\ntitle: t\ndescription: d\ntags: [x]\n" \
+          "generated: { by: human:t }\nruntime: bigquery\n"
+
+
+class TestMigrateHardening(TmpBundle):
+    def read(self, rel: str) -> str:
+        return (self.bundle / rel).read_text(encoding="utf-8")
+
+    def test_a_block_scalar_inside_executor_is_text(self):
+        legacy_bundle(self)
+        self.write("sub/c.md", AC_HEAD + "executor:\n  notes: |\n    resource: references/att.py\n"
+                                         "  resource: references/att.py\n---\nbody\n")
+        m = migrate(self.bundle)
+        self.assertEqual((m.changed, m.refused), (["sub/c.md", "index.md"], []))
+        self.assertIn("    resource: references/att.py\n  resource: /references/att.py\n",
+                      self.read("sub/c.md"))
+        self.assertTrue(m.bumped)
+
+    def test_a_nested_mapping_under_executor_is_not_the_field(self):
+        legacy_bundle(self)
+        self.write("sub/c.md", AC_HEAD + "executor:\n  x-meta:\n    resource: references/att.py\n"
+                                         "  resource: references/att.py\n---\nbody\n")
+        migrate(self.bundle)
+        self.assertIn("  x-meta:\n    resource: references/att.py\n  resource: /references/att.py\n",
+                      self.read("sub/c.md"))
+
+    def test_a_column_0_continuation_of_a_quoted_scalar_is_text(self):
+        legacy_bundle(self)
+        self.write("sub/c.md", '---\ntype: A\ntitle: "two\nresource: references/att.py"\n'
+                               "resource: references/att.py\n---\nbody\n")
+        migrate(self.bundle)
+        self.assertEqual(self.read("sub/c.md"),
+                         '---\ntype: A\ntitle: "two\nresource: references/att.py"\n'
+                         "resource: /references/att.py\n---\nbody\n")
+
+    def test_a_rewrite_that_parses_differently_is_refused(self):
+        legacy_bundle(self)
+        self.write("sub/c.md", AC_HEAD + "computation: references/att.py\n"
+                               "executor:\n  notes: |\n    resource: references/att.py\n---\nbody\n")
+        self.write("sub/d.md", "---\ntype: A\nresource: references/att.py\n---\nb\n")
+        # Force the line scanner onto the block scalar line: the parse check must catch it.
+        with mock.patch.object(okf_validate, "path_field_lines",
+                               lambda lines, _: [i for i, ln in enumerate(lines)
+                                                 if "resource:" in ln]):
+            m = migrate(self.bundle)
+        self.assertEqual(len(m.refused), 1, m.refused)
+        self.assertIn("sub/c.md", m.refused[0])
+        self.assertIn("computation: references/att.py", self.read("sub/c.md"))
+        self.assertIn("resource: /references/att.py", self.read("sub/d.md"))
+        # one field still bare: the version stays, the leftover is named
+        self.assertFalse(m.bumped)
+        self.assertEqual(len(m.pending), 1, m.pending)
+        self.assertIn("`computation`", m.pending[0])
+        self.assertIn('okf_version: "0.2"', self.read("index.md"))
+
+    def test_sources_resource_is_rewritten_and_keeps_resolving(self):
+        legacy_bundle(self)
+        self.write("sub/c.md", "---\ntype: A\ntitle: t\ndescription: d\ntags: [x]\n"
+                               "generated: { by: human:t }\nsources:\n"
+                               "  - resource: references/att.py\n    title: A\n"
+                               "  - title: B\n    resource: 'references/att.py'  # c\n"
+                               "  - resource: https://x\n"
+                               "x-other:\n  - resource: references/att.py\n---\nbody\n")
+        before = validate(self.bundle).warnings
+        self.assertEqual(len([w for w in before if "resolves only from" in w]), 2, before)
+        m = migrate(self.bundle)
+        out = self.read("sub/c.md")
+        self.assertIn("  - resource: /references/att.py\n", out)
+        self.assertIn("    resource: '/references/att.py'  # c\n", out)
+        self.assertIn("x-other:\n  - resource: references/att.py\n", out)
+        self.assertTrue(m.bumped)
+        r = validate(self.bundle)
+        self.assertEqual((r.errors, r.warnings), ([], []))
+
+    def test_a_root_only_flow_field_blocks_the_bump(self):
+        legacy_bundle(self)
+        self.write("sub/c.md", AC_HEAD + "attester: { resource: references/att.py }\n---\nb\n")
+        m = migrate(self.bundle)
+        self.assertEqual((m.changed, m.bumped), ([], False))
+        self.assertEqual(m.pending, [("sub/c.md: `attester.resource` `references/att.py` → "
+                                      "`/references/att.py`")])
+        self.assertIn('okf_version: "0.2"', self.read("index.md"))
+
+    def test_a_v03_bundle_gets_no_path_rewrite(self):
+        legacy_bundle(self, '"0.3"')
+        self.write("sub/c.md", "---\ntype: A\nresource: references/att.py\n---\nb\n")
+        m = migrate(self.bundle)
+        self.assertEqual((m.changed, m.pending), ([], []))
+
+    def test_crlf_and_bom_survive(self):
+        legacy_bundle(self)
+        raw = ("﻿---\r\ntype: A\r\nresource: references/att.py\r\n---\r\nbody\r\n")
+        (self.bundle / "sub").mkdir()
+        (self.bundle / "sub/c.md").write_bytes(raw.encode("utf-8"))
+        (self.bundle / "index.md").write_bytes(b'\xef\xbb\xbf---\r\nokf_version: 0.2 # c\r\n---\r\n')
+        m = migrate(self.bundle)
+        self.assertEqual(m.changed, ["sub/c.md", "index.md"])
+        self.assertEqual((self.bundle / "sub/c.md").read_bytes().decode("utf-8"),
+                         raw.replace("resource: ", "resource: /"))
+        self.assertEqual((self.bundle / "index.md").read_bytes(),
+                         b'\xef\xbb\xbf---\r\nokf_version: "0.3" # c\r\n---\r\n')
+        self.assertEqual(migrate(self.bundle).changed, [])
+
+    def test_mixed_line_endings_are_refused(self):
+        legacy_bundle(self)
+        (self.bundle / "sub").mkdir()
+        raw = b"---\r\ntype: A\nresource: references/att.py\r\n---\nbody\n"
+        (self.bundle / "sub/c.md").write_bytes(raw)
+        m = migrate(self.bundle)
+        self.assertIn("mixed", m.refused[0])
+        self.assertEqual((self.bundle / "sub/c.md").read_bytes(), raw)
+
+    def test_a_commented_version_is_bumped_and_keeps_the_comment(self):
+        for line, out in (("okf_version: 0.2 # c", 'okf_version: "0.3" # c'),
+                          ('okf_version: "0.2"  # c', 'okf_version: "0.3"  # c'),
+                          ("okf_version: '0.1'", 'okf_version: "0.3"')):
+            self.write("index.md", f"---\n{line}\n---\n")
+            m = migrate(self.bundle)
+            self.assertTrue(m.bumped, line)
+            self.assertEqual(self.read("index.md"), f"---\n{out}\n---\n")
+
+    def test_plugin_root_keys_are_renamed(self):
+        self.write("index.md", "---\nokf_version: '0.3'\nupkeep: enforced  # on\n"
+                               "recursive: 2\n---\n# Root\n")
+        m = migrate(self.bundle)
+        self.assertEqual((m.changed, m.bumped), (["index.md"], False))
+        self.assertEqual(self.read("index.md"),
+                         "---\nokf_version: '0.3'\nx-okf-skills-upkeep: enforced  # on\n"
+                         "x-okf-skills-recursive: 2\n---\n# Root\n")
+        r = validate(self.bundle)
+        self.assertEqual((r.errors, r.warnings), ([], []))
+
+    def test_a_plugin_key_is_not_renamed_onto_an_existing_one(self):
+        text = "---\nokf_version: '0.3'\nupkeep: soft\nx-okf-skills-upkeep: enforced\n---\n"
+        self.write("index.md", text)
+        self.assertEqual(migrate(self.bundle).changed, [])
+        self.assertEqual(self.read("index.md"), text)
+
+    def test_the_summary_claims_only_a_bump_that_happened(self):
+        legacy_bundle(self)
+        self.write("sub/c.md", AC_HEAD + "attester: { resource: references/att.py }\n---\nb\n")
+        out = subprocess.run([sys.executable, str(SCRIPT), str(self.bundle), "--migrate"],
+                             capture_output=True, text=True, check=False).stdout
+        self.assertNotIn("bumped", out)
+        self.assertIn("`okf_version` left as declared", out)
+        strict = subprocess.run([sys.executable, str(SCRIPT), str(self.bundle), "--migrate",
+                                 "--strict"], capture_output=True, text=True, check=False)
+        self.assertEqual(strict.returncode, 1)
+        self.write("sub/c.md", AC_HEAD + "attester: { resource: /references/att.py }\n---\nb\n")
+        out = subprocess.run([sys.executable, str(SCRIPT), str(self.bundle), "--migrate"],
+                             capture_output=True, text=True, check=False).stdout
+        self.assertIn('`okf_version` bumped to "0.3"', out)
 
 
 if __name__ == "__main__":

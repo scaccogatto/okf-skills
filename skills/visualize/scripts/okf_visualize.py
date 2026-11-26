@@ -40,8 +40,6 @@ AUTO_COSE_MAX = 1000
 # Above this the page is slow on any layout (23k concepts measured: ~27 s load,
 # ~650 MB heap) and reads as a hairball — warn and suggest rendering a subtree.
 SCALE_WARN = 5000
-FENCE = re.compile(r"^(```|~~~)")
-LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 
 
 def json_for_script(obj) -> str:
@@ -59,88 +57,182 @@ def json_for_script(obj) -> str:
     return json.dumps(obj, default=str).replace("<", "\\u003c")
 
 
-def split_frontmatter(text: str):
-    if not text.startswith("---"):
-        return {}, text
-    lines = text.splitlines(keepends=True)
-    if lines[0].strip() != "---":
-        return {}, text
-    for i in range(1, len(lines)):
-        if lines[i].strip() == "---":
-            try:
-                meta = yaml.safe_load("".join(lines[1:i])) or {}
-            except yaml.YAMLError:
-                meta = {}
-            return (meta if isinstance(meta, dict) else {}), "".join(lines[i + 1:])
-    return {}, text
-
-
-def link_targets(text: str):
-    out, in_fence = [], False
-    for line in text.splitlines():
-        if FENCE.match(line.strip()):
-            in_fence = not in_fence
-            continue
-        if not in_fence:
-            out.extend(LINK.findall(line))
-    return out
-
-
+# §6.1: links are read from the body with code removed first. A fence is a run of
+# 3+ backticks or tildes indented at most 3 spaces, closed by a run of the same
+# character at least as long, so a shorter fence inside it is content. Same rules
+# as okf_validate.strip_code: the three tools must see the same links.
+FENCE_RUN = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+CODE_SPAN = re.compile(r"(?<!`)(`+)(?!`)((?:(?!\n[ \t]*\n).)+?)(?<!`)\1(?!`)", re.DOTALL)
+LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
+# §6.1: a link reference definition is a link too. A `[^label]:` line is a
+# footnote definition, not a link.
+REF_DEF = re.compile(r"^ {0,3}\[([^\]]+)\]:[ \t]*<?([^\s>]+)>?")
 SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.\-]*:")
-DATE_ONLY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+# §5 Timestamps: a full-date, or an RFC 3339 date-time that carries an offset.
+DATE_ONLY = re.compile(r"\d{4}-\d{2}-\d{2}")
+DATE_TIME = re.compile(r"\d{4}-\d{2}-\d{2}[Tt ]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})")
+VERSION = re.compile(r"([0-9]+)\.([0-9]+)(\..*)?")
 # §5.4: the vocabulary. `draft` is not yet reviewed but still current knowledge,
 # `deprecated` and any value outside this set are not.
+STATUS_VALUES = {"draft", "stable", "deprecated"}
 CURRENT_STATUS = {"draft", "stable"}
 
 
+class UniqueKeyLoader(yaml.SafeLoader):
+    """SafeLoader that rejects duplicate mapping keys at every level (§4, YAML 1.2).
+    PyYAML would keep the last value, so a strict reader and this one would see
+    different frontmatter."""
+
+    def construct_mapping(self, node, deep=False):
+        if isinstance(node, yaml.MappingNode):
+            seen = set()
+            for key_node, _ in node.value:
+                if key_node.tag == "tag:yaml.org,2002:merge":
+                    continue  # `<<` is expanded by the parent class, not a real key
+                key = self.construct_object(key_node, deep=True)
+                try:
+                    duplicate = key in seen
+                    seen.add(key)
+                except TypeError:
+                    break  # unhashable key: the parent class reports it
+                if duplicate:
+                    raise yaml.constructor.ConstructorError(
+                        None, None, "duplicate key", key_node.start_mark)
+        return super().construct_mapping(node, deep=deep)
+
+
+def split_frontmatter(text: str):
+    """§4: (meta, body), meta None when there is no frontmatter or it is invalid.
+
+    Both delimiters sit at column 0, so an indented `---` inside a block scalar
+    does not close the block (#66). An impossible date or a huge int (ValueError,
+    #63), runaway nesting (RecursionError), a duplicate key or a non-mapping make
+    the file a non-concept here, never a crash. An empty block is an empty mapping."""
+    lines = text.splitlines(keepends=True)
+    if not lines or lines[0].rstrip() != "---":
+        return None, text
+    for i in range(1, len(lines)):
+        if lines[i].rstrip() == "---":
+            try:
+                meta = yaml.load("".join(lines[1:i]), Loader=UniqueKeyLoader)
+            except (yaml.YAMLError, ValueError, RecursionError):
+                return None, "".join(lines[i + 1:])
+            if meta is None:
+                meta = {}
+            return (meta if isinstance(meta, dict) else None), "".join(lines[i + 1:])
+    return None, text
+
+
+def scalar_text(v) -> str:
+    """The text of a scalar, "" for anything else. Never str() a frontmatter list or
+    mapping: an alias bomb expands only when it is stringified or serialized."""
+    # bool is an int and datetime is a date, so both are covered here
+    return str(v) if isinstance(v, (str, int, float, date)) else ""
+
+
+def shown(v) -> str:
+    """scalar_text, with a placeholder for a container so it still shows as set."""
+    if isinstance(v, list):
+        return "<list>"
+    if isinstance(v, dict):
+        return "<mapping>"
+    return scalar_text(v)
+
+
+def strip_code(body: str) -> str:
+    """The body with fenced blocks and inline code spans removed."""
+    kept: list[str] = []
+    fence = ""
+    for line in body.splitlines():
+        m = FENCE_RUN.match(line)
+        if fence:
+            if m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence) \
+                    and not line[m.end():].strip():
+                fence = ""
+            continue
+        if m and not (m.group(1)[0] == "`" and "`" in line[m.end():]):
+            fence = m.group(1)
+            continue
+        kept.append(line)
+    return CODE_SPAN.sub("", "\n".join(kept))
+
+
+def link_targets(body: str) -> list[str]:
+    """§6.1: inline link targets and reference definitions, code excluded."""
+    out = []
+    for line in strip_code(body).splitlines():
+        out.extend(LINK.findall(line))
+        ref = REF_DEF.match(line)
+        if ref and not ref.group(1).startswith("^"):
+            out.append(ref.group(2))
+    return out
+
+
 def as_list(v) -> list:
-    """§11.2 rules 1-2: null, "" and [] are absent, one item is a list of one."""
-    if v is None or v == "" or v == []:
+    """§11.2 rules 1-2: null, "", [] and {} are absent, one item is a list of one."""
+    if is_absent(v):
         return []
     return v if isinstance(v, list) else [v]
 
 
+def tag_list(meta: dict) -> list[str]:
+    """`tags` as text, scalar items only (a nested item has no tag text)."""
+    return [t for t in map(scalar_text, as_list(meta.get("tags"))) if t]
+
+
 def parse_instant(v) -> datetime | None:
     """§5 Timestamps as an aware UTC instant, None when invalid. A date-only value
-    is the start of that day in UTC, a date-time without an offset is invalid.
-    PyYAML hands over date/datetime objects or strings, so all of them are accepted."""
+    is the start of that day in UTC, a date-time needs an offset. PyYAML hands
+    over date/datetime objects or strings, so all of them are accepted. The regex
+    comes first: `fromisoformat` alone takes `+0000`, `+05` and a minute-only time."""
     if isinstance(v, datetime):
-        return v.astimezone(UTC) if v.tzinfo else None
+        return v.astimezone(UTC) if v.utcoffset() is not None else None
     if isinstance(v, date):
         return datetime(v.year, v.month, v.day, tzinfo=UTC)
     if not isinstance(v, str):
         return None
-    s = v.strip()
-    if DATE_ONLY.match(s):
-        s += "T00:00:00+00:00"
     try:
-        t = datetime.fromisoformat(s)  # 3.11 takes `Z` and the space separator
-    except ValueError:
-        return None
-    return t.astimezone(UTC) if t.tzinfo else None
+        if DATE_ONLY.fullmatch(v):
+            d = date.fromisoformat(v)
+            return datetime(d.year, d.month, d.day, tzinfo=UTC)
+        if DATE_TIME.fullmatch(v):  # upper(): 3.11 rejects a lowercase `t` or `z`
+            return datetime.fromisoformat(v.upper()).astimezone(UTC)
+    except ValueError:  # Feb 30, hour 24 and friends
+        pass
+    return None
+
+
+def is_absent(v) -> bool:
+    """§11.2 rule 1: null, "", [] and {} read as an absent key."""
+    return v is None or v == "" or v == [] or v == {}
 
 
 def trust(meta: dict) -> tuple[str, list[dict]]:
-    """§5.3 trust tier plus every well-formed verification event, each flagged
-    `current`. Only current events count, so an agent rewrite after a human review
-    drops the tier back down. A v0.1 `timestamp` stands in for `generated.at`
-    (Appendix B)."""
+    """§5.3 trust tier plus every verification event with `by` and `at`, each
+    flagged `current`. Only current events count, so an agent rewrite after a
+    human review drops the tier back down. A v0.1 `timestamp` stands in for
+    `generated.at` only when `generated` is absent (Appendix B)."""
     gen = meta.get("generated")
-    raw = gen.get("at") if isinstance(gen, dict) else meta.get("timestamp")
-    floor = parse_instant(raw) if raw not in (None, "") else None
+    if is_absent(gen):
+        raw = meta.get("timestamp")
+    else:
+        raw = gen.get("at") if isinstance(gen, dict) else None
+    # §5.3 defines only the absent-`generated` case. A `generated` without `at`
+    # records no change time, so no verification can be shown to predate it: every
+    # valid event is current. A present but invalid `at` leaves none current.
+    bounded = not is_absent(raw)
+    floor = parse_instant(raw) if bounded else None
     events = []
     for e in as_list(meta.get("verified")):
-        # §5.2: an event without both `by` and `at` is ignored.
-        if not isinstance(e, dict) or not e.get("by") or e.get("at") in (None, ""):
+        if not isinstance(e, dict):
             continue
-        t = parse_instant(e["at"])
-        if t is None:
-            current = False  # unparseable cannot be shown to postdate the change
-        elif raw in (None, ""):
-            current = True
-        else:  # a malformed generated.at leaves nothing provably current
-            current = floor is not None and t >= floor
-        events.append({"by": str(e["by"]), "at": str(e["at"]), "current": current})
+        by, at = e.get("by"), e.get("at")
+        # §5.2: an event without both `by` and `at` is ignored
+        if not (isinstance(by, str) and by.strip()) or is_absent(at):
+            continue
+        t = parse_instant(at)
+        current = t is not None and (not bounded or (floor is not None and t >= floor))
+        events.append({"by": by, "at": shown(at), "current": current})
     live = [e["by"] for e in events if e["current"]]
     if not live:
         return "unverified", events
@@ -149,29 +241,22 @@ def trust(meta: dict) -> tuple[str, list[dict]]:
             else "machine-confirmed"), events
 
 
-def staleness(meta: dict, now: datetime | None = None) -> str:
-    """§5.5: "" (no `stale_after`), "fresh", "stale", or "malformed". A value that
-    cannot be parsed is never fresh (§11.2)."""
-    raw = meta.get("stale_after")
-    if raw is None or raw == "" or raw == []:
-        return ""
-    t = parse_instant(raw)
-    if t is None:
-        return "malformed"
-    return "stale" if (now or datetime.now(UTC)) >= t else "fresh"
-
-
 def lifecycle(meta: dict) -> tuple[str, bool]:
-    """§5.4: (status, is_current). Absent means stable, an unknown value keeps
-    its raw text and is not current."""
-    status = str(meta.get("status") or "").strip() or "stable"
-    return status, status in CURRENT_STATUS
+    """§5.4: (status, is_current). Absent, null or "" means stable. Only an exact
+    vocabulary string counts: `false`, `0`, " stable " or "Stable" keep their raw
+    text and are not current."""
+    raw = meta.get("status")
+    if is_absent(raw):
+        return "stable", True
+    if isinstance(raw, str) and raw in STATUS_VALUES:
+        return raw, raw in CURRENT_STATUS
+    return shown(raw), False
 
 
 def has_type(meta: dict) -> bool:
-    """§3.2 rule 1: a concept has a non-empty `type`."""
+    """§3.2 rule 1: a concept has a `type` that is a non-empty string."""
     t = meta.get("type")
-    return t is not None and bool(str(t).strip())
+    return isinstance(t, str) and bool(t.strip())
 
 
 def declares_legacy(bundle: Path) -> bool:
@@ -180,55 +265,55 @@ def declares_legacy(bundle: Path) -> bool:
         raw = (bundle / "index.md").read_text(encoding="utf-8").lstrip("﻿")
     except (UnicodeDecodeError, OSError):
         return True
-    ver = split_frontmatter(raw)[0].get("okf_version")
+    ver = (split_frontmatter(raw)[0] or {}).get("okf_version")
     if ver is None or ver == "":
         return True
-    try:
-        return tuple(int(x) for x in str(ver).split(".")[:2]) <= (0, 2)
-    except ValueError:
-        return False  # a version we cannot read gets the current rules
+    m = VERSION.fullmatch(scalar_text(ver))
+    # a version we cannot read gets the current rules
+    return m is not None and (int(m[1]), int(m[2])) <= (0, 2)
 
 
 def path_fields(meta: dict) -> list[str]:
-    """§6.2 path fields that can point at a concept (§6.4 graph edges)."""
-    vals = [meta.get("superseded_by"), meta.get("computation")]
+    """§6.2 path fields that can point at a concept (§6.4 graph edges). Only
+    string values are paths."""
+    vals = [meta.get("resource"), meta.get("superseded_by"), meta.get("computation")]
     for key in ("executor", "attester"):
         sub = meta.get(key)
         vals.append(sub.get("resource") if isinstance(sub, dict) else None)
     vals += [e.get("resource") for e in as_list(meta.get("sources"))
              if isinstance(e, dict)]
-    return [str(v).strip() for v in vals if v is not None and str(v).strip()]
+    return [v.strip() for v in vals if isinstance(v, str) and v.strip()]
 
 
-def resolve(target: str, path: Path, bundle: Path, ids: set[str] | None = None,
-            legacy: bool = False) -> str | None:
+def resolve(target: str, path: Path, bundle: Path, legacy: bool = False) -> str | None:
     """§6 resolution of a link or path-field value to a bundle-relative id, or None
-    when it is external, an asset or outside the root. Membership in the concept
-    set is the caller's check, except for the `legacy` fallback (§6.2, §12.1),
-    which only path fields use: a bare value that is not a concept from the file's
-    directory is retried from the bundle root."""
-    t = urllib.parse.unquote(str(target).split("#", 1)[0])
+    when it is external, not markdown or outside the root. Membership in the
+    concept set is the caller's check. `legacy` is the §6.2/§12.1 fallback, which
+    only path fields use: a bare value naming no file from the file's directory is
+    retried from the bundle root. Existence is any file or directory, concept or not."""
+    t = urllib.parse.unquote(target.split("#", 1)[0])
     if not t.endswith(".md") or SCHEME.match(t):
         return None
     root = bundle.resolve()
 
     def at(base: Path) -> str | None:
-        cand = (base / t.lstrip("/")).resolve()
+        try:
+            cand = (base / t.lstrip("/")).resolve()
+        except (OSError, RuntimeError):  # a symlink loop
+            return None
         return cand.relative_to(root).as_posix()[:-3] if cand.is_relative_to(root) else None
 
     if t.startswith("/"):
         return at(root)
-    found = at(path.parent)
-    if legacy and ids is not None and found not in ids:
-        alt = at(root)
-        return alt if alt in ids else found
-    return found
+    if legacy and not (path.parent / t).exists():
+        return at(root)
+    return at(path.parent)
 
 
 def discover(bundle: Path, on_unreadable=None):
     """§3.2: yield (id, path, meta, body) for every concept. Skips reserved files,
     anything with a dot-prefixed component below the root (the root itself may be
-    `.okf`), files without a typed frontmatter, and symlinks leaving the root."""
+    `.okf`), files without a valid, typed frontmatter, and symlinks leaving the root."""
     root = bundle.resolve()
     for p in sorted(bundle.rglob("*.md")):
         if (p.name in RESERVED or not p.is_file()
@@ -242,8 +327,20 @@ def discover(bundle: Path, on_unreadable=None):
                 on_unreadable(p, exc)
             continue
         meta, body = split_frontmatter(raw)
-        if has_type(meta):
+        if meta is not None and has_type(meta):
             yield p.relative_to(bundle).with_suffix("").as_posix(), p, meta, body
+
+
+def stale_at(meta: dict) -> str:
+    """§5.5 `stale_after` for the page: "" when absent, "malformed" when invalid
+    (never fresh, §11.2), else the instant as a UTC ISO string. Fresh or stale is
+    decided in the browser at view time: a page rendered once and opened later
+    must not show a frozen verdict."""
+    raw = meta.get("stale_after")
+    if is_absent(raw):
+        return ""
+    t = parse_instant(raw)
+    return t.isoformat(timespec="milliseconds").replace("+00:00", "Z") if t else "malformed"
 
 
 def read_sources(meta: dict, path: Path, bundle: Path, ids: set[str], legacy: bool):
@@ -253,30 +350,35 @@ def read_sources(meta: dict, path: Path, bundle: Path, ids: set[str], legacy: bo
     for src in as_list(meta.get("sources")):  # §11.2: a bare mapping is one item
         if not isinstance(src, dict):
             continue
-        resource = str(src.get("resource", "")).strip()
+        raw = src.get("resource")
+        resource = raw.strip() if isinstance(raw, str) else ""
         # §5.1: an entry's own `usage_window` overrides the one written once as a
         # sibling of `sources`. A count without its window has no units.
         window = src.get("usage_window", meta.get("usage_window"))
-        cid = resolve(resource, path, bundle, ids, legacy) if resource else None
+        cid = resolve(resource, path, bundle, legacy) if resource else None
+        count = src.get("usage_count")
         out.append({
-            "title": str(src.get("title") or src.get("id") or resource),
+            "title": shown(src.get("title")) or shown(src.get("id")) or resource,
             "resource": resource,
             "cid": cid if cid in ids else None,
-            "author": str(src.get("author", "")),
-            "usage_count": src.get("usage_count"),
-            "usage_window": (f"{window.get('from', '?')}→{window.get('to', '?')}"
+            "author": shown(src.get("author")),
+            "usage_count": None if count is None else shown(count),
+            "usage_window": (f"{shown(window.get('from')) or '?'}→{shown(window.get('to')) or '?'}"
                              if isinstance(window, dict) else ""),
-            "last_modified": str(src.get("last_modified") or ""),
+            "last_modified": shown(src.get("last_modified")),
         })
     return out
 
 
 def read_generated(meta: dict):
-    """§5.2 `generated`, falling back to a v0.1 `timestamp` (Appendix B)."""
+    """§5.2 `generated`, falling back to a v0.1 `timestamp` only when `generated`
+    is absent (Appendix B), the same rule `trust` applies."""
     gen = meta.get("generated")
     if isinstance(gen, dict):
-        return {"by": str(gen.get("by", "")), "at": str(gen.get("at", ""))}
-    return {"by": "", "at": str(meta["timestamp"])} if meta.get("timestamp") else None
+        return {"by": shown(gen.get("by")), "at": shown(gen.get("at"))}
+    if is_absent(gen) and not is_absent(meta.get("timestamp")):
+        return {"by": "", "at": shown(meta["timestamp"])}
+    return None
 
 
 def build(bundle: Path):
@@ -286,32 +388,31 @@ def build(bundle: Path):
     items = list(discover(bundle, warn))
     ids = {i[0] for i in items}
     legacy = declares_legacy(bundle)
-    now = datetime.now(UTC)  # one instant for the whole render
     for cid, p, meta, raw_body in items:
         body = raw_body.strip()
         tier, events = trust(meta)
         status, current = lifecycle(meta)
-        sup = str(meta.get("superseded_by") or "").strip()
-        sup_cid = resolve(sup, p, bundle, ids, legacy) if sup else None
+        raw_sup, title, raw_status = meta.get("superseded_by"), meta.get("title"), meta.get("status")
+        sup = raw_sup.strip() if isinstance(raw_sup, str) else "" if is_absent(raw_sup) else shown(raw_sup)
+        sup_cid = resolve(sup, p, bundle, legacy) if isinstance(raw_sup, str) and sup else None
         sources = read_sources(meta, p, bundle, ids, legacy)
         nodes.append({
             "id": cid,
-            "type": str(meta["type"]).strip(),
-            "title": str(meta.get("title", p.stem)),
-            "description": str(meta.get("description", "")),
-            "tags": [str(t) for t in as_list(meta.get("tags"))],
+            "type": meta["type"].strip(),
+            "title": p.stem if title is None else shown(title),
+            "description": shown(meta.get("description")),
+            "tags": tag_list(meta),
             "group": cid.split("/")[0] if "/" in cid else "(root)",
             "sz": max(24, min(70, 24 + len(body) // 200)),
             # §5.4: only a status that is written is shown, `state` carries the
             # judgement: "" (draft/stable/absent), "deprecated" or "unknown"
-            "status": str(meta.get("status") or "").strip(),
+            "status": "" if is_absent(raw_status) else status,
             "state": ("" if current else "deprecated" if status == "deprecated" else "unknown"),
             "superseded_by": sup,
             "superseded_cid": sup_cid if sup_cid in ids else None,
-            "stale_after": str(meta.get("stale_after") or ""),
-            # §5.5, decided here so the page needs no timestamp logic:
-            # "" | "fresh" | "stale" | "malformed"
-            "stale": staleness(meta, now),
+            "stale_after": shown(meta.get("stale_after")),
+            # §5.5: "" | "malformed" | UTC ISO instant, compared with now in the page
+            "stale_at": stale_at(meta),
             # §5.3: the tier and the events, each flagged `current`
             "tier": tier,
             "generated": read_generated(meta),
@@ -321,7 +422,7 @@ def build(bundle: Path):
         })
         # §6.4: body links, then path fields (with the v0.2 root fallback, §6.2)
         targets = [resolve(t, p, bundle) for t in link_targets(body)]
-        targets += [resolve(t, p, bundle, ids, legacy) for t in path_fields(meta)]
+        targets += [resolve(t, p, bundle, legacy) for t in path_fields(meta)]
         for tgt in targets:
             if tgt and tgt in ids and tgt != cid and (cid, tgt) not in seen:
                 seen.add((cid, tgt))
@@ -440,13 +541,15 @@ addEventListener('resize',()=>{if(sideW!=null)setSideW(sideW);else cy.resize();r
 const esc=s=>(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function relList(title,arr){if(!arr.length)return'';
  return `<div class="rel"><h4>${title}</h4>${arr.map(id=>`<a data-go="${esc(id)}">${esc((byId[id]||{}).title||id)}</a>`).join('')}</div>`;}
-// §5.3 / §5.5 — tier and staleness are derived in Python at build time (current
-// events only, instants compared there), so the page holds no timestamp logic.
-// Advisory signals, not access control.
+// §5.3: the tier is derived in Python at build time (current events only).
+// §5.5: staleness is decided here, at view time, against the UTC instant Python
+// normalized: a page opened long after it was rendered must not show a frozen
+// "fresh". Advisory signals, not access control.
 const TIER_CLS={'unverified':'t-unverified','machine-confirmed':'t-machine','human-reviewed':'t-human'};
-function badges(n){const out=[`<span class="badge ${TIER_CLS[n.tier]||'t-unverified'}">${esc(n.tier)}</span>`];
- if(n.stale==='stale')out.push(`<span class="badge b-stale">stale since ${esc(n.stale_after)}</span>`);
- if(n.stale==='malformed')out.push(`<span class="badge b-stale">stale_after malformed: ${esc(n.stale_after)}</span>`);
+const staleOf=n=>!n.stale_at?'':n.stale_at==='malformed'?'malformed':Date.now()>=Date.parse(n.stale_at)?'stale':'fresh';
+function badges(n){const out=[`<span class="badge ${TIER_CLS[n.tier]||'t-unverified'}">${esc(n.tier)}</span>`],st=staleOf(n);
+ if(st==='stale')out.push(`<span class="badge b-stale">stale since ${esc(n.stale_after)}</span>`);
+ if(st==='malformed')out.push(`<span class="badge b-stale">stale_after malformed: ${esc(n.stale_after)}</span>`);
  if(n.state==='deprecated')out.push('<span class="badge b-deprecated">deprecated</span>');
  if(n.state==='unknown')out.push(`<span class="badge b-unknown">status: ${esc(n.status)}</span>`);
  return `<div class="badges">${out.join('')}</div>`;}

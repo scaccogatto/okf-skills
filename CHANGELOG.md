@@ -13,21 +13,42 @@ OKF spec version it supports.
   re-vendored verbatim at `527e81a`, and the skills, templates, README and
   Action now target it. New bundles declare `okf_version: "0.3"`, and
   `okf_init.py` also writes the bundle `title`.
-- **The validator checks v0.3 conformance.** A `.md` with no frontmatter or no
-  `type` (a `README.md`, an `AGENTS.md`) is now a skipped non-concept and a
-  warning, no longer an error (§3.2). Duplicate frontmatter keys and a broken
-  root `index.md` frontmatter are errors (§4, §11.1). Paths starting with `.`
-  are not part of the bundle.
+- **The validator checks v0.3 conformance (§11.1).** A `.md` with no frontmatter
+  or no string `type` (a `README.md`, an `AGENTS.md`) is now a skipped
+  non-concept and a warning, no longer an error (§3.2). New errors: duplicate
+  frontmatter keys, impossible values such as `2026-02-30`, a broken root
+  `index.md` frontmatter, frontmatter in a subdirectory `index.md` or a
+  `log.md`, and a `log.md` date heading that is not a real `YYYY-MM-DD` (§8,
+  §9). Paths starting with `.` are not part of the bundle.
 - **Path fields resolve from their file's directory** (§6). A bare value that
   resolves only from the bundle root still passes for bundles declaring 0.2 or
-  no version (the §12.1 fallback), with a warning asking for the `/` form.
-  Links and paths that leave the bundle are external, never broken.
+  no version (the §12.1 fallback), with a warning. Top-level `resource` and
+  `sources[].resource` are checked too, but a missing target is reported only
+  when the value looks like a bundle path. Links and paths that leave the
+  bundle are external, never broken.
 - **Trust tiers count only current verifications** (§5.3): an event whose `at`
   predates `generated.at` stays as history. The visualizer and the MCP server
-  compute the tier this way, show older events as "verified before the last
-  change", and treat an unparseable `stale_after` as malformed, never fresh.
-- **Timestamps:** a date-only value is fully valid (start of that day UTC). A
-  date-time without an offset is now reported as invalid.
+  compute the tier this way and show older events as "verified before the
+  last change".
+- **Timestamps (§5):** a date-only value is fully valid (start of that day
+  UTC). A date-time needs seconds and an offset, and must be a real instant.
+  An unparseable `stale_after` is malformed, never fresh.
+- **One rule set for the validator, the MCP server and the visualizer.**
+  Frontmatter delimiters, parsing, timestamps, status, `okf_version`, path
+  resolution and link extraction now behave identically in all three, and
+  `tests/test_conformance_parity.py` fails on any disagreement. Links are read
+  from the body only, with code stripped, and reference-style links count.
+- **The plugin's own root keys use the `x-` prefix** that §4.1 reserves for
+  extensions: `x-okf-skills-upkeep` and `x-okf-skills-recursive`. The old
+  `upkeep` and `recursive` keep working as deprecated aliases. The validator
+  warns on them and `--migrate` renames them.
+- **Plugin conventions are labelled as such.** Recommended-field warnings read
+  as okf-skills lint (OKF calls those fields optional), and the `/`-preferred
+  path form and the lifecycle-only `log.md` policy are documented as okf-skills
+  conventions, not spec.
+- **The visualizer decides staleness when the page is viewed**, so a published
+  `viz.html` turns a concept stale on time instead of freezing the verdict of
+  the day it was rendered.
 
 ### Added
 - `superseded_by` (§5.4): validated as a path field, warned about without
@@ -35,12 +56,36 @@ OKF spec version it supports.
 - Root `index.md` accepts the §8.1 bundle metadata (`title`, `description`,
   `license`) and any `x-` extension key. Other unknown keys warn with the
   `x-<producer>-<name>` convention, and an unquoted `okf_version` warns.
-- `verified` events without `at`, and `parameters` entries without `name` and
-  `type`, are reported.
+- `verified` events without `by` or `at`, and `parameters` entries without
+  `name` and `type`, are reported.
 - MCP concept cards carry `tier`, `stale`, `current` and `superseded_by`.
-  Graph edges (`get_neighbors`, visualizer) include every §6.4 path field.
-- `--migrate` upgrades v0.2 bundles: it bumps `okf_version` to `"0.3"` and
-  prefixes `/` on block-style path fields that resolve only from the root.
+  Graph edges (`get_neighbors`, visualizer) include every §6.2 path field.
+- `--migrate` upgrades v0.2 bundles: it renames the plugin keys, prefixes `/`
+  on block-style path fields that resolve only from the root, and bumps
+  `okf_version` to `"0.3"` only once no such field remains. Each rewrite is
+  re-parsed and refused unless the only change is the intended `/` prefix.
+  Line endings and a BOM are preserved.
+
+### Fixed
+- The validator no longer crashes on a `status` that is a list or mapping
+  ([#62](https://github.com/ekar-is/okf-skills/issues/62)), or on an impossible
+  date such as `2026-02-30` ([#63](https://github.com/ekar-is/okf-skills/issues/63)),
+  which the MCP server and the visualizer now also survive.
+- A percent-encoded link such as `My%20Note.md` resolves
+  ([#64](https://github.com/ekar-is/okf-skills/issues/64)).
+- Link syntax inside inline code no longer draws a broken-link warning
+  ([#65](https://github.com/ekar-is/okf-skills/issues/65)).
+- An indented `---` inside a block scalar no longer closes the frontmatter
+  early ([#66](https://github.com/ekar-is/okf-skills/issues/66)), in all three
+  tools.
+- A YAML alias bomb or deeply nested frontmatter can no longer hang or crash
+  any of the tools: values are never stringified as containers, and runaway
+  nesting is reported as invalid YAML.
+- The Stop hook parses under macOS `/bin/bash` 3.2 (the same fix as 0.12.1).
+
+Thanks to [@ahmedibrahim085](https://github.com/ahmedibrahim085) for the fixes
+for #62, #63, #65 and #66, contributed in
+[#68](https://github.com/ekar-is/okf-skills/pull/68).
 
 ## [0.12.0] - 2026-10-19
 

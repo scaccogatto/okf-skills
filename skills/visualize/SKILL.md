@@ -40,7 +40,8 @@ bundles still render fully.
 
 Two badges are **derived**, not read: the §5.3 trust tier
 (*unverified* / *machine-confirmed* / *human-reviewed*, keyed off the `human:`
-prefix in `verified[].by`) and staleness (`now >= stale_after`). They are
+prefix in `verified[].by`) and staleness (`now >= stale_after`, evaluated in the browser when the page is viewed,
+not when it is rendered, so an old `viz.html` never shows a frozen "fresh"). They are
 advisory signals — when reporting on a bundle, say which tier a concept is in
 rather than treating any of them as a gate.
 

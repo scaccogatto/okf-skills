@@ -13,14 +13,25 @@ generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 The deterministic engine behind the [validate skill](/skills/validate.md). A
 single self-describing script (dependencies declared inline via PEP 723) that
 parses every non-reserved `.md` file and enforces the hard rules of
-[OKF v0.3 §11.1](/reference/okf-spec.md): every frontmatter block parses as a YAML
-mapping (a duplicate key is an error, and so is a broken root `index.md`
-frontmatter).
+[OKF v0.3 §11.1](/reference/okf-spec.md). The same rules are shared with the
+[MCP server](/components/mcp-server.md) and the
+[visualizer](/components/visualizer.md), and `tests/test_conformance_parity.py`
+checks that the three agree.
 
-A `.md` file without frontmatter or without a `type` is not a concept (§3.2), so
-it is skipped with a **warning**, not an error. That is how a `README.md` or an
-`AGENTS.md` can share the bundle directory. Dot-paths (`.git`, `.github`) are
-skipped entirely.
+Errors:
+
+* every frontmatter block parses as a YAML mapping, including the root
+  `index.md`, subdirectory `index.md` files (which must have none, §8) and
+  `log.md` (which must have none, §9).
+* a duplicate key at any level, a value PyYAML cannot build (an impossible date
+  such as `2026-02-30`) and runaway nesting are errors.
+* every `## ` heading of a `log.md` is a real ISO 8601 `YYYY-MM-DD` date.
+* a file that is not UTF-8.
+
+A `.md` file without frontmatter, or whose `type` is not a non-empty string, is
+not a concept (§3.2), so it is skipped with a **warning**, not an error. That is
+how a `README.md` or an `AGENTS.md` can share the bundle directory. Dot-paths
+(`.git`, `.github`) are skipped entirely.
 
 # Checks beyond the hard rule
 
@@ -28,8 +39,9 @@ All soft, all warnings: `generated.by` present when `generated` is, and every
 `verified` entry has both `by` and `at` (a bare mapping counts as a one-element
 list). `status` is one of draft/stable/deprecated, and `superseded_by` resolves.
 Timestamps (`generated.at`, `verified[].at`, `stale_after`,
-`sources[].last_modified`, `usage_window`) are a date-only value or an RFC 3339
-date-time with an offset and seconds. A date-time without an offset is invalid.
+`sources[].last_modified`, `usage_window`) must be real dates or RFC 3339
+date-times with an offset and seconds. A date-time without an offset, or an
+impossible date, is invalid.
 Every `sources` entry has a `resource`, and a `usage_count` is framed by a
 `usage_window`. Every `[^label]` footnote names a `sources[].id` (code spans and
 fenced blocks are skipped, as CommonMark does, so a regex class like `[^a-z]` in
@@ -37,17 +49,31 @@ code is not a footnote). An `Attested Computation` declares a `runtime`, its
 `parameters` entries carry `name` and `type`, and its path-valued `computation`,
 `executor.resource` and `attester.resource` resolve.
 
+Recommended-field warnings (`title`, `description`, `tags`, `generated`) are
+labelled `okf-skills lint`: they are this plugin's discovery advice, not the
+spec, and a concept with only `type` is conformant.
+
 Path fields follow §6: a value without a leading `/` resolves from its file's
-directory. A bundle declaring `okf_version` 0.2 or none also gets the §12.1 root
+directory. They include `superseded_by`, the Attested Computation fields, and
+top-level `resource` and `sources[].resource`. Since those two may be a URI, a
+scope descriptor or an opaque identifier, a missing target is warned only when
+the value looks like a bundle path (a leading `/`, `./` or `../`, or a file
+extension). A bundle declaring `okf_version` 0.2 or none also gets the §12.1 root
 fallback, so a legacy bundle is not flooded with warnings. External targets
 (a URI scheme) and targets outside the bundle root are not bundle paths.
 
+Cross-links are scanned in the body only, with code spans and fenced blocks
+stripped, and reference-style links (`[label]: target`) are included. Footnote
+definitions are not links. A broken link is a warning, never an error (§6.1).
+
 The root `index.md` frontmatter is checked against the §8.1 keys (`okf_version`,
-`title`, `description`, `license`), `x-` extension keys, and the plugin's own
-`upkeep` and `recursive` (the Stop hook's flags, so an enforced-upkeep bundle
-passes its own `--strict` run). `okf_version` must be quoted and match the
-checked version. Legacy `timestamp` and `# Citations` warn with their
-replacement, per the [dual-read decision](/decisions/okf-v02-dual-read.md).
+`title`, `description`, `license`) and `x-` extension keys, which covers the
+plugin's own `x-okf-skills-upkeep` and `x-okf-skills-recursive` (the Stop hook's
+flags, so an enforced-upkeep bundle passes its own `--strict` run). The old
+unprefixed `upkeep` and `recursive` are deprecated and warn, naming the
+replacement. `okf_version` must be quoted and match the checked version. Legacy
+`timestamp` and `# Citations` warn with their replacement, per the
+[v0.3 decision](/decisions/okf-v03-target.md).
 
 # The actor check (§7)
 
@@ -60,24 +86,37 @@ near-miss and passes.
 
 # Migration (`--migrate`)
 
-The only mode that writes. Rewrites v0.1 and v0.2 constructs in place to v0.3: a
-`timestamp` becomes `generated: { by: process:okf-migrate, at }`, a `# Citations`
-list moves up into `sources`, `okf_version` is bumped to 0.3, and block-style
-path fields that were root-relative under §12.1 get a `/` prefix (root-only, so
-nothing that already resolved from its own directory is touched). It then
-validates. The rewrite is **textual**: a PyYAML round-trip would flatten
-comments, key order and quoting across the whole bundle. Each branch is guarded
-on the newer key already existing, so a half-migrated bundle converges instead of
-growing a duplicate key. See the
-[migration decision](/decisions/okf-v02-dual-read.md) for what is deliberately
-not recovered.
+The only mode that writes. Rewrites v0.1 and v0.2 constructs in place to v0.3,
+on concepts only:
+
+* a `timestamp` becomes `generated: { by: process:okf-migrate, at }`, and a
+  `# Citations` list moves up into `sources`.
+* in a bundle declaring 0.2 or none, block-style path fields that were
+  root-only under §12.1 get a `/` prefix: `superseded_by`, top-level `resource`,
+  `sources[].resource` and the Attested Computation fields. Nothing that already
+  resolved from its own directory is touched.
+* in the root index, `upkeep` and `recursive` are renamed to
+  `x-okf-skills-upkeep` and `x-okf-skills-recursive` (never onto an existing key).
+* `okf_version` is bumped to 0.3 only when no root-only path field remains in the
+  bundle, otherwise the version stays and the leftovers are listed.
+
+The rewrite is **textual**: a PyYAML round-trip would flatten comments, key order
+and quoting across the whole bundle. CRLF endings and a BOM are kept, and a file
+that mixes CRLF and LF is refused. Every rewrite is verified by re-parsing: if
+the result differs from the original in anything but the intended `/` prefixes,
+the file is left untouched and named in a warning. Values are never stringified
+as containers, so an alias bomb in a bundle cannot blow up the check. Each branch
+is guarded on the newer key already existing, so a half-migrated bundle converges
+instead of growing a duplicate key. After rewriting, the bundle is validated. See
+the [v0.3 decision](/decisions/okf-v03-target.md) for what is deliberately not
+recovered.
 
 # Output
 
 | Signal | Meaning |
 |--------|---------|
 | `ERROR` | Hard §11.1 failure, the bundle is non-conformant. |
-| `warn`  | Soft guidance (missing recommended field, broken link, legacy field, skipped non-concept). |
+| `warn`  | Soft guidance: spec-level (malformed family, broken link, legacy or deprecated field, skipped non-concept) and `okf-skills lint` (plugin advice such as missing recommended fields). |
 
 Exit code is non-zero on any error, or when warnings exceed the gate: `--strict`
 allows none, `--max-warnings N` allows N, the default allows any. `--json` emits

@@ -16,6 +16,7 @@ import asyncio
 import os
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -315,6 +316,132 @@ class LifecycleTest(V03Base):
         self.assertEqual([c["id"] for c in call(self.mcp, "search_concepts", query="red, green")], ["t"])
         self.assertEqual(as_list("red, green"), ["red, green"])
         self.assertEqual(as_list(None) + as_list("") + as_list([]), [])
+
+
+def alias_bomb(levels: int = 9) -> str:
+    """A nested-alias YAML bomb: 10**levels leaves once stringified, cheap to parse."""
+    lines = ["a0: &a0 [x, x, x, x, x, x, x, x, x, x]"]
+    lines += [f"a{i}: &a{i} [{', '.join([f'*a{i - 1}'] * 10)}]" for i in range(1, levels)]
+    return "\n".join(lines) + "\n"
+
+
+class SharedRulesTest(V03Base):
+    """The consumer rules shared with the validator and the visualizer."""
+
+    def test_unparseable_frontmatter_is_skipped_not_a_crash(self):
+        write(self.bundle, "ok.md", concept("title: x\n"))
+        write(self.bundle, "date.md", concept("title: x\ndecided: 2026-02-30\n"))
+        write(self.bundle, "int.md", concept("title: x\nn: " + "9" * 5000 + "\n"))
+        write(self.bundle, "deep.md", concept("title: x\nn: " + "[" * 3000 + "\n"))
+        write(self.bundle, "dup.md", concept("title: x\ntitle: y\n"))
+        write(self.bundle, "nested.md", concept("title: x\ng: {by: a, by: b}\n"))
+        self.assertEqual(set(self.cards()), {"ok"})
+
+    def test_impossible_date_in_the_root_index_reads_as_no_version(self):
+        write(self.bundle, "index.md", '---\nokf_version: "0.3"\ndecided: 2026-02-30\n---\n')
+        write(self.bundle, "sibling.md", concept("title: x\n"))
+        write(self.bundle, "deep/f.md", concept("title: x\nsuperseded_by: sibling.md\n"))
+        self.assertEqual(self.out("deep/f"), {"sibling"})  # legacy fallback applies
+
+    def test_indented_delimiter_does_not_close_the_block(self):
+        write(self.bundle, "c.md", "---\ntype: Note\ndescription: |\n  ---\n  more\n"
+                                   "title: kept\n---\nx\n")
+        self.assertEqual(self.cards()["c"]["title"], "kept")
+
+    def test_alias_bomb_in_any_field_finishes_fast(self):
+        shown_as_list = {"title", "description", "status", "stale_after", "superseded_by"}
+        for field in sorted(shown_as_list | {"tags", "resource", "generated", "verified",
+                                             "sources", "computation", "timestamp"}):
+            with self.subTest(field=field):
+                write(self.bundle, "c.md", concept(alias_bomb() + f"{field}: *a8\n"))
+                start = time.monotonic()
+                card = self.cards("c")["c"]
+                self.out("c")
+                self.assertLess(time.monotonic() - start, 1.0)
+                if field in shown_as_list:
+                    self.assertEqual(card[field], "<list>")
+        write(self.bundle, "c.md", concept(alias_bomb() + "verified: {by: *a8, at: *a8}\n"))
+        self.assertEqual(self.cards("c")["c"]["tier"], "unverified")
+
+    def test_alias_bomb_type_is_not_a_concept(self):
+        write(self.bundle, "c.md", "---\n" + alias_bomb() + "type: *a8\ntitle: x\n---\nx\n")
+        start = time.monotonic()
+        self.assertEqual(set(self.cards()), set())
+        self.assertLess(time.monotonic() - start, 1.0)
+
+    def test_non_string_type_is_not_a_concept(self):
+        for value in ("42", "true", "[x]", "{a: b}"):
+            with self.subTest(type=value):
+                write(self.bundle, "c.md", f"---\ntype: {value}\ntitle: x\n---\nx\n")
+                self.assertEqual(set(self.cards()), set())
+
+    def test_status_must_be_an_exact_vocabulary_string(self):
+        for raw, text in (("false", "False"), ("0", "0"), ('" stable "', " stable "),
+                          ("[stable]", "<list>")):
+            with self.subTest(status=raw):
+                write(self.bundle, "c.md", concept(f"title: x\nstatus: {raw}\n"))
+                c = self.cards()["c"]
+                self.assertEqual((c["status"], c["current"]), (text, False))
+        write(self.bundle, "c.md", concept('title: x\nstatus: ""\n'))
+        self.assertEqual(self.cards()["c"]["status"], "stable")
+
+    def test_timestamps_need_seconds_and_a_colon_offset(self):
+        for raw in ("2099-01-01T00:00Z", "2099-01-01T00:00:00+0000", "2099-01-01T00:00:00+05",
+                    "2099-01-01T24:00:00Z", "2099-02-30", " 2099-01-01", "2099-01-01T00:00:00"):
+            with self.subTest(stale_after=raw):
+                write(self.bundle, "c.md", concept(f"title: x\nstale_after: '{raw}'\n"))
+                self.assertEqual(self.cards()["c"]["stale"], "malformed")
+        for empty in ("[]", "{}"):  # §11.2 rule 1: an empty container is absent
+            write(self.bundle, "c.md", concept(f"title: x\nstale_after: {empty}\nstatus: {empty}\n"
+                                               f"superseded_by: {empty}\n"))
+            c = self.cards()["c"]
+            self.assertEqual((c["stale"], c["status"], c["superseded_by"]), ("", "stable", ""))
+        for raw in ("2099-01-01t00:00:00z", "2099-01-01 00:00:00.5+05:00"):
+            with self.subTest(stale_after=raw):
+                write(self.bundle, "c.md", concept(f"title: x\nstale_after: '{raw}'\n"))
+                self.assertEqual(self.cards()["c"]["stale"], "fresh")
+
+    def test_generated_without_at_leaves_events_current(self):
+        event = 'verified: {by: "human:m", at: "2020-01-01"}\n'
+        write(self.bundle, "c.md", concept("title: x\ngenerated: {by: a}\n" + event))
+        self.assertEqual(self.cards()["c"]["tier"], "human-reviewed")
+        write(self.bundle, "c.md", concept("title: x\ngenerated: {by: a, at: soon}\n" + event))
+        self.assertEqual(self.cards("c")["c"]["tier"], "unverified")
+        # a v0.1 timestamp is ignored once `generated` exists (Appendix B)
+        write(self.bundle, "c.md", concept('title: x\ngenerated: {by: a}\ntimestamp: "2030-01-01"\n'
+                                           + event))
+        self.assertEqual(self.cards()["c"]["tier"], "human-reviewed")
+        # actor match is exact: a padded `human:` is not a human
+        write(self.bundle, "c.md", concept('title: x\nverified: {by: " human:m", at: "2020-01-01"}\n'))
+        self.assertEqual(self.cards()["c"]["tier"], "machine-confirmed")
+        # a whitespace-only `by` is missing, so the event is ignored
+        write(self.bundle, "c.md", concept('title: x\nverified: {by: "  ", at: "2020-01-01"}\n'))
+        self.assertEqual(self.cards()["c"]["tier"], "unverified")
+
+    def test_links_in_code_are_not_edges_but_reference_links_are(self):
+        for name in ("span", "fence", "ref", "foot", "inline"):
+            write(self.bundle, f"{name}.md", concept("title: x\n"))
+        write(self.bundle, "src.md", concept("title: x\n", (
+            "see `[a](span.md)` and [b](inline.md)\n\n"
+            "````\n```\n[c](fence.md)\n```\n````\n\n"
+            "[r]: ref.md\n[^f]: foot.md\n")))
+        self.assertEqual(self.out("src"), {"inline", "ref"})
+
+    def test_top_level_resource_is_a_path_field(self):
+        write(self.bundle, "t.md", concept("title: x\n"))
+        write(self.bundle, "s.md", concept("title: x\nresource: /t.md\n"))
+        self.assertEqual(self.out("s"), {"t"})
+
+    def test_legacy_fallback_is_skipped_when_any_file_exists_locally(self):
+        write(self.bundle, "index.md", '---\nokf_version: ""\n---\n')
+        write(self.bundle, "sibling.md", concept("title: x\n"))
+        write(self.bundle, "deep/sibling.md", "# not a concept\n")
+        write(self.bundle, "deep/f.md", concept("title: x\nsuperseded_by: sibling.md\n"))
+        self.assertEqual(self.out("deep/f"), set())
+        (self.bundle / "deep" / "sibling.md").unlink()
+        self.assertEqual(self.out("deep/f"), {"sibling"})
+        (self.bundle / "deep" / "sibling.md").mkdir()  # a directory exists too
+        self.assertEqual(self.out("deep/f"), set())
 
 
 if __name__ == "__main__":

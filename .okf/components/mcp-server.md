@@ -39,10 +39,17 @@ resolved and rejected unless it lands under the bundle root.
   §5.4), a `current` flag and `superseded_by`, so an agent can discount stale or
   retired knowledge itself.
 
-* Parsing is the `split_frontmatter` / `link_targets` / `resolve` trio shared in
-  shape with the [visualizer](/components/visualizer.md), duplicated rather than
-  imported to keep the server runnable on its own
-  ([self-contained skills](/decisions/self-contained-skills.md)).
+* Parsing is a helper block identical to the [visualizer](/components/visualizer.md)'s,
+  duplicated rather than imported to keep the server runnable on its own
+  ([self-contained skills](/decisions/self-contained-skills.md)). Both follow
+  one written rule set with the [validator](/components/validator.md):
+  frontmatter closes only on a column-0 `---`, duplicate keys, impossible dates
+  and runaway nesting make a file a non-concept instead of a crash, timestamps
+  are a date or an offset date-time that really exists, links come from the
+  body only (code stripped, reference-style links included). Frontmatter values
+  are never stringified as containers, so a YAML alias bomb cannot hang a call.
+  `tests/test_conformance_parity.py` feeds the same tricky bundles to all three
+  tools and fails on any disagreement.
 * The bundle is re-read on every call. Correct while a bundle is being edited,
   and cheap up to a few thousand concepts.
 * `mcp>=2,<3`: the SDK renamed `FastMCP` to `MCPServer` in 2.0. `tests/test_okf_mcp.py`

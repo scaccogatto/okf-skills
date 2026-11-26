@@ -56,9 +56,18 @@ and storing them would be storing an opinion:
   non-`human:` actors only is *machine-confirmed*, any `human:` actor makes it
   *human-reviewed*. Only events at or after `generated.at` count, so a rewrite
   resets the tier and older confirmations stay as history;
-* **staleness** (§5.5): *fresh*, *stale* or *malformed*, computed in Python at
-  build time (an unparseable `stale_after` is never fresh), compared as instants
-  so a bare date and a full datetime both work.
+* **staleness** (§5.5): *fresh*, *stale* or *malformed*. Python validates
+  `stale_after` and hands the page a normalized UTC instant (or *malformed*,
+  which is never fresh), and the page compares it with the clock when it is
+  viewed, so a published `viz.html` turns stale on time instead of freezing
+  the verdict of the day it was rendered.
+
+Parsing follows the same written rule set as the
+[MCP server](/components/mcp-server.md) and the
+[validator](/components/validator.md), checked by
+`tests/test_conformance_parity.py`. Frontmatter values are never stringified as
+containers, so a YAML alias bomb renders as a placeholder instead of hanging
+the build.
 
 Both are advisory badges, not access control: nothing is hidden or refused on
 their account.

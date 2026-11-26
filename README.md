@@ -120,12 +120,13 @@ Any other host: run `uv run servers/okf_mcp.py <bundle>` as a stdio server
 **Keep it up to date.** Two opt-in modes. *Soft:* paste
 [`templates/CLAUDE-okf.md`](templates/CLAUDE-okf.md) into your `CLAUDE.md` so
 Claude consults `.okf/` before a task and writes back after. *Enforced:* add
-`upkeep: enforced` to `.okf/index.md`'s frontmatter to arm the plugin's dormant
+`x-okf-skills-upkeep: enforced` to `.okf/index.md`'s frontmatter to arm the plugin's dormant
 `Stop` hook, which blocks finishing when tracked files changed but nothing under
 `.okf/` did. If the bundle documents git repos checked out inside the project,
-add `recursive: true` (or a depth, `recursive: 3`) so the hook finds them and
+add `x-okf-skills-recursive: true` (or a depth, `x-okf-skills-recursive: 3`) so the hook finds them and
 counts their uncommitted changes too. Depth is how many directory levels below
-the project root a repo's directory may sit (`repos/app` is 2); `true` means 6. `OKF_HOOK=off` overrides any bundle. Details:
+the project root a repo's directory may sit (`repos/app` is 2); `true` means 6. The older unprefixed `upkeep` / `recursive` keys still work as
+deprecated aliases. `OKF_HOOK=off` overrides any bundle. Details:
 [stop-hook concept](.okf/components/stop-hook.md).
 
 ## What's inside
@@ -138,7 +139,7 @@ the project root a repo's directory may sit (`repos/app` is 2); `true` means 6. 
 | `skills/backfill/` | Reconstruct a bundle from history. `scripts/okf_backfill_events.py` extracts events and emits capped diffs deterministically. |
 | `agents/` | `event-analyzer` (map, cheap tier) and `bundle-weaver` (reduce, the only writer) for the backfill. |
 | `servers/okf_mcp.py` | The read-only MCP server, wired by `.mcp.json`. |
-| `hooks/` | The dormant Stop hook, armed by `upkeep: enforced`. |
+| `hooks/` | The dormant Stop hook, armed by `x-okf-skills-upkeep: enforced`. |
 | `action.yml` | Composite GitHub Action around the validator. |
 | `templates/CLAUDE-okf.md` | The soft-mode snippet. |
 | `skills/okf/reference/SPEC.md` | OKF v0.3, vendored verbatim: the source of truth. |
@@ -233,7 +234,7 @@ shipped surface (`.claude-plugin/`, `skills/`, `agents/`, `hooks/`, `servers/`,
 `templates/`, `action.yml`, `.mcp.json`) fails CI without both; one touching
 `skills/*/scripts/`, `agents/` or `hooks/` must also update `.okf/`. The
 `skip-version-check` label bypasses all three. This repo's bundle sets
-`upkeep: enforced`, so the Stop hook blocks finishing until the concept
+`x-okf-skills-upkeep: enforced`, so the Stop hook blocks finishing until the concept
 describing your change is updated; `OKF_HOOK=off` opts out. The details, and
 the local commands that mirror CI, are in [CONTRIBUTING.md](CONTRIBUTING.md).
 Report vulnerabilities privately, as [SECURITY.md](SECURITY.md) describes.

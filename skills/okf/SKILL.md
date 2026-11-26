@@ -45,10 +45,11 @@ broken links, never reject a bundle over them.
   Conventional headings: `# Schema`, `# Examples`, `# Computation`.
 - **Cross-links and path fields (§6):** a value starting with `/` resolves from
   the bundle root, any other value from the directory of its file. Both are
-  valid. In **path fields** (`computation`, `executor.resource`,
-  `attester.resource`, `superseded_by`, an in-bundle `sources[].resource`)
-  prefer the `/` form: it survives moving the file, and a bare value that a v0.2
-  bundle meant from the root breaks under v0.3. Percent-encode spaces. A link
+  valid, and the spec recommends neither (§13.2). This plugin's convention for
+  **path fields** (`computation`, `executor.resource`, `attester.resource`,
+  `superseded_by`, an in-bundle `resource` or `sources[].resource`) is the `/`
+  form: it survives moving the file, and a bare value that a v0.2 bundle meant
+  from the root changes meaning under v0.3. Percent-encode spaces. A link
   asserts an untyped relationship, its *kind* lives in the surrounding prose.
 - **Extension keys (§4.1):** allowed at any level. Name your own
   `x-<producer>-<name>` (that prefix is reserved for extensions), and keep keys
@@ -56,11 +57,15 @@ broken links, never reject a bundle over them.
 - **Reserved files:** `index.md` (directory listing, no frontmatter, except the
   bundle-root index, which carries the bundle metadata of §8.1: `okf_version`
   (quoted), `title`, `description` (when an agent should pick this bundle),
-  `license`, and this plugin's
-  `upkeep: enforced` opt-in flag, plus `recursive: true` (or a depth `n`: levels below the root, `true` is 6) to make the hook
-  watch nested git repos) and `log.md` (ISO-dated history, newest
-  first). Never use these names for concepts.
-- **What goes in `log.md`:** lifecycle events only, written in the bundle-root
+  `license`, and this plugin's extension keys (§4.1):
+  `x-okf-skills-upkeep: enforced` to arm the Stop hook, plus
+  `x-okf-skills-recursive: true` (or a depth `n`: levels below the root, `true`
+  is 6) to make the hook watch nested git repos. The older unprefixed `upkeep` /
+  `recursive` still work but are deprecated, and `/okf:validate --migrate`
+  renames them) and `log.md` (ISO-dated history, newest first, no
+  frontmatter). Never use these names for concepts.
+- **What goes in `log.md` (an okf-skills convention):** §9 only says a log
+  records the history of changes. This plugin keeps it to lifecycle events, written in the bundle-root
   `log.md`: a bundle **created**, a concept **deprecated** or retired, one
   concept **superseding** another, concepts **regenerated** after their source
   changed, a **verification** pass. Routine edits to a concept do not get an
