@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The toolkit · okf-skills</title>
+<meta name="description" content="What each part of okf-skills does, what it assumes, and the command to run it.">
+<meta property="og:title" content="The toolkit · okf-skills">
+<meta property="og:description" content="What each part of okf-skills does, what it assumes, and the command to run it.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ekar-is.github.io/okf-skills/tools.html">
+<meta property="og:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
+<link rel="canonical" href="https://ekar-is.github.io/okf-skills/tools.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&amp;family=JetBrains+Mono:wght@300;400&amp;display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+<div class="bar">
+<a class="brand" href="index.html"><svg viewBox="0 0 22 22" aria-hidden="true" focusable="false"><rect width="22" height="22" fill="currentColor"/><path d="M12 0H22V10Z" fill="#c64526"/></svg>okf-skills</a>
+<button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+<nav id="site-nav" class="site-nav" aria-label="Site">
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="format.html">OKF in plain words</a></li>
+<li><a href="start.html">Getting started</a></li>
+<li><a href="tools.html" aria-current="page">Toolkit</a></li>
+<li><a href="conventions.html">Conventions</a></li>
+<li><a href="upgrade.html">Upgrade to v0.3</a></li>
+<li><a href="contribute.html">Contribute</a></li>
+<li><a href="demo.html">Live demo</a></li>
+<li><a href="self.html">This repo&#x27;s own bundle</a></li>
+</ul>
+</nav>
+</div>
+</header>
+<main id="main">
+<h1>The toolkit</h1>
+
+<p class="lede">okf-skills is a handful of separate parts. You can use one without the others. This page says what each part does, what it assumes about your setup, and how to run it.</p>
+
+<div class="table-wrap"><table>
+<thead><tr><th>Part</th><th>Works on</th><th>Needs</th></tr></thead>
+<tbody>
+<tr><td><a href="#validate">Validator</a></td><td>Any OKF bundle, any domain</td><td>Python 3.11+ with uv, or pip and PyYAML</td></tr>
+<tr><td><a href="#visualize">Visualizer</a></td><td>Any OKF bundle, any domain</td><td>Python 3.11+ with uv, or pip and PyYAML</td></tr>
+<tr><td><a href="#okf-skill">okf skill</a></td><td>Any domain</td><td>A coding agent. Written for Claude Code first</td></tr>
+<tr><td><a href="#backfill">Backfill skill</a></td><td>A git repository</td><td>Claude Code with the plugin (it uses the plugin's subagents) and its session history</td></tr>
+<tr><td><a href="#hook">Stop hook</a></td><td>A git repository</td><td>Claude Code with the plugin. Off until you opt in</td></tr>
+<tr><td><a href="#mcp">MCP server</a></td><td>Any OKF bundle</td><td>An MCP host. Claude Code wires it automatically</td></tr>
+<tr><td><a href="#action">GitHub Action</a></td><td>Any OKF bundle</td><td>GitHub Actions</td></tr>
+</tbody>
+</table></div>
+
+<h2 id="validate">Validator</h2>
+
+<p>A deterministic checker, one Python file: <code>skills/validate/scripts/okf_validate.py</code>. It reads a bundle and reports findings in three groups, so you can tell a broken bundle from a bundle that could be tidier.</p>
+
+<div class="table-wrap wide"><table>
+<thead><tr><th>Finding</th><th>Comes from</th><th>Examples</th><th>Fails by default</th></tr></thead>
+<tbody>
+<tr><td>Error</td><td>Spec conformance, §11.1</td><td>Frontmatter that is not a YAML mapping, duplicate keys, an impossible date like <code>2026-02-30</code>, frontmatter in a subfolder <code>index.md</code> or in a <code>log.md</code>, a <code>log.md</code> date heading that is not a real <code>YYYY-MM-DD</code></td><td>Yes</td></tr>
+<tr><td>Warning</td><td>Spec guidance</td><td>A broken link, a <code>.md</code> file without <code>type</code>, a malformed <code>sources</code> or <code>verified</code> entry, a timestamp in the wrong form, an unprefixed custom key at the bundle root</td><td>No</td></tr>
+<tr><td>Lint</td><td>okf-skills advice, not the spec</td><td>A concept without <code>title</code>, <code>description</code>, <code>tags</code> or <code>generated</code></td><td>No, and only shown with <code>--lint</code></td></tr>
+</tbody>
+</table></div>
+
+<p>Most findings name the spec section they come from. A concept with only <code>type</code> passes, also with <code>--strict</code>.</p>
+
+<pre><code>uv run skills/validate/scripts/okf_validate.py my-bundle             # errors fail, warnings are listed
+uv run skills/validate/scripts/okf_validate.py my-bundle --strict    # any warning fails too
+uv run skills/validate/scripts/okf_validate.py my-bundle --lint      # also show our style advice
+uv run skills/validate/scripts/okf_validate.py my-bundle --max-warnings 5
+uv run skills/validate/scripts/okf_validate.py my-bundle --json      # machine-readable report
+uv run skills/validate/scripts/okf_validate.py my-bundle --migrate   # upgrade a v0.1 or v0.2 bundle in place</code></pre>
+
+<p><code>--strict</code> fails on any warning that is shown. Lint findings count only when you also pass <code>--lint</code>. <code>--migrate</code> is described on <a href="upgrade.html#migrate">Upgrading to v0.3</a>. In Claude Code, the same checker runs as <code>/okf-skills:validate</code>.</p>
+
+<h2 id="visualize">Visualizer</h2>
+
+<p>Turns a bundle into one self-contained HTML file with an interactive graph. Concepts are nodes, coloured by type. Links and in-bundle path fields are edges. Clicking a node opens the rendered concept with its sources, its backlinks, its trust tier and whether it is stale. The page works out staleness when you open it, so a published page turns a concept stale on the right day.</p>
+
+<pre><code>uv run skills/visualize/scripts/okf_visualize.py my-bundle -o viz.html --title "My bundle"</code></pre>
+
+<p>Every concept gets a deep link, such as <code>viz.html#tables/orders</code>. Above 1000 concepts the layout falls back to a simpler one. <code>--max-nodes N</code> refuses bundles larger than N.</p>
+
+<div class="callout">
+<span class="label">Limit</span>
+<p>The page loads three libraries (Cytoscape, marked, DOMPurify) from a CDN, pinned to exact versions with Subresource Integrity. Viewing it needs a network connection. Bundle content never leaves the page.</p>
+</div>
+
+<p>See it on a sample bundle: <a href="demo.html">live demo</a>. See it on this repository's own bundle: <a href="self.html">okf-skills documented in OKF</a>.</p>
+
+<h2 id="okf-skill">The okf skill</h2>
+
+<p>Instructions for a coding agent to produce, maintain and consume bundles, with the full v0.3 spec vendored next to them as the reference. It covers any domain: tables, metrics, policies, services, decisions. It tells the agent to record itself honestly in <code>generated</code>, never to mark its own work as verified, and never to invent a <code>human:</code> identity. Those rules are listed on <a href="conventions.html#honesty">Spec and our conventions</a>.</p>
+
+<pre><code>/okf-skills:okf produce .okf      # capture knowledge into a bundle
+/okf-skills:okf maintain .okf     # update concepts after the code or docs changed
+/okf-skills:okf consume .okf      # answer from the bundle</code></pre>
+
+<p>The skill also ships a scaffold script that works without an agent:</p>
+
+<pre><code>uv run skills/okf/scripts/okf_init.py my-bundle --title "Finance knowledge"</code></pre>
+
+<h2 id="backfill">Backfill skill</h2>
+
+<p>Rebuilds a bundle for a repository that never had one, by replaying its history. A deterministic script turns git commits and Claude Code session transcripts into a list of events. Then subagents summarise the events in batches, and a single writer subagent turns the summaries into concepts.</p>
+
+<pre><code>/okf-skills:backfill .</code></pre>
+
+<div class="callout">
+<span class="label">Limit</span>
+<p>Backfill assumes a git repository and Claude Code. It reads Claude Code session history (you can turn that off with <code>--no-sessions</code>), and it needs the plugin install, because the subagents live outside the skill folder. The extraction step gives the same events for the same repository. The writing step uses a language model, so two runs do not produce identical files.</p>
+</div>
+
+<h2 id="hook">Stop hook (enforced upkeep)</h2>
+
+<p>An optional check that runs when Claude Code is about to finish a task. If tracked files changed in the repository and nothing in the bundle did, it blocks and asks the agent to update the bundle first. It does nothing until you opt in, in the bundle-root <code>index.md</code>:</p>
+
+<figure class="file">
+<figcaption>.okf/index.md</figcaption>
+<pre><code>---
+okf_version: "0.3"
+title: Invoice platform
+x-okf-skills-upkeep: enforced
+---</code></pre>
+</figure>
+
+<p>If the bundle also documents git repositories checked out inside the project, add <code>x-okf-skills-recursive: true</code> so the hook looks at them too. Set <code>OKF_HOOK=off</code> in the environment to turn it off for a session.</p>
+
+<p>For a softer version, paste <code>templates/CLAUDE-okf.md</code> into your <code>CLAUDE.md</code>. It asks the agent to read the bundle before a task and update it after, without blocking anything.</p>
+
+<div class="callout">
+<span class="label">Limit</span>
+<p>The hook is a bash script for Claude Code and a git repository. It only notices that something changed, not whether the bundle update was correct.</p>
+</div>
+
+<h2 id="mcp">MCP server</h2>
+
+<p>A read-only <a href="https://modelcontextprotocol.io/">MCP</a> server over stdio, for agents that cannot read files directly. It serves the bundle given as an argument, else <code>$OKF_BUNDLE</code>, else <code>./.okf</code>. It never writes, and it refuses any ID that would resolve outside the bundle.</p>
+
+<div class="table-wrap"><table>
+<thead><tr><th>Tool</th><th>Returns</th></tr></thead>
+<tbody>
+<tr><td><code>search_concepts(query, limit)</code></td><td>Short cards for matching concepts: ID, type, title, description, status, trust tier, staleness</td></tr>
+<tr><td><code>read_concept(concept_id)</code></td><td>One concept, verbatim, frontmatter included</td></tr>
+<tr><td><code>get_neighbors(concept_id)</code></td><td>The concepts it links to and the ones that link to it</td></tr>
+</tbody>
+</table></div>
+
+<pre><code>uv run servers/okf_mcp.py my-bundle</code></pre>
+
+<p>In Claude Code the plugin starts it for you. There it mostly duplicates what the agent can already do with file reads and search, and we say so in <a href="https://github.com/ekar-is/okf-skills/blob/main/.okf/decisions/mcp-server.md">the decision record</a>. It exists for hosts that have nothing else.</p>
+
+<h2 id="action">GitHub Action</h2>
+
+<p>A composite action around the validator: <code>uses: ekar-is/okf-skills@v1</code>. Inputs are <code>bundle</code> (default <code>.okf</code>), <code>strict</code> and <code>max-warnings</code>. The JSON report is the <code>report</code> output. A full workflow is on <a href="start.html#ci">Getting started</a>.</p>
+
+<h2 id="measured">What has been measured</h2>
+
+<p>We ran three experiments. Each is published in the repository with its protocol, its runs and the problems it exposed, including the results that did not go our way. None of them measures what OKF is worth in a real repository, where prose and git history already say a lot about what is current.</p>
+
+<ul>
+<li><a href="https://github.com/ekar-is/okf-skills/blob/main/benchmark/trust/RESULTS.md">Trust metadata</a>, pre-registered. With lifecycle fields present, the reading agent never stated a superseded fact. The main comparison is invalid under the protocol's own rule, because the control group refused to answer instead of answering wrong.</li>
+<li><a href="https://github.com/ekar-is/okf-skills/blob/main/benchmark/gate/RESULTS.md">Write-side gate</a>, pre-registered. A process gate and an expired <code>stale_after</code> each reduced stale answers. On 20 items we cannot tell the two apart. Writers without a gate left the docs untouched in 57% of runs.</li>
+<li><a href="https://github.com/ekar-is/okf-skills/blob/main/benchmark/map-tier/RESULTS.md">Backfill model tier</a>, an engineering A/B with one run per arm. Batching small events eight per call cut the summarising phase by about a third.</li>
+</ul>
+</main>
+<footer class="site-footer">
+<div class="bar">
+<p>Independent community toolkit for the Open Knowledge Format. MIT. Maintained by ekar.is.</p>
+<ul>
+<li><a href="https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md">OKF spec</a></li>
+<li><a href="https://github.com/ekar-is/okf-skills">okf-skills on GitHub</a></li>
+<li><a href="https://github.com/open-knowledge-format/open-knowledge-format">Official OKF repository</a></li>
+</ul>
+</div>
+</footer>
+</body>
+</html>

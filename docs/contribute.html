@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contribute · okf-skills</title>
+<meta name="description" content="How okf-skills is run, what makes a good issue or pull request, and where spec questions and security reports go.">
+<meta property="og:title" content="Contribute · okf-skills">
+<meta property="og:description" content="How okf-skills is run, what makes a good issue or pull request, and where spec questions and security reports go.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ekar-is.github.io/okf-skills/contribute.html">
+<meta property="og:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
+<link rel="canonical" href="https://ekar-is.github.io/okf-skills/contribute.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&amp;family=JetBrains+Mono:wght@300;400&amp;display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+<div class="bar">
+<a class="brand" href="index.html"><svg viewBox="0 0 22 22" aria-hidden="true" focusable="false"><rect width="22" height="22" fill="currentColor"/><path d="M12 0H22V10Z" fill="#c64526"/></svg>okf-skills</a>
+<button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+<nav id="site-nav" class="site-nav" aria-label="Site">
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="format.html">OKF in plain words</a></li>
+<li><a href="start.html">Getting started</a></li>
+<li><a href="tools.html">Toolkit</a></li>
+<li><a href="conventions.html">Conventions</a></li>
+<li><a href="upgrade.html">Upgrade to v0.3</a></li>
+<li><a href="contribute.html" aria-current="page">Contribute</a></li>
+<li><a href="demo.html">Live demo</a></li>
+<li><a href="self.html">This repo&#x27;s own bundle</a></li>
+</ul>
+</nav>
+</div>
+</header>
+<main id="main">
+<h1>Contribute</h1>
+
+<p class="lede">Bug reports, questions and pull requests are welcome. This page says how the project is run, so you know what to expect.</p>
+
+<h2 id="how">How the project is run</h2>
+
+<ul>
+<li>okf-skills is an independent community project. It is not part of the OKF project and is not affiliated with the authors of the spec.</li>
+<li>It is maintained and sponsored by <a href="https://ekar.is">ekar.is</a>. The code is MIT licensed, copyright ekar.is and the okf-skills contributors. There is no contributor license agreement.</li>
+<li>Decisions about direction are discussed in <a href="https://github.com/ekar-is/okf-skills/issues">GitHub issues</a>. Once made, they are recorded as decision concepts in <a href="https://github.com/ekar-is/okf-skills/tree/main/.okf/decisions"><code>.okf/decisions/</code></a>, in OKF, so you can read why things are the way they are.</li>
+<li>The vendored copy of the spec in <code>skills/okf/reference/SPEC.md</code> is never edited here. It is copied verbatim from upstream.</li>
+</ul>
+
+<h2 id="issues">A good issue</h2>
+
+<ul>
+<li>Says which part you used: the validator, the visualizer, a skill, the hook, the MCP server or the Action, and which version.</li>
+<li>Includes the smallest bundle or input that shows the problem. A single concept file is often enough.</li>
+<li>Says what you expected, what happened, and quotes the output.</li>
+<li>If you ran the skills in an agent other than Claude Code, says which one. We have not tested other agents, so these reports are especially useful.</li>
+</ul>
+
+<h2 id="prs">A good pull request</h2>
+
+<ul>
+<li>Changes one thing, and says why in the description.</li>
+<li>Comes with a test when it changes behaviour. The tests are plain Python scripts in <code>tests/</code>, run with <code>make test</code>.</li>
+<li>Passes <code>make lint</code> and <code>make validate</code> locally.</li>
+</ul>
+
+<p>You do not need to bump the version, write the changelog entry or update the <code>.okf/</code> bundle. The maintainers do that before merging. Your part is the code, the tests and a clear description. The local commands are in <a href="https://github.com/ekar-is/okf-skills/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>
+
+<h2 id="spec">Questions about the format itself</h2>
+
+<p>If your question or proposal is about OKF, not about these tools, open it in the <a href="https://github.com/open-knowledge-format/open-knowledge-format/issues">OKF repository</a>. We follow the spec. We do not extend it here, except with <code>x-</code> keys as the spec allows. If you are not sure which side a problem is on, open it here and we will help sort it out.</p>
+
+<h2 id="conduct">Code of conduct</h2>
+
+<p>We follow the <a href="https://www.contributor-covenant.org/version/2/1/code_of_conduct/">Contributor Covenant, version 2.1</a>, as our <a href="https://github.com/ekar-is/okf-skills/blob/main/CODE_OF_CONDUCT.md">code of conduct</a>. It applies to issues, pull requests and anywhere else someone speaks for the project. If something goes wrong, write to <a href="mailto:chat@ekar.is">chat@ekar.is</a>. Reports stay confidential.</p>
+
+<h2 id="security">Security issues</h2>
+
+<p>Please do not open a public issue for a vulnerability. Report it privately through GitHub, as <a href="https://github.com/ekar-is/okf-skills/blob/main/SECURITY.md">SECURITY.md</a> describes. Include the affected part, the version, and a minimal input that reproduces it. Only the latest release receives fixes.</p>
+</main>
+<footer class="site-footer">
+<div class="bar">
+<p>Independent community toolkit for the Open Knowledge Format. MIT. Maintained by ekar.is.</p>
+<ul>
+<li><a href="https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md">OKF spec</a></li>
+<li><a href="https://github.com/ekar-is/okf-skills">okf-skills on GitHub</a></li>
+<li><a href="https://github.com/open-knowledge-format/open-knowledge-format">Official OKF repository</a></li>
+</ul>
+</div>
+</footer>
+</body>
+</html>

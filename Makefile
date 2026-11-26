@@ -14,7 +14,7 @@ lint:
 	$(RUFF) check .
 
 docs:
-	$(VISUALIZE) examples/sample-bundle -o docs/index.html \
+	$(VISUALIZE) examples/sample-bundle -o docs/demo.html \
 	  --title "Storefront · a live OKF bundle" \
 	  --link "$(PAGES_LINK)" --og-image "$(PAGES_OG)" --layout breadthfirst
 	$(VISUALIZE) .okf -o docs/self.html \
@@ -29,6 +29,7 @@ test:
 	uv run tests/test_okf_stop_hook.py
 	uv run tests/test_supply_chain.py
 	uv run tests/test_changelog_notes.py
+	uv run tests/test_docs_site.py
 	uv run benchmark/trust/tests/test_grade_analyze.py
 	uv run benchmark/trust/tests/test_run.py
 	uv run benchmark/trust/tests/test_power.py

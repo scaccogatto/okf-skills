@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Getting started · okf-skills</title>
+<meta name="description" content="Three ways to start an OKF bundle: by hand, with an AI coding agent, or in CI.">
+<meta property="og:title" content="Getting started · okf-skills">
+<meta property="og:description" content="Three ways to start an OKF bundle: by hand, with an AI coding agent, or in CI.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ekar-is.github.io/okf-skills/start.html">
+<meta property="og:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
+<link rel="canonical" href="https://ekar-is.github.io/okf-skills/start.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&amp;family=JetBrains+Mono:wght@300;400&amp;display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+<div class="bar">
+<a class="brand" href="index.html"><svg viewBox="0 0 22 22" aria-hidden="true" focusable="false"><rect width="22" height="22" fill="currentColor"/><path d="M12 0H22V10Z" fill="#c64526"/></svg>okf-skills</a>
+<button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+<nav id="site-nav" class="site-nav" aria-label="Site">
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="format.html">OKF in plain words</a></li>
+<li><a href="start.html" aria-current="page">Getting started</a></li>
+<li><a href="tools.html">Toolkit</a></li>
+<li><a href="conventions.html">Conventions</a></li>
+<li><a href="upgrade.html">Upgrade to v0.3</a></li>
+<li><a href="contribute.html">Contribute</a></li>
+<li><a href="demo.html">Live demo</a></li>
+<li><a href="self.html">This repo&#x27;s own bundle</a></li>
+</ul>
+</nav>
+</div>
+</header>
+<main id="main">
+<h1>Getting started</h1>
+
+<p class="lede">Pick the path that matches how you work. Each one ends the same way: check the bundle, then look at it.</p>
+
+<div class="cards">
+<a class="card" href="#hand"><span class="label">Path 1</span><span>By hand, any editor, no tools</span></a>
+<a class="card" href="#agent"><span class="label">Path 2</span><span>With an AI coding agent</span></a>
+<a class="card" href="#ci"><span class="label">Path 3</span><span>In CI, no agent</span></a>
+</div>
+
+<h2 id="hand">Path 1: by hand</h2>
+
+<p>Make a folder. Put a Markdown file in it with a <code>type</code> at the top. That is a bundle. Everything below is optional and can come later.</p>
+
+<figure class="file">
+<figcaption>services/invoice-service.md</figcaption>
+<pre><code>---
+type: Service
+title: Invoice service
+description: Turns paid orders into PDF invoices and emails them to customers.
+resource: https://github.com/example/invoice-service
+tags: [billing]
+---
+
+# What it does
+
+Listens for paid orders from the [orders table](../tables/orders.md)
+and renders one PDF per order. Invoices are numbered per country.
+
+# Who to ask
+
+The billing team owns it. Incidents follow the
+[payment provider outage runbook](../runbooks/payment-provider-outage.md).</code></pre>
+</figure>
+
+<p>A few habits help as the bundle grows:</p>
+
+<ul>
+<li>One file per thing you would explain to a new colleague.</li>
+<li>Add an <code>index.md</code> at the root with <code>okf_version: "0.3"</code> and a one-line <code>description</code> of what the bundle covers.</li>
+<li>Link concepts to each other where a reader would want to jump.</li>
+<li>Record who wrote a concept in <code>generated</code>, and who checked it in <code>verified</code>, when you know.</li>
+</ul>
+
+<p><a href="format.html">OKF in plain words</a> has examples of each part. You can stop here: nothing in this project is required to write or read OKF.</p>
+
+<h3>Check it</h3>
+
+<p>The validator is a single Python script. It needs <a href="https://docs.astral.sh/uv/">uv</a> and Python 3.11 or newer.</p>
+
+<pre><code>git clone https://github.com/ekar-is/okf-skills
+uv run okf-skills/skills/validate/scripts/okf_validate.py my-bundle</code></pre>
+
+<p>Errors mean the bundle breaks a conformance rule. Warnings are spec guidance, and are fine to leave for later. Without uv, <code>pip install pyyaml</code> and run the script with <code>python3</code>.</p>
+
+<h3>See it</h3>
+
+<pre><code>uv run okf-skills/skills/visualize/scripts/okf_visualize.py my-bundle -o viz.html</code></pre>
+
+<p>Open <code>viz.html</code> in a browser. It is one file you can share. The <a href="demo.html">live demo</a> is what it looks like.</p>
+
+<h2 id="agent">Path 2: with an AI coding agent</h2>
+
+<p>The skills teach an agent to write, update and read bundles from the spec. We test them in Claude Code.</p>
+
+<h3>Claude Code plugin</h3>
+
+<p>The plugin installs everything: the four skills, the subagents the backfill skill needs, the optional Stop hook and the MCP server.</p>
+
+<pre><code>/plugin marketplace add ekar-is/okf-skills
+/plugin install okf-skills@ekar-is</code></pre>
+
+<p>Then ask in plain words ("document the invoice service in OKF"), or call the skill directly:</p>
+
+<pre><code>/okf-skills:okf produce .okf</code></pre>
+
+<p>The skills are <code>/okf-skills:okf</code> (write, update and read bundles), <code>/okf-skills:validate</code>, <code>/okf-skills:visualize</code> and <code>/okf-skills:backfill</code>. The default bundle location is <code>.okf/</code>, which is our convention, not the spec's. Pass any other path.</p>
+
+<h3>Agent skills via skills.sh</h3>
+
+<pre><code>npx skills add ekar-is/okf-skills</code></pre>
+
+<p>This installs the skill folders only, without the plugin's subagents, hook or MCP server, so the backfill skill does not work from this install.</p>
+
+<div class="callout">
+<span class="label">Limit</span>
+<p>We have tested the skills in Claude Code only. Other agents that support the Agent Skills format may load them, but we have not tried them, and the skill text is written with Claude Code in mind. If you run them elsewhere, an issue telling us what happened is welcome.</p>
+</div>
+
+<h3>Check it</h3>
+
+<pre><code>/okf-skills:validate .okf</code></pre>
+
+<h3>See it</h3>
+
+<pre><code>/okf-skills:visualize .okf</code></pre>
+
+<h2 id="ci">Path 3: in CI</h2>
+
+<p>The GitHub Action runs the validator on every push. It needs no agent, no account and no secrets.</p>
+
+<figure class="file">
+<figcaption>.github/workflows/okf.yml</figcaption>
+<pre><code>name: OKF bundle
+on: [push, pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ekar-is/okf-skills@v1
+        with:
+          bundle: docs/knowledge
+          strict: "true"</code></pre>
+</figure>
+
+<p>Errors always fail the step. <code>strict: "true"</code> also fails on warnings. <code>max-warnings: "5"</code> is a middle ground for a bundle you are still cleaning up. The step exposes the validator's JSON report as the <code>report</code> output. <code>@v1</code> follows the latest release while the project is before 1.0. Pin a release tag to freeze it.</p>
+
+<h3>Check it, outside GitHub</h3>
+
+<p>Any other CI can run the scripts directly from a checkout of okf-skills:</p>
+
+<pre><code>uv run okf-skills/skills/validate/scripts/okf_validate.py docs/knowledge --strict
+uv run okf-skills/skills/validate/scripts/okf_validate.py docs/knowledge --json</code></pre>
+
+<p>The exit code is non-zero when the bundle fails. <code>--json</code> prints a machine-readable report.</p>
+
+<h3>See it</h3>
+
+<p>Render the graph as a build artifact or publish it with your docs:</p>
+
+<pre><code>uv run okf-skills/skills/visualize/scripts/okf_visualize.py docs/knowledge -o viz.html --title "Finance knowledge"</code></pre>
+
+<p>That is how this site's <a href="demo.html">live demo</a> and <a href="self.html">this repo's own bundle</a> are built.</p>
+</main>
+<footer class="site-footer">
+<div class="bar">
+<p>Independent community toolkit for the Open Knowledge Format. MIT. Maintained by ekar.is.</p>
+<ul>
+<li><a href="https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md">OKF spec</a></li>
+<li><a href="https://github.com/ekar-is/okf-skills">okf-skills on GitHub</a></li>
+<li><a href="https://github.com/open-knowledge-format/open-knowledge-format">Official OKF repository</a></li>
+</ul>
+</div>
+</footer>
+</body>
+</html>

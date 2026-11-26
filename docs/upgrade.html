@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Upgrading to OKF v0.3 · okf-skills</title>
+<meta name="description" content="What changed in OKF v0.3, what the validator&#x27;s --migrate does and refuses, and how plugin users move to okf-skills@ekar-is.">
+<meta property="og:title" content="Upgrading to OKF v0.3 · okf-skills">
+<meta property="og:description" content="What changed in OKF v0.3, what the validator&#x27;s --migrate does and refuses, and how plugin users move to okf-skills@ekar-is.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ekar-is.github.io/okf-skills/upgrade.html">
+<meta property="og:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ekar-is.github.io/okf-skills/assets/og.png">
+<link rel="canonical" href="https://ekar-is.github.io/okf-skills/upgrade.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&amp;family=JetBrains+Mono:wght@300;400&amp;display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/site.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+<div class="bar">
+<a class="brand" href="index.html"><svg viewBox="0 0 22 22" aria-hidden="true" focusable="false"><rect width="22" height="22" fill="currentColor"/><path d="M12 0H22V10Z" fill="#c64526"/></svg>okf-skills</a>
+<button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+<nav id="site-nav" class="site-nav" aria-label="Site">
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="format.html">OKF in plain words</a></li>
+<li><a href="start.html">Getting started</a></li>
+<li><a href="tools.html">Toolkit</a></li>
+<li><a href="conventions.html">Conventions</a></li>
+<li><a href="upgrade.html" aria-current="page">Upgrade to v0.3</a></li>
+<li><a href="contribute.html">Contribute</a></li>
+<li><a href="demo.html">Live demo</a></li>
+<li><a href="self.html">This repo&#x27;s own bundle</a></li>
+</ul>
+</nav>
+</div>
+</header>
+<main id="main">
+<h1>Upgrading to OKF v0.3</h1>
+
+<p class="lede">OKF v0.3 mostly makes the v0.2 text more precise. Two changes alter how a reader interprets an existing v0.2 bundle. This page explains both, what our <code>--migrate</code> flag does about them, and the separate rename of the okf-skills plugin.</p>
+
+<h2 id="spec">What changed in the spec</h2>
+
+<p>The full list is in <a href="https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md#13-changes-from-v02">§13 of the spec</a>. The two breaking changes, in plain words:</p>
+
+<h3>1. A bare path is relative to its own file</h3>
+
+<p>In v0.3, a path field without a leading <code>/</code> is read from the folder of the file that contains it, the same way a Markdown link is. Some v0.2 examples wrote bare paths meaning "from the bundle root". Those now point somewhere else.</p>
+
+<figure class="file">
+<figcaption>metrics/revenue.md, before and after</figcaption>
+<pre><code># v0.2 meant /references/run-on-bq.md. v0.3 reads metrics/references/run-on-bq.md.
+executor:
+  resource: references/run-on-bq.md
+
+# Unambiguous in both versions:
+executor:
+  resource: /references/run-on-bq.md</code></pre>
+</figure>
+
+<p>The spec allows a fallback: for a bundle that declares <code>okf_version</code> 0.2 or older, or no version, a reader may try the bundle root when the relative path does not resolve (§12.1). Our tools use that fallback and warn about each path that needed it.</p>
+
+<h3>2. Only current verifications count</h3>
+
+<p>A <code>verified</code> entry now counts towards the trust tier only if it is at or after <code>generated.at</code>. A concept that a person reviewed and an agent later rewrote is no longer human-reviewed. Nothing needs rewriting for this: some concepts just show a lower tier until someone checks them again. The spec notes that the tier can only go down, which is the safe direction.</p>
+
+<p>Among the smaller changes: date-only timestamps such as <code>"2026-06-30"</code> are valid again and mean the start of that day in UTC, a date-time needs an offset, the root <code>index.md</code> can carry <code>title</code>, <code>description</code> and <code>license</code>, and keys starting with <code>x-</code> are reserved for extensions. <code>superseded_by</code> is new.</p>
+
+<h2 id="migrate">What <code>--migrate</code> does</h2>
+
+<p><code>--migrate</code> rewrites a v0.1 or v0.2 bundle in place, then validates it. It is the only mode of the validator that writes files, so commit or back up the bundle first and read the diff afterwards.</p>
+
+<pre><code>uv run skills/validate/scripts/okf_validate.py .okf --migrate</code></pre>
+
+<p>It edits the text, not a re-serialized copy: comments, key order, quoting, line endings and a byte order mark are kept. Running it twice changes nothing the second time. On concepts it:</p>
+
+<ul>
+<li>adds a leading <code>/</code> to block-style path fields that only resolve from the bundle root (in a bundle that declares 0.2 or older, or no version),</li>
+<li>moves a v0.1 <code>timestamp</code> into <code>generated</code>, with the actor <code>process:okf-migrate</code>, because the original author cannot be recovered,</li>
+<li>moves a v0.1 <code># Citations</code> list into <code>sources</code>.</li>
+</ul>
+
+<p>In the root <code>index.md</code> it renames our old <code>upkeep</code> and <code>recursive</code> keys (see below), and sets <code>okf_version: "0.3"</code>, but only once no root-only path is left anywhere in the bundle.</p>
+
+<h3>What it refuses</h3>
+
+<p>After each rewrite it parses the file again and compares. If the result differs from the original in anything other than the intended change, it leaves the file alone and warns, naming the file. It also skips path values with leading or trailing spaces, files that mix Windows and Unix line endings, and path fields written inline, like <code>executor: { resource: x }</code>. Those keep warning, and they keep the version from being bumped, so you can fix them by hand.</p>
+
+<div class="callout">
+<span class="label">Limit</span>
+<p>A v0.1 bundle never recorded which source supported which claim, so <code>--migrate</code> can move the citation list but cannot add footnotes.</p>
+</div>
+
+<h2 id="plugin">For Claude Code plugin users</h2>
+
+<p>The plugin was renamed from <code>okf</code> to <code>okf-skills</code>, and the marketplace moved to <code>ekar-is</code>. The old name was the same as the official OKF plugin's, which made it look like the official one. To move an existing install, remove the old marketplace and install again:</p>
+
+<pre><code>/plugin marketplace remove scaccogatto
+/plugin marketplace add ekar-is/okf-skills
+/plugin install okf-skills@ekar-is</code></pre>
+
+<p>Commands change from <code>/okf:okf</code> to <code>/okf-skills:okf</code>, and likewise for <code>validate</code>, <code>visualize</code> and <code>backfill</code>.</p>
+
+<h3>The root keys got an <code>x-</code> prefix</h3>
+
+<p>The keys that configure the Stop hook moved to the prefix that the spec reserves for extensions:</p>
+
+<div class="table-wrap"><table>
+<thead><tr><th>Old key</th><th>New key</th></tr></thead>
+<tbody>
+<tr><td><code>upkeep: enforced</code></td><td><code>x-okf-skills-upkeep: enforced</code></td></tr>
+<tr><td><code>recursive: true</code></td><td><code>x-okf-skills-recursive: true</code></td></tr>
+</tbody>
+</table></div>
+
+<p>The old keys still work, and the validator warns about them. <code>--migrate</code> renames them for you.</p>
+
+<div class="callout warn">
+<span class="label">Warning</span>
+<p>Collaborators running okf-skills 0.12 or older read only the old keys. After you rename them, their hook stops enforcing until they update the plugin.</p>
+</div>
+</main>
+<footer class="site-footer">
+<div class="bar">
+<p>Independent community toolkit for the Open Knowledge Format. MIT. Maintained by ekar.is.</p>
+<ul>
+<li><a href="https://github.com/open-knowledge-format/open-knowledge-format/blob/main/SPEC.md">OKF spec</a></li>
+<li><a href="https://github.com/ekar-is/okf-skills">okf-skills on GitHub</a></li>
+<li><a href="https://github.com/open-knowledge-format/open-knowledge-format">Official OKF repository</a></li>
+</ul>
+</div>
+</footer>
+</body>
+</html>

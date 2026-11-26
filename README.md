@@ -10,9 +10,11 @@ Format bundles: markdown your team and your agents both read.**
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757.svg)](https://code.claude.com/docs/en/plugins)
 [![skills.sh](https://img.shields.io/badge/skills.sh-installable-22C55E.svg)](https://skills.sh/ekar-is/okf-skills)
 
-[![okf-skills: explore an OKF bundle as an interactive graph](docs/assets/demo.gif)](https://ekar-is.github.io/okf-skills/)
+[![okf-skills: explore an OKF bundle as an interactive graph](docs/assets/demo.gif)](https://ekar-is.github.io/okf-skills/demo.html)
 
-**[Open the live demo](https://ekar-is.github.io/okf-skills/)**: an example bundle (a fictional storefront) as an interactive graph. Click a node for the rendered concept, its derived trust tier and staleness, its sources and backlinks. Nothing leaves the page.
+**[Open the live demo](https://ekar-is.github.io/okf-skills/demo.html)**: an example bundle (a fictional storefront) as an interactive graph. Click a node for the rendered concept, its derived trust tier and staleness, its sources and backlinks. Nothing leaves the page.
+
+**[Documentation](https://ekar-is.github.io/okf-skills/)**: what OKF is, how to start, and what each tool does.
 
 </div>
 
@@ -117,7 +119,7 @@ the validator's JSON as the `report` output.
 ```
 
 **Visualize** the graph as a self-contained `viz.html`
-([live example](https://ekar-is.github.io/okf-skills/)). Every concept gets
+([live example](https://ekar-is.github.io/okf-skills/demo.html)). Every concept gets
 a deep link (`viz.html#services/auth-api`), and each panel shows two derived
 badges: the §5.3 trust tier and staleness once `stale_after` has passed. OKF
 stores neither, so both are computed at render time. Above 1000 concepts the

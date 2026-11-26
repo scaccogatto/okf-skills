@@ -35,6 +35,8 @@ SRI = re.compile(r"^sha(?:256|384|512)-[A-Za-z0-9+/]+={0,2}$")
 SHIPPED_SCRIPT_DIRS = ("skills", "servers", "hooks")
 PEP723 = re.compile(r"^# /// script$\n(?P<body>(?:^#(?: .*)?$\n)+?)^# ///$", re.MULTILINE)
 UPPER_BOUND = re.compile(r"<\s*\d")
+# The `make docs` output. The other docs/ pages are hand-written.
+GENERATED_PAGES = ("demo.html", "self.html")
 
 
 class _Scripts(HTMLParser):
@@ -86,10 +88,17 @@ class TestScriptIntegrity(unittest.TestCase):
             self.assert_pinned_with_sri(out.read_text(encoding="utf-8"), "okf_visualize output")
 
     def test_committed_pages_demos(self):
-        pages = sorted((ROOT / "docs").glob("*.html"))
+        for name in GENERATED_PAGES:
+            page = ROOT / "docs" / name
+            self.assert_pinned_with_sri(page.read_text(encoding="utf-8"), str(page.relative_to(ROOT)))
+
+    def test_hand_written_pages_load_no_third_party_script(self):
+        pages = [p for p in sorted((ROOT / "docs").glob("*.html")) if p.name not in GENERATED_PAGES]
         self.assertTrue(pages)
         for page in pages:
-            self.assert_pinned_with_sri(page.read_text(encoding="utf-8"), str(page.relative_to(ROOT)))
+            with self.subTest(page=page.name):
+                srcs = [a["src"] for a in external_scripts(page.read_text(encoding="utf-8"))]
+                self.assertEqual([s for s in srcs if s.startswith("//") or "://" in s], [])
 
 
 class TestShippedDependencyBounds(unittest.TestCase):

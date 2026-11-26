@@ -34,8 +34,9 @@ version and carry Subresource Integrity (`integrity` plus
 `crossorigin="anonymous"`). DOMPurify sanitizes what marked returns, so it cannot
 protect against a compromised marked: before 0.10.2 marked was loaded as
 `marked@14`, a floating range, with no SRI. `tests/test_supply_chain.py` fails
-any external script in the generator output or the committed `docs/` demos that
-lacks an exact version or SRI. Bumping a library means recomputing its hash
+any external script in the generator output or the committed `docs/demo.html`
+and `docs/self.html` that lacks an exact version or SRI, and any third-party
+script on the hand-written documentation pages. Bumping a library means recomputing its hash
 (`openssl dgst -sha384 -binary | openssl base64 -A`) and running `make docs`.
 
 # Layout
