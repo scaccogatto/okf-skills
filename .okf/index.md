@@ -1,13 +1,13 @@
 ---
-okf_version: "0.2"
-upkeep: enforced
+okf_version: "0.3"
+x-okf-skills-upkeep: enforced
 ---
 
 # okf-skills — documented in its own format
 
-This is the [okf-skills](https://github.com/scaccogatto/okf-skills) repository
+This is the [okf-skills](https://github.com/ekar-is/okf-skills) repository
 described as an OKF bundle — the toolkit eating its own dog food. Render it with
-`/okf:visualize .okf` (or see the [live graph](https://scaccogatto.github.io/okf-skills/self.html)).
+`/okf-skills:visualize .okf` (or see the [live graph](https://ekar-is.github.io/okf-skills/self.html)).
 
 # Skills
 
@@ -30,7 +30,7 @@ described as an OKF bundle — the toolkit eating its own dog food. Render it wi
 
 # Reference
 
-* [OKF v0.2 specification](reference/okf-spec.md) — the vendored source of truth.
+* [OKF v0.3 specification](reference/okf-spec.md) — the vendored source of truth.
 
 # Decisions
 
@@ -41,6 +41,7 @@ described as an OKF bundle — the toolkit eating its own dog food. Render it wi
 * [Self-contained skills via CLAUDE_SKILL_DIR](decisions/self-contained-skills.md)
 * [Scale guardrails in the visualizer](decisions/scale-guardrails.md)
 * [Target OKF v0.2, migrate v0.1 rather than tolerate it](decisions/okf-v02-dual-read.md)
+* [Target OKF v0.3, read older bundles, migrate on request](decisions/okf-v03-target.md)
 * [Ship a read-only MCP server](decisions/mcp-server.md)
 * [Benchmark trustability, not the adoption pitch](decisions/trust-benchmark.md)
 * [Route the backfill map phase like a bulk read](decisions/map-phase-routing.md)

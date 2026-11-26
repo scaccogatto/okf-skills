@@ -3,8 +3,9 @@ type: Decision
 title: Target OKF v0.2, migrate v0.1 rather than tolerate it
 description: Author v0.2 everywhere; name the legacy constructs in warnings and ship the rewrite that clears them.
 tags: [adr, spec, compatibility, migration]
-status: stable
-generated: { by: human:scaccogatto, at: "2026-07-27T00:00:00Z" }
+status: deprecated
+superseded_by: /decisions/okf-v03-target.md
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 ---
 
 # Context
@@ -54,3 +55,7 @@ them**.
 * Per-claim attribution (the `[^id]` footnotes of §5.1) is not recoverable from
   a v0.1 `# Citations` list: the sources move up to frontmatter, but which claim
   cited which source was never encoded. `--migrate` says so instead of guessing.
+
+# 2026-11-26: v0.3
+
+Superseded by the [v0.3 decision](/decisions/okf-v03-target.md), which extends this policy.

@@ -5,21 +5,26 @@ description: <Single sentence summarizing the concept.>
 resource: <Canonical URI of the underlying asset — omit for abstract concepts>
 tags: [<tag>, <tag>]
 status: stable                    # draft | stable | deprecated; absent means stable
-generated: { by: <actor>, at: <ISO 8601, e.g. 2026-06-14T10:00:00Z> }
-verified: { by: human:<id>, at: <ISO 8601> }   # omit until someone confirms it
-stale_after: <YYYY-MM-DDTHH:MM:SSZ>   # omit when the content does not expire
+# superseded_by: /path/to/replacement.md   # only with status: deprecated
+generated: { by: <actor>, at: "<RFC 3339 with offset, e.g. 2026-06-14T10:00:00Z>" }
+# verified: added only when someone other than the producer confirms the content.
+#   Never write it for your own work, and never invent or infer a `human:<id>`.
+stale_after: "<YYYY-MM-DDTHH:MM:SSZ>"   # omit when no review date is known
 sources:                          # what this was derived from; omit if nothing
   - id: <short-key>
-    resource: <URL, bundle path, or scope descriptor>
+    resource: <URL, /bundle/path.md, or scope descriptor>
     title: <Human-readable label>
     author: <actor>               # optional credibility signal
-    last_modified: <YYYY-MM-DDTHH:MM:SSZ>   # when the source itself last changed
+    last_modified: "<YYYY-MM-DDTHH:MM:SSZ>"   # when the source itself last changed
 ---
 
 <!--
   Actors (§7): `<producer>/<version>` for an agent, `human:<id>` for a person,
-  `process:<id>` for an automated job. Use `human:` whenever a person authored
-  or signed off — consumers key trust tiers off that prefix.
+  `team:<id>` for a group, `process:<id>` for an automated job. Use `human:`
+  only for a named person who wrote or confirmed the content, consumers key
+  trust tiers off that prefix. A `verified` event counts only when its `at` is at or after
+  `generated.at` (§5.3). Timestamps are a date-time with an offset or a date
+  only (§5). Your own extra keys: `x-<producer>-<name>` (§4.1).
 -->
 
 # Overview

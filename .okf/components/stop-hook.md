@@ -2,7 +2,7 @@
 type: Tool
 title: okf-stop-check.sh
 description: Dormant Stop hook — a no-op unless a bundle opts in to enforced upkeep.
-resource: https://github.com/scaccogatto/okf-skills/blob/main/hooks/okf-stop-check.sh
+resource: https://github.com/ekar-is/okf-skills/blob/main/hooks/okf-stop-check.sh
 tags: [bash, hook, enforcement]
 status: stable
 generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
@@ -24,8 +24,10 @@ checked in order:
 2. the user has not opted out: env `OKF_HOOK` is not `off`.
 3. `.okf/index.md` exists in the working tree.
 4. that file's **frontmatter** — between the first two `---` lines — contains
-   the literal line `upkeep: enforced`, the opt-in flag a bundle sets to ask
-   for enforcement. A mention elsewhere in the file does not count.
+   the literal line `x-okf-skills-upkeep: enforced`, the opt-in flag a bundle
+   sets to ask for enforcement. A mention elsewhere in the file does not count.
+   The deprecated alias `upkeep: enforced` is read only when the new key is
+   absent.
 5. the working tree is a git repo with **modified tracked files** — untracked
    paths are ignored, since a brand-new file is not yet a documented asset.
    (This is what keeps tooling dirs like `.claude/` or `.venv/` from
@@ -38,13 +40,13 @@ checked in order:
    session, so the hook stays quiet.
 
 If the outer repo has tracked changes the hook blocks at once. Only otherwise,
-and only when the frontmatter also carries `recursive: true` (or a positive
+and only when the frontmatter also carries `x-okf-skills-recursive: true` (or a positive
 integer depth), does it look for
 nested repos (see [Activation](#activation)); their tracked changes count by
 the same rule as gate 5.
 
 It blocks when gates 1 to 4 hold and either the outer repo or (with
-`recursive: true`) a nested repo has tracked changes while nothing under `.okf/`
+`x-okf-skills-recursive: true`) a nested repo has tracked changes while nothing under `.okf/`
 changed, asking the agent to update the matching
 concept before finishing, and to add a `log.md` entry only for a lifecycle
 event.
@@ -64,25 +66,29 @@ against throwaway git repos.
 
 # Activation
 
-A bundle turns this on by adding `upkeep: enforced` to `.okf/index.md`'s
-frontmatter. A user force-disables it regardless of bundle settings by
+A bundle turns this on by adding `x-okf-skills-upkeep: enforced` to
+`.okf/index.md`'s frontmatter. OKF v0.3 §4.1 reserves unprefixed keys for the
+spec and asks producers to use `x-<producer>-<name>`, hence the prefix. The old
+`upkeep` and `recursive` keys are deprecated aliases: the hook reads the
+prefixed key first and falls back to the old one only when the prefixed one is
+absent. The validator warns on the aliases and `--migrate` renames them. A user force-disables it regardless of bundle settings by
 setting `OKF_HOOK=off` in their environment.
 
 A bundle that documents separate git repos checked out *inside* the project
 (say `repos/app/`, each its own repo, gitignored by the outer one) adds
-`recursive: true` to the same frontmatter: its own line, between the first two
-`---` lines, next to `upkeep: enforced`. The value is `true` (depth 6) or a
+`x-okf-skills-recursive: true` to the same frontmatter: its own line, between
+the first two `---` lines, next to `x-okf-skills-upkeep: enforced`. The value is `true` (depth 6) or a
 positive integer `n` (depth n); anything else (`false`, `0`, `yes`, `True`, a
 quoted value) leaves discovery off. The hook then finds nested repos by
 itself, with no list to maintain, and counts their tracked changes like the
 outer repo's. When nested repos contribute changes, the block reason names them
 (paths relative to the project root). Without the key nothing changes. It is
-read only when `upkeep: enforced` is set, and the validator allows it in the
+read only when upkeep is enforced, and the validator allows it in the
 root index.
 
 Order matters for cost: the bundle-touched check runs first, then the outer
 repo's own changes (which block without any discovery), and only then the
-`recursive` flag and the `find`.
+recursive flag and the `find`.
 
 Discovery runs `find` for `.git` entries. Depth counts the directory levels below
 the project root at which a nested repo's own directory may sit: `app` is 1,
@@ -105,7 +111,7 @@ A repo that cannot be inspected is skipped (fail open).
 
 Known gaps: symlinked nested repos are not followed; a nested repo whose own
 directory is named like a pruned one (`build`, `dist`, `target`, ...) is not
-found; only the literal lowercase `recursive: true` enables discovery.
+found; only the literal lowercase `true` (or a positive integer) enables discovery.
 
 # The CI mirror
 
@@ -134,6 +140,9 @@ set of required status checks does not change.
   only uncommitted tracked modifications count.
 * Paths resolve from the session's working directory: a bundle not at
   `./.okf/` (monorepo subdirectory, session launched elsewhere) is never seen.
+* The nested-repo skip test uses a `case` inside `$( )` written with the
+  leading-paren pattern (`case ... in (pattern) ...`), because macOS bash 3.2
+  mis-parses the unparenthesized form there.
 * The loop guard greps the raw JSON for `"stop_hook_active": true` rather
   than parsing it — deliberate, so a missing `jq` can never disable the guard
   and re-block forever.

@@ -4,13 +4,13 @@ title: Benchmark trustability, not the adoption pitch
 description: Bring back a benchmark after #32 removed one, measuring the one claim the spec actually makes and nobody has tested.
 tags: [adr, benchmark, trust, evidence]
 status: stable
-generated: { by: agent:claude-opus-5, at: "2026-09-02T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 verified: { by: agent:claude-opus-5, at: "2026-09-02T00:00:00Z" }
 ---
 
 # Context
 
-[#32](https://github.com/scaccogatto/okf-skills/pull/32) removed `benchmark/`
+[#32](https://github.com/ekar-is/okf-skills/pull/32) removed `benchmark/`
 entirely, and the reason was not that it was badly run. It measured better
 answers, cheaper reading, and cross-session repetition cost — and across the
 canonical spec, `token`, `cost`, `efficiency`, `save` and `repetition` each occur
@@ -37,11 +37,11 @@ lifecycle and trust frontmatter — `status` (§5.4), `stale_after` (§5.5), and
 tier derived from `verified` (§5.3) — reduce how often a consumer asserts the
 superseded fact?
 
-Protocol in [`benchmark/trust/PROTOCOL.md`](https://github.com/scaccogatto/okf-skills/blob/main/benchmark/trust/PROTOCOL.md),
-tracked in [#40](https://github.com/scaccogatto/okf-skills/issues/40). It has now
+Protocol in [`benchmark/trust/PROTOCOL.md`](https://github.com/ekar-is/okf-skills/blob/main/benchmark/trust/PROTOCOL.md),
+tracked in [#40](https://github.com/ekar-is/okf-skills/issues/40). It has now
 been run: pre-registration frozen at `trust-benchmark-prereg-rev8`, 946
 measurement trials, result in
-[`benchmark/trust/RESULTS.md`](https://github.com/scaccogatto/okf-skills/blob/main/benchmark/trust/RESULTS.md).
+[`benchmark/trust/RESULTS.md`](https://github.com/ekar-is/okf-skills/blob/main/benchmark/trust/RESULTS.md).
 
 The call to measure trust rather than re-run sufficiency was made by
 `human:scaccogatto`; the protocol was drafted by an agent and rejected twice in

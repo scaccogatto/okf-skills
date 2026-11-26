@@ -4,7 +4,7 @@ title: Auto-release on version bump
 description: A push to main that changes plugin.json's version tags and publishes a GitHub release, so releasing can't be forgotten.
 tags: [adr, ci, release]
 status: stable
-generated: { by: agent:claude-opus-5, at: "2026-09-01T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 ---
 
 # Context
@@ -41,5 +41,5 @@ or `hooks/` needs a matching `.okf/` update (see
 * Notes are auto-generated from merged PRs since the last release; a curated
   title or body can still be edited on the release afterwards.
 * The floating `v1` tag that `action.yml` is consumed as
-  (`scaccogatto/okf-skills@v1`) is a separate major-version pointer, still moved
+  (`ekar-is/okf-skills@v1`) is a separate major-version pointer, still moved
   by hand on purpose.

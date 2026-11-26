@@ -2,19 +2,19 @@
 type: Tool
 title: okf_init.py
 description: Scaffolds a conformant starter bundle (index.md, log.md, a starter concept) in one shot.
-resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/okf/scripts/okf_init.py
+resource: https://github.com/ekar-is/okf-skills/blob/main/skills/okf/scripts/okf_init.py
 tags: [python, scaffold, uv]
 status: stable
-generated: { by: human:scaccogatto, at: "2026-07-27T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 ---
 
 # Overview
 
 The init fast-path used by `produce` mode in the [okf skill](/skills/okf.md).
-Given a target directory, it writes a root `index.md` (frontmatter carries only
-`okf_version`), a `log.md` with a creation entry under today's ISO date
+Given a target directory, it writes a root `index.md` (frontmatter carries the
+`okf_version` "0.3" and a `title`), a `log.md` with a creation entry under today's ISO date
 heading, and one starter concept (`getting-started.md`) with the full set of
-recommended v0.2 frontmatter fields (`status` and `generated: {by, at}`, written
+recommended v0.3 frontmatter fields (`status` and `generated: {by, at}`, written
 by the `process:okf_init` actor). The scaffold is exemplary by construction — it
 passes [`okf_validate.py`](/components/validator.md) `--strict` with zero
 warnings.

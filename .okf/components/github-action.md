@@ -2,10 +2,10 @@
 type: Tool
 title: action.yml
 description: Composite GitHub Action that runs the OKF validator against a bundle in any repo's CI, no Claude Code needed.
-resource: https://github.com/scaccogatto/okf-skills/blob/main/action.yml
+resource: https://github.com/ekar-is/okf-skills/blob/main/action.yml
 tags: [ci, github-actions, validator]
 status: stable
-generated: { by: "agent:claude-opus-5-5", at: "2026-10-13T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 ---
 
 # Overview
@@ -18,7 +18,8 @@ GitHub Action wrapping the [validator](/components/validator.md)
 
 Marketplace constraints shape the manifest: `name` (`OKF Bundle Validator`)
 must be globally unique among actions, users, and orgs, and `description`
-must stay under 125 characters.
+must stay under 125 characters. It calls the action an independent community
+tool.
 
 # Inputs
 
@@ -26,7 +27,8 @@ must stay under 125 characters.
 |---|---|---|
 | `bundle` | `.okf` | Path to the bundle directory. |
 | `strict` | `"false"` | Treat every warning as an error (equivalent to `max-warnings 0`). |
-| `max-warnings` | `""` | Fail if warnings exceed this count. Empty allows any number; errors still fail the run. |
+| `max-warnings` | `""` | Fail if warnings exceed this count. Empty allows any number. Errors still fail the run. |
+| `lint` | `"false"` | Add the okf-skills house-style warnings (`--lint`). Optional, not spec. |
 
 # Outputs
 
@@ -45,10 +47,10 @@ substitution, so a crafted value would execute as shell.
 The script resolves `okf_validate.py` at
 `$GITHUB_ACTION_PATH/skills/validate/scripts/okf_validate.py`, builds an
 argument list (adding `--strict` when `strict` is `"true"`, `--max-warnings`
-when `max-warnings` is non-empty), then runs it twice: once for the real exit
+when `max-warnings` is non-empty, `--lint` when `lint` is `"true"`), then runs it twice: once for the real exit
 status, captured with `|| status=$?` (the default shell is `bash -e`, so a
 plain `&&`/`[` test that evaluates false would otherwise abort the step), and
-once more with `--json` to populate the `report` output via the
+once more with `--json` (plus `--lint` when set, so the report counts the same warnings) to populate the `report` output via the
 `GITHUB_OUTPUT` heredoc convention. The step exits with the captured
 `status`, which is how failure is signalled: a non-conformant or
 over-warning bundle makes the step (and the job) fail, exactly as a direct

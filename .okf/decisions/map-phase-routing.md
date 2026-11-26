@@ -4,14 +4,14 @@ title: Route the backfill map phase like a bulk read
 description: Cap what the analyzer reads in the script layer, dispatch small events in batches, keep judgment on the weaver's tier, and measure the analyzer tier instead of assuming it.
 tags: [adr, backfill, routing, cost, benchmark]
 status: stable
-generated: { by: claude/fable-5.1, at: "2026-09-05T18:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 sources:
   - id: map-tier-protocol
-    resource: https://github.com/scaccogatto/okf-skills/blob/main/benchmark/map-tier/PROTOCOL.md
+    resource: https://github.com/ekar-is/okf-skills/blob/main/benchmark/map-tier/PROTOCOL.md
     title: Map-phase routing A/B protocol
     last_modified: 2026-09-05
   - id: map-tier-results
-    resource: https://github.com/scaccogatto/okf-skills/blob/main/benchmark/map-tier/RESULTS.md
+    resource: https://github.com/ekar-is/okf-skills/blob/main/benchmark/map-tier/RESULTS.md
     title: Map-phase routing A/B results
     last_modified: 2026-09-05
   - id: spotify-portal

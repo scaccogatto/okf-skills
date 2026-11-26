@@ -4,6 +4,7 @@ description: >-
   Analyze a single repository history event (git commit or session turn) to extract domain
   concepts and semantic content. Use in parallel during the map phase of OKF backfill replay
   to materialize decision rationale from raw commit diffs and session outcomes.
+  Repository-specific: it reads git commits and Claude Code session transcripts.
 # Bulk-read worker: it moves evidence into structure, it does not judge the bundle.
 # Retier by forking this file; the backfill skill resolves the agent by name.
 # haiku since benchmark/map-tier/RESULTS.md: parity with sonnet on commits at under half the cost,

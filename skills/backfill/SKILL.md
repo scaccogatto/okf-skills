@@ -71,7 +71,7 @@ Create `.okf/` with:
 
 ```bash
 mkdir -p <repo>/.okf
-echo 'okf_version: "0.2"' > <repo>/.okf/index.md
+printf -- '---\nokf_version: "0.3"\n---\n' > <repo>/.okf/index.md
 echo '# Update Log' > <repo>/.okf/log.md
 ```
 
@@ -87,7 +87,7 @@ The replay is now structured in two phases to enforce semantic depth and anti-de
 
 #### Phase 1: Map (parallel analysis, per-event)
 
-Launch `okf:event-analyzer` agents for the live events (those without `skip` field), in waves of
+Launch `okf-skills:event-analyzer` agents for the live events (those without `skip` field), in waves of
 4 to 10 (see the cost note in §5), via Claude Code's Workflow `agentType` parameter. Each analyzer
 receives its event ids, the `events.jsonl` path, the repo path, the output directory and the
 emitter path, and:
@@ -115,7 +115,7 @@ system prompt as `agents/event-analyzer.md`, one per event, collecting analyses 
 
 #### Phase 2: Reduce (sequential folding, one agent)
 
-Run a single `okf:bundle-weaver` agent that:
+Run a single `okf-skills:bundle-weaver` agent that:
 - Reads all analyses in chronological order
 - Folds them into `.okf/`, updating or creating concepts
 - Enforces anti-degeneration rules (§4)
@@ -157,7 +157,8 @@ is billed at the frontier rate on every following turn, and the routing exists t
    would scaffold placeholder files): one `# Section` per directory, one
    bullet per concept, `* [Title](file.md) - description` taken from each
    concept's frontmatter (SPEC §8). The root `index.md` keeps its
-   `okf_version: "0.2"` frontmatter and links every subdirectory.
+   frontmatter (`okf_version: "0.3"`, plus `title` and `description` of the
+   bundle, SPEC §8.1) and links every subdirectory.
 
 2. **Add final log entry** (today's date, appended to existing dated section if present):
    ```

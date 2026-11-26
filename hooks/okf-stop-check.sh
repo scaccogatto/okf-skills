@@ -1,10 +1,14 @@
 #!/bin/bash
 # OKF Stop hook - dormant by default.
 # Fires only when BOTH hold:
-#   1. the repo's bundle opts in: `upkeep: enforced` in .okf/index.md frontmatter
+#   1. the repo's bundle opts in: `x-okf-skills-upkeep: enforced` in .okf/index.md
+#      frontmatter
 #   2. the user has not opted out: OKF_HOOK != "off"
-# Optional: `recursive: true` in the same frontmatter makes the hook find nested git
-# repos by itself and count their uncommitted tracked changes too.
+# Optional: `x-okf-skills-recursive: true` in the same frontmatter makes the hook find
+# nested git repos by itself and count their uncommitted tracked changes too.
+# The unprefixed `upkeep` / `recursive` are deprecated aliases, read only when the
+# `x-okf-skills-` key is absent: OKF reserves unprefixed keys for future versions and
+# asks producers for `x-<producer>-<name>` (v0.3 §4.1).
 input=$(cat)
 # loop guard in plain grep, no jq: if this line cannot run, the hook re-blocks forever
 printf '%s' "$input" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true' && exit 0
@@ -14,7 +18,12 @@ printf '%s' "$input" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true'
 frontmatter_has() {
   awk -v re="^$1[[:space:]]*\$" '/^---[[:space:]]*$/{n++;next} n==1 && $0 ~ re{f=1} END{exit !f}' .okf/index.md
 }
-frontmatter_has 'upkeep:[[:space:]]*enforced' || exit 0
+# the first key present wins, so a bundle mid-rename follows its new key
+if frontmatter_has 'x-okf-skills-upkeep:.*'; then
+  frontmatter_has 'x-okf-skills-upkeep:[[:space:]]*enforced' || exit 0
+else
+  frontmatter_has 'upkeep:[[:space:]]*enforced' || exit 0
+fi
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
 # count only changes to tracked files: an untracked path is not yet a documented
 # asset, and treating it as one made the hook false-fire on tooling dirs (.claude/,
@@ -37,16 +46,26 @@ block() {
     where=" (including changes in nested repos: $nested)"
   fi
   cat <<JSON
-{"decision":"block","reason":"This repo's .okf/ bundle declares \`upkeep: enforced\` and there are uncommitted changes$where, but nothing under .okf/ changed. If a documented asset changed, update the matching concept (body + generated); add a dated log.md entry only for a lifecycle event (creation, deprecation, supersession, regeneration, verification). If no documented asset changed, you may finish."}
+{"decision":"block","reason":"This repo's .okf/ bundle declares enforced upkeep (\`x-okf-skills-upkeep: enforced\`) and there are uncommitted changes$where, but nothing under .okf/ changed. If a documented asset changed, update the matching concept (body + generated); add a dated log.md entry only for a lifecycle event (creation, deprecation, supersession, regeneration, verification). If no documented asset changed, you may finish."}
 JSON
   exit 0
 }
 # the outer repo is dirty: block now, no need to look for nested repos
 [ -n "$(tracked_changes .)" ] && block ""
-# nested-repo discovery is opt-in: `recursive: true` in the same frontmatter
-# `recursive: true` means depth 6, `recursive: <n>` (positive integer) means depth n;
-# any other value leaves discovery off
-recursive=$(awk '/^---[[:space:]]*$/{n++;next} n==1 && /^recursive:[[:space:]]*(true|[1-9][0-9]*)[[:space:]]*$/{v=$0; sub(/^recursive:[[:space:]]*/, "", v); sub(/[[:space:]]*$/, "", v); print v; exit}' .okf/index.md)
+# nested-repo discovery is opt-in: `x-okf-skills-recursive: true` in the same
+# frontmatter (or the deprecated `recursive:`, read only when the new key is absent).
+# `true` means depth 6, a positive integer `<n>` means depth n; any other value
+# leaves discovery off
+recursive=$(awk '
+  /^---[[:space:]]*$/ {n++; next}
+  n != 1 {next}
+  /^x-okf-skills-recursive:/ {seen=1; v=$0; sub(/^x-okf-skills-recursive:/, "", v); new=v}
+  /^recursive:/ {v=$0; sub(/^recursive:/, "", v); old=v}
+  END {
+    v = seen ? new : old
+    sub(/^[[:space:]]*/, "", v); sub(/[[:space:]]*$/, "", v)
+    if (v ~ /^(true|[1-9][0-9]*)$/) print v
+  }' .okf/index.md)
 [ -n "$recursive" ] || exit 0
 depth=$recursive
 [ "$depth" = "true" ] && depth=6
@@ -62,7 +81,7 @@ depth=$recursive
 # ./.git, the only depth 1 hit, is pruned already).
 # Known gaps: symlinked nested repos are not followed; a nested repo whose own
 # directory is named like a pruned one (build, dist, target, ...) is not found;
-# only the literal lowercase `recursive: true` enables discovery.
+# only the literal lowercase `true` (or a positive integer) enables discovery.
 # Fail open: a repo that cannot be inspected is skipped.
 # A .git found is skipped when it is:
 #   1. a linked worktree of the outer repo (same common git dir): a separate

@@ -142,10 +142,49 @@ class TestStopHook(unittest.TestCase):
         self.assertIn("nothing under .okf/ changed", r.stdout)
         self.assertIn("only for a lifecycle event", r.stdout)
 
-    def set_recursive(self, value: str | None = "true") -> None:
+    def set_index(self, frontmatter: str) -> None:
+        (self.repo / ".okf/index.md").write_text(f"---\n{frontmatter}---\n# Bundle\n")
+        sh(self.repo, "git", "commit", "-qam", "index flags")
+
+    # v0.3 §4.1: the canonical keys carry the `x-okf-skills-` prefix; the unprefixed
+    # spellings stay readable as deprecated aliases.
+    def test_prefixed_upkeep_key_arms_the_hook(self) -> None:
+        self.set_index("x-okf-skills-upkeep: enforced\n")
+        self.edit_code()
+        self.assertTrue(self.run_hook())
+
+    def test_prefixed_upkeep_key_wins_over_the_alias(self) -> None:
+        self.set_index("x-okf-skills-upkeep: soft\nupkeep: enforced\n")
+        self.edit_code()
+        self.assertFalse(self.run_hook())
+
+    def test_prefixed_upkeep_key_outside_frontmatter_does_not_arm(self) -> None:
+        (self.repo / ".okf/index.md").write_text("# Bundle\n\nx-okf-skills-upkeep: enforced\n")
+        sh(self.repo, "git", "commit", "-qam", "flag outside frontmatter")
+        self.edit_code()
+        self.assertFalse(self.run_hook())
+
+    def test_both_recursive_spellings_enable_discovery(self) -> None:
+        for i, flags in enumerate(("x-okf-skills-upkeep: enforced\nx-okf-skills-recursive: true\n",
+                                   "x-okf-skills-upkeep: enforced\nrecursive: true\n",
+                                   "upkeep: enforced\nx-okf-skills-recursive: 2\n")):
+            with self.subTest(flags=flags):
+                self.set_recursive(None, flags)
+                self.dirty(self.add_nested(f"repos/app{i}"))
+                self.assertIn(f"repos/app{i}", self.hook_output())
+                sh(self.repo / f"repos/app{i}", "git", "checkout", "--", ".")
+
+    def test_prefixed_recursive_key_wins_over_the_alias(self) -> None:
+        self.set_recursive(None, "x-okf-skills-upkeep: enforced\n"
+                                 "x-okf-skills-recursive: false\nrecursive: true\n")
+        self.dirty(self.add_nested("repos/app"))
+        self.assertFalse(self.run_hook())
+
+    def set_recursive(self, value: str | None = "true",
+                      head: str = "upkeep: enforced\n") -> None:
         """Declare recursive in the root index and commit it with gitignored repos/."""
         flag = f"recursive: {value}\n" if value is not None else ""
-        (self.repo / ".okf/index.md").write_text(f"---\nupkeep: enforced\n{flag}---\n# Bundle\n")
+        (self.repo / ".okf/index.md").write_text(f"---\n{head}{flag}---\n# Bundle\n")
         (self.repo / ".gitignore").write_text("repos/\n")
         sh(self.repo, "git", "add", "-A")
         sh(self.repo, "git", "commit", "-qm", "declare recursive")

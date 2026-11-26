@@ -1,15 +1,15 @@
 {
-  "name": "okf",
-  "displayName": "Open Knowledge Format",
-  "version": "0.12.1",
-  "description": "Author, maintain, backfill, validate, visualize and serve (MCP) Open Knowledge Format (OKF) bundles: portable markdown knowledge for humans and agents.",
+  "name": "okf-skills",
+  "displayName": "okf-skills",
+  "version": "0.13.0",
+  "description": "Independent community toolkit to author, maintain, validate and visualize Open Knowledge Format (OKF) bundles. Not the official OKF plugin.",
   "author": {
-    "name": "Marco Boffo",
-    "email": "chat@marcoboffo.me",
-    "url": "https://github.com/scaccogatto"
+    "name": "ekar.is",
+    "email": "chat@ekar.is",
+    "url": "https://github.com/ekar-is"
   },
-  "homepage": "https://github.com/scaccogatto/okf-skills",
-  "repository": "https://github.com/scaccogatto/okf-skills",
+  "homepage": "https://ekar-is.github.io/okf-skills/",
+  "repository": "https://github.com/ekar-is/okf-skills",
   "license": "MIT",
   "keywords": [
     "okf",

@@ -4,11 +4,11 @@ title: Ship a read-only MCP server, for parity and not for capability
 description: The July 2026 no-MCP call, re-read against a category that converged on one, then reversed on positioning with the original argument left intact.
 tags: [adr, ecosystem, mcp]
 status: stable
-generated: { by: "agent:claude-opus-5", at: "2026-09-01T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 sources:
-  - resource: https://github.com/scaccogatto/okf-skills/issues/41
+  - resource: https://github.com/ekar-is/okf-skills/issues/41
     note: the re-read that reopened the question
-  - resource: https://github.com/scaccogatto/okf-skills/issues/7
+  - resource: https://github.com/ekar-is/okf-skills/issues/7
     note: the July 2026 competitive map, where the original decision lives
 ---
 
@@ -58,7 +58,7 @@ Scope is the minimum that buys parity:
 # Consequences
 
 * For Claude Code the server is redundant with Read and Grep, by construction.
-  That is accepted, not solved. `/okf:okf` consume mode stays the recommended path.
+  That is accepted, not solved. `/okf-skills:okf` consume mode stays the recommended path.
 * One more dependency (`mcp>=2`) and one more surface to keep alive across SDK
   churn. The SDK renamed `FastMCP` to `MCPServer` in 2.0; the tests dispatch through
   the SDK's own machinery so the next rename fails in CI and not at connect time.

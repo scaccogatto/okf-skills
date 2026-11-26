@@ -4,6 +4,155 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.13.0] - 2026-11-26
+
+### Changed
+- **OKF v0.3.** The spec moved to
+  [open-knowledge-format/open-knowledge-format](https://github.com/open-knowledge-format/open-knowledge-format)
+  (the GoogleCloudPlatform copy is deprecated) and released v0.3. It is
+  re-vendored verbatim at `527e81a`, and the skills, templates, README and
+  Action now target it. New bundles declare `okf_version: "0.3"`, and
+  `okf_init.py` also writes the bundle `title`.
+- **The validator checks v0.3 conformance (§11.1).** A `.md` with no frontmatter
+  or no string `type` (a `README.md`, an `AGENTS.md`) is now a skipped
+  non-concept and a warning, no longer an error (§3.2). New errors: duplicate
+  frontmatter keys, impossible values such as `2026-02-30`, a broken root
+  `index.md` frontmatter, frontmatter (a non-empty YAML mapping) in a
+  subdirectory `index.md` or a `log.md`, and a `log.md` heading that looks like
+  a date but is not a real `YYYY-MM-DD` (§8, §9). Other non-date headings, such
+  as `## Unreleased`, warn. Paths starting with `.` are not part of the bundle.
+- **Path fields resolve from their file's directory** (§6). A bare value that
+  resolves only from the bundle root still passes for bundles declaring 0.2 or
+  no version (the §12.1 fallback), with a warning. Top-level `resource` and
+  `sources[].resource` are checked too, but only when the value is a bundle
+  path: rooted or dot-relative, or naming an existing file. Anything else, such
+  as `proj.ds.users`, is an opaque identifier and is never warned about,
+  rewritten or drawn as an edge. Links and paths that leave the bundle are
+  external, never broken.
+- **Trust tiers count only current verifications** (§5.3): an event whose `at`
+  predates `generated.at` stays as history. The visualizer and the MCP server
+  compute the tier this way and show older events as "verified before the
+  last change".
+- **Timestamps (§5):** a date-only value is fully valid (start of that day
+  UTC). A date-time needs seconds and an offset, and must be a real instant,
+  also once read in UTC.
+  An unparseable `stale_after` is malformed, never fresh.
+- **One rule set for the validator, the MCP server and the visualizer.**
+  Frontmatter delimiters, parsing, timestamps, status, `okf_version`, path
+  resolution and link extraction now share one written rule set, and
+  `tests/test_conformance_parity.py` checks the shared helpers are identical
+  and compares the three tools on a corpus of edge cases. Links are read
+  from the body only, with code stripped, and reference-style links count.
+- **The plugin's own root keys use the `x-` prefix** that §4.1 reserves for
+  extensions: `x-okf-skills-upkeep` and `x-okf-skills-recursive`. The old
+  `upkeep` and `recursive` keep working as deprecated aliases. The validator
+  warns on them and `--migrate` renames them. After the rename, collaborators on
+  okf-skills 0.12 or older must update the plugin, because older hooks only
+  read the old key.
+- **Plugin conventions are labelled as such.** Recommended-field warnings read
+  as okf-skills lint (OKF calls those fields optional), and the `/`-preferred
+  path form and the lifecycle-only `log.md` policy are documented as okf-skills
+  conventions, not spec.
+- **okf-skills lint is off by default.** The warnings for a missing `title`,
+  `description`, `tags` or `generated` appear only with the new `--lint` flag.
+  `--strict` counts the warnings that are emitted, so a concept with only
+  `type` passes `--strict`, as §4.1 says it is fully conformant. The JSON report
+  gains `lint`, whether the flag was on.
+- **Producers do not verify their own work.** The okf skill, the adoption
+  snippet and the backfill subagents now say it plainly: never write a
+  `verified` event for content you generated, never invent or infer a
+  `human:<id>`, and record yourself in `generated.by`. The concept template no
+  longer ships a `verified: { by: "human:<id>" }` line.
+- **The README states what okf-skills is**: an independent, community toolkit
+  for OKF, not the official project. It links the official `okf-generate` and
+  `okf-consume` skills, drops the "20+ agents" claim (tested in Claude Code,
+  other hosts untested) and lists what each part assumes. The okf skill's
+  triggers now cover data and business knowledge as well as software.
+- **The visualizer decides staleness when the page is viewed**, so a published
+  `viz.html` turns a concept stale on time instead of freezing the verdict of
+  the day it was rendered.
+- **The validator names the gate when only warnings fail the run.** Under
+  `--strict` or `--max-warnings N` the last line reads, for example,
+  `✓ conformant, but --strict allows no warnings (2 found)` instead of a plain
+  `✓ conformant` next to exit 1.
+- **The plugin and Action descriptions now say independent.** The plugin
+  manifest calls okf-skills an independent community toolkit, not the official
+  OKF plugin, and its homepage is the documentation site. The Action gains a
+  `lint` input that passes `--lint`.
+
+### Added
+- A documentation site at https://ekar-is.github.io/okf-skills/ (the
+  interactive demo moved to `/demo.html`).
+- `examples/data-catalog/`, a second example bundle outside software: a small
+  retail analytics catalog with tables, a dataset, a metric backed by an
+  Attested Computation, a retention policy, a glossary term and a runbook.
+- `superseded_by` (§5.4): validated as a path field, warned about without
+  `status: deprecated`, drawn as a graph edge and a "Superseded by" link.
+- Root `index.md` accepts the §8.1 bundle metadata (`title`, `description`,
+  `license`) and any `x-` extension key. Other unknown keys warn with the
+  `x-<producer>-<name>` convention, and an unquoted `okf_version` warns.
+- `verified` events without `by` or `at`, and `parameters` entries without
+  `name` and `type`, are reported.
+- MCP concept cards carry `tier`, `stale`, `current` and `superseded_by`.
+  Graph edges (`get_neighbors`, visualizer) include every §6.2 path field.
+- `--migrate` upgrades v0.2 bundles: it renames the plugin keys, prefixes `/`
+  on block-style path fields that resolve only from the root, and bumps
+  `okf_version` to `"0.3"` only once no such field remains. Each rewrite is
+  re-parsed and refused unless the only change is the intended `/` prefix.
+  Line endings and a BOM are preserved.
+
+### Fixed
+- The validator no longer crashes on a `status` that is a list or mapping
+  ([#62](https://github.com/ekar-is/okf-skills/issues/62)), or on an impossible
+  date such as `2026-02-30` ([#63](https://github.com/ekar-is/okf-skills/issues/63)),
+  which the MCP server and the visualizer now also survive.
+- A percent-encoded link such as `My%20Note.md` resolves
+  ([#64](https://github.com/ekar-is/okf-skills/issues/64)).
+- Link syntax inside inline code no longer draws a broken-link warning
+  ([#65](https://github.com/ekar-is/okf-skills/issues/65)).
+- An indented `---` inside a block scalar no longer closes the frontmatter
+  early ([#66](https://github.com/ekar-is/okf-skills/issues/66)), in all three
+  tools.
+- A YAML alias bomb or deeply nested frontmatter can no longer hang or crash
+  any of the tools: values are never stringified as containers, and runaway
+  nesting is reported as invalid YAML.
+- The Stop hook parses under macOS `/bin/bash` 3.2 (also shipped separately in
+  PR #74).
+
+Thanks to [@ahmedibrahim085](https://github.com/ahmedibrahim085) for the fixes
+for #62, #63, #65 and #66, contributed in
+[#68](https://github.com/ekar-is/okf-skills/pull/68), and also for reporting
+the alias-bomb exposure (#68).
+
+## [0.12.2] - 2026-11-26
+
+### Changed
+- **The repository moved to the `ekar-is` organization**: it now lives at
+  https://github.com/ekar-is/okf-skills (Pages at
+  https://ekar-is.github.io/okf-skills/). Old URLs redirect. New install commands:
+  `npx skills add ekar-is/okf-skills`,
+  `/plugin marketplace add ekar-is/okf-skills` then `/plugin install okf-skills@ekar-is`,
+  and `uses: ekar-is/okf-skills@v1` for the GitHub Action.
+- **The marketplace is renamed from `scaccogatto` to `ekar-is`.** Existing
+  plugin users run `/plugin marketplace remove scaccogatto`, then add it again
+  with `/plugin marketplace add ekar-is/okf-skills`.
+- **The Claude Code plugin is renamed from `okf` to `okf-skills`.** Skills are
+  now invoked as `/okf-skills:okf`, `/okf-skills:validate`,
+  `/okf-skills:visualize` and `/okf-skills:backfill`, subagents as
+  `okf-skills:event-analyzer` and `okf-skills:bundle-weaver`, and the MCP tools
+  appear as `mcp__plugin_okf-skills_bundle__*`. Migration: run
+  `/plugin marketplace remove scaccogatto`, then
+  `/plugin marketplace add ekar-is/okf-skills`, then
+  `/plugin install okf-skills@ekar-is`. The skill names and the GitHub Action
+  (`ekar-is/okf-skills@v1`) are unchanged.
+- Author is now ekar.is (plugin manifest, marketplace owner, action). Copyright
+  is `ekar.is and the okf-skills contributors` (LICENSE, README credits).
+- Governance: CONTRIBUTING.md states that okf-skills is an independent community
+  toolkit maintained by ekar.is, and that maintainers handle the version bump,
+  CHANGELOG and `.okf/` upkeep for outside PRs. Added CODE_OF_CONDUCT.md
+  (Contributor Covenant 2.1 by reference), issue templates and a pull request
+  template.
+
 ## [0.12.1] - 2026-11-26
 
 ### Fixed
