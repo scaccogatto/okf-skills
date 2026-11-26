@@ -314,7 +314,7 @@ jobs:
       - name: ...and that failure is what marks the step failed
         run: |
           [ "${{ steps.bad.outcome }}" = "failure" ] || {
-            echo "the action passed a bundle with a missing \`type\`" >&2
+            echo "the action passed a bundle whose frontmatter is not a mapping" >&2
             exit 1
           }
           echo "ok: the action gates as documented"

@@ -71,7 +71,7 @@ REF_DEF = re.compile(r"^ {0,3}\[([^\]]+)\]:[ \t]*<?([^\s>]+)>?")
 SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.\-]*:")
 # §5 Timestamps: a full-date, or an RFC 3339 date-time that carries an offset.
 DATE_ONLY = re.compile(r"\d{4}-\d{2}-\d{2}")
-DATE_TIME = re.compile(r"\d{4}-\d{2}-\d{2}[Tt ]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})")
+DATE_TIME = re.compile(r"\d{4}-\d{2}-\d{2}[Tt ](?:[01]\d|2[0-3]):\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})")
 VERSION = re.compile(r"([0-9]+)\.([0-9]+)(\..*)?")
 # §5.4: the vocabulary. `draft` is not yet reviewed but still current knowledge,
 # `deprecated` and any value outside this set are not.

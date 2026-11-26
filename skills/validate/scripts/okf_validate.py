@@ -56,7 +56,7 @@ STATUS_VALUES = {"draft", "stable", "deprecated"}
 # `2099-02-30` and hour 24 match it, so a string must also parse to a real instant.
 _DATE = r"\d{4}-\d{2}-\d{2}"
 ISO_DATE = re.compile(_DATE)
-TS_DATETIME = re.compile(rf"{_DATE}[Tt ]\d{{2}}:\d{{2}}:\d{{2}}(?:\.\d+)?(?:[Zz]|[+-]\d{{2}}:\d{{2}})")
+TS_DATETIME = re.compile(rf"{_DATE}[Tt ](?:[01]\d|2[0-3]):\d{{2}}:\d{{2}}(?:\.\d+)?(?:[Zz]|[+-]\d{{2}}:\d{{2}})")
 TS_NO_OFFSET = re.compile(rf"{_DATE}[Tt ]\d{{2}}:\d{{2}}(?::\d{{2}}(?:\.\d+)?)?")
 # A URI scheme (RFC 3986) makes a value absolute rather than a bundle path (§6).
 URI_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
