@@ -48,8 +48,11 @@ resolved and rejected unless it lands under the bundle root.
   are a date or an offset date-time that really exists, links come from the
   body only (code stripped, reference-style links included). Frontmatter values
   are never stringified as containers, so a YAML alias bomb cannot hang a call.
-  `tests/test_conformance_parity.py` feeds the same tricky bundles to all three
-  tools and fails on any disagreement.
+  `tests/test_conformance_parity.py` checks that the two copies of the helper
+  block (between `# --- shared OKF consumer rules` markers) are byte-identical,
+  and compares the three tools on a corpus of edge cases. An opaque `resource`
+  or `sources[].resource` (no path prefix, and naming no existing file) is never
+  an edge.
 * The bundle is re-read on every call. Correct while a bundle is being edited,
   and cheap up to a few thousand concepts.
 * `mcp>=2,<3`: the SDK renamed `FastMCP` to `MCPServer` in 2.0. `tests/test_okf_mcp.py`

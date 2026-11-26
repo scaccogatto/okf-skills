@@ -17,31 +17,38 @@ OKF spec version it supports.
   or no string `type` (a `README.md`, an `AGENTS.md`) is now a skipped
   non-concept and a warning, no longer an error (§3.2). New errors: duplicate
   frontmatter keys, impossible values such as `2026-02-30`, a broken root
-  `index.md` frontmatter, frontmatter in a subdirectory `index.md` or a
-  `log.md`, and a `log.md` date heading that is not a real `YYYY-MM-DD` (§8,
-  §9). Paths starting with `.` are not part of the bundle.
+  `index.md` frontmatter, frontmatter (a non-empty YAML mapping) in a
+  subdirectory `index.md` or a `log.md`, and a `log.md` heading that looks like
+  a date but is not a real `YYYY-MM-DD` (§8, §9). Other non-date headings, such
+  as `## Unreleased`, warn. Paths starting with `.` are not part of the bundle.
 - **Path fields resolve from their file's directory** (§6). A bare value that
   resolves only from the bundle root still passes for bundles declaring 0.2 or
   no version (the §12.1 fallback), with a warning. Top-level `resource` and
-  `sources[].resource` are checked too, but a missing target is reported only
-  when the value looks like a bundle path. Links and paths that leave the
-  bundle are external, never broken.
+  `sources[].resource` are checked too, but only when the value is a bundle
+  path: rooted or dot-relative, or naming an existing file. Anything else, such
+  as `proj.ds.users`, is an opaque identifier and is never warned about,
+  rewritten or drawn as an edge. Links and paths that leave the bundle are
+  external, never broken.
 - **Trust tiers count only current verifications** (§5.3): an event whose `at`
   predates `generated.at` stays as history. The visualizer and the MCP server
   compute the tier this way and show older events as "verified before the
   last change".
 - **Timestamps (§5):** a date-only value is fully valid (start of that day
-  UTC). A date-time needs seconds and an offset, and must be a real instant.
+  UTC). A date-time needs seconds and an offset, and must be a real instant,
+  also once read in UTC.
   An unparseable `stale_after` is malformed, never fresh.
 - **One rule set for the validator, the MCP server and the visualizer.**
   Frontmatter delimiters, parsing, timestamps, status, `okf_version`, path
-  resolution and link extraction now behave identically in all three, and
-  `tests/test_conformance_parity.py` fails on any disagreement. Links are read
+  resolution and link extraction now share one written rule set, and
+  `tests/test_conformance_parity.py` checks the shared helpers are identical
+  and compares the three tools on a corpus of edge cases. Links are read
   from the body only, with code stripped, and reference-style links count.
 - **The plugin's own root keys use the `x-` prefix** that §4.1 reserves for
   extensions: `x-okf-skills-upkeep` and `x-okf-skills-recursive`. The old
   `upkeep` and `recursive` keep working as deprecated aliases. The validator
-  warns on them and `--migrate` renames them.
+  warns on them and `--migrate` renames them. After the rename, collaborators on
+  okf-skills 0.12 or older must update the plugin, because older hooks only
+  read the old key.
 - **Plugin conventions are labelled as such.** Recommended-field warnings read
   as okf-skills lint (OKF calls those fields optional), and the `/`-preferred
   path form and the lifecycle-only `log.md` policy are documented as okf-skills
@@ -81,11 +88,13 @@ OKF spec version it supports.
 - A YAML alias bomb or deeply nested frontmatter can no longer hang or crash
   any of the tools: values are never stringified as containers, and runaway
   nesting is reported as invalid YAML.
-- The Stop hook parses under macOS `/bin/bash` 3.2 (the same fix as 0.12.1).
+- The Stop hook parses under macOS `/bin/bash` 3.2 (also shipped separately in
+  PR #74).
 
 Thanks to [@ahmedibrahim085](https://github.com/ahmedibrahim085) for the fixes
 for #62, #63, #65 and #66, contributed in
-[#68](https://github.com/ekar-is/okf-skills/pull/68).
+[#68](https://github.com/ekar-is/okf-skills/pull/68), and also for reporting
+the alias-bomb exposure (#68).
 
 ## [0.12.0] - 2026-10-19
 

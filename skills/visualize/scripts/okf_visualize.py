@@ -57,6 +57,7 @@ def json_for_script(obj) -> str:
     return json.dumps(obj, default=str).replace("<", "\\u003c")
 
 
+# --- shared OKF consumer rules: keep identical in servers/okf_mcp.py and skills/visualize/scripts/okf_visualize.py ---
 # §6.1: links are read from the body with code removed first. A fence is a run of
 # 3+ backticks or tildes indented at most 3 spaces, closed by a run of the same
 # character at least as long, so a shorter fence inside it is content. Same rules
@@ -185,19 +186,21 @@ def parse_instant(v) -> datetime | None:
     is the start of that day in UTC, a date-time needs an offset. PyYAML hands
     over date/datetime objects or strings, so all of them are accepted. The regex
     comes first: `fromisoformat` alone takes `+0000`, `+05` and a minute-only time."""
-    if isinstance(v, datetime):
-        return v.astimezone(UTC) if v.utcoffset() is not None else None
-    if isinstance(v, date):
-        return datetime(v.year, v.month, v.day, tzinfo=UTC)
-    if not isinstance(v, str):
-        return None
     try:
+        if isinstance(v, datetime):
+            return v.astimezone(UTC) if v.utcoffset() is not None else None
+        if isinstance(v, date):
+            return datetime(v.year, v.month, v.day, tzinfo=UTC)
+        if not isinstance(v, str):
+            return None
         if DATE_ONLY.fullmatch(v):
             d = date.fromisoformat(v)
             return datetime(d.year, d.month, d.day, tzinfo=UTC)
         if DATE_TIME.fullmatch(v):  # upper(): 3.11 rejects a lowercase `t` or `z`
             return datetime.fromisoformat(v.upper()).astimezone(UTC)
-    except ValueError:  # Feb 30, hour 24 and friends
+    # Feb 30 and hour 24 raise ValueError. `0001-01-01T00:00:00+05:00` parses but
+    # names an instant before year 1 in UTC, so astimezone raises OverflowError.
+    except (ValueError, OverflowError):
         pass
     return None
 
@@ -273,15 +276,43 @@ def declares_legacy(bundle: Path) -> bool:
     return m is not None and (int(m[1]), int(m[2])) <= (0, 2)
 
 
-def path_fields(meta: dict) -> list[str]:
+def names_bundle_path(value: str, path: Path, bundle: Path, legacy: bool) -> bool:
+    """Whether a `resource` / `sources[].resource` value is a bundle path. Both may
+    be a scope descriptor or an opaque identifier instead (§4.1, §6.2), such as
+    `proj.ds.users` or `all queries in project acme`. A path is rooted or
+    dot-relative (`/`, `./`, `../`), or has no whitespace and names an existing
+    FILE (a directory does not count) from the file's directory or, in a legacy
+    bundle, from the root. Same predicate as okf_validate.names_bundle_path."""
+    if value.startswith(("/", "./", "../")):
+        return True
+    if not value or any(ch.isspace() for ch in value):
+        return False
+    t = urllib.parse.unquote(value.split("#", 1)[0])
+    root = bundle.resolve()
+
+    def is_file(base: Path) -> bool:
+        try:
+            cand = (base / t).resolve()
+        except (OSError, RuntimeError):  # a symlink loop
+            return False
+        return cand.is_relative_to(root) and cand.is_file()
+
+    return bool(t) and (is_file(path.parent) or (legacy and is_file(root)))
+
+
+def path_fields(meta: dict, path: Path, bundle: Path, legacy: bool) -> list[str]:
     """§6.2 path fields that can point at a concept (§6.4 graph edges). Only
-    string values are paths."""
-    vals = [meta.get("resource"), meta.get("superseded_by"), meta.get("computation")]
+    string values are paths, and an opaque `resource` / `sources[].resource`
+    (names_bundle_path) is none."""
+    resources = [meta.get("resource")]
+    resources += [e.get("resource") for e in as_list(meta.get("sources"))
+                  if isinstance(e, dict)]
+    vals = [meta.get("superseded_by"), meta.get("computation")]
     for key in ("executor", "attester"):
         sub = meta.get(key)
         vals.append(sub.get("resource") if isinstance(sub, dict) else None)
-    vals += [e.get("resource") for e in as_list(meta.get("sources"))
-             if isinstance(e, dict)]
+    vals += [v for v in resources
+             if isinstance(v, str) and names_bundle_path(v.strip(), path, bundle, legacy)]
     return [v.strip() for v in vals if isinstance(v, str) and v.strip()]
 
 
@@ -290,7 +321,9 @@ def resolve(target: str, path: Path, bundle: Path, legacy: bool = False) -> str 
     when it is external, not markdown or outside the root. Membership in the
     concept set is the caller's check. `legacy` is the §6.2/§12.1 fallback, which
     only path fields use: a bare value naming no file from the file's directory is
-    retried from the bundle root. Existence is any file or directory, concept or not."""
+    retried from the bundle root. Existence is any file or directory, concept or
+    not, tested on the normalized path (`x/../b.md` needs no `x/`), as the
+    validator does. An opaque `resource` never gets here (names_bundle_path)."""
     t = urllib.parse.unquote(target.split("#", 1)[0])
     if not t.endswith(".md") or SCHEME.match(t):
         return None
@@ -305,9 +338,10 @@ def resolve(target: str, path: Path, bundle: Path, legacy: bool = False) -> str 
 
     if t.startswith("/"):
         return at(root)
-    if legacy and not (path.parent / t).exists():
+    local = at(path.parent)
+    if legacy and local is not None and not (root / f"{local}.md").exists():
         return at(root)
-    return at(path.parent)
+    return local
 
 
 def discover(bundle: Path, on_unreadable=None):
@@ -329,6 +363,9 @@ def discover(bundle: Path, on_unreadable=None):
         meta, body = split_frontmatter(raw)
         if meta is not None and has_type(meta):
             yield p.relative_to(bundle).with_suffix("").as_posix(), p, meta, body
+
+
+# --- end shared OKF consumer rules ---
 
 
 def stale_at(meta: dict) -> str:
@@ -355,7 +392,9 @@ def read_sources(meta: dict, path: Path, bundle: Path, ids: set[str], legacy: bo
         # §5.1: an entry's own `usage_window` overrides the one written once as a
         # sibling of `sources`. A count without its window has no units.
         window = src.get("usage_window", meta.get("usage_window"))
-        cid = resolve(resource, path, bundle, legacy) if resource else None
+        # an opaque descriptor (names_bundle_path) is shown, never linked
+        cid = (resolve(resource, path, bundle, legacy)
+               if resource and names_bundle_path(resource, path, bundle, legacy) else None)
         count = src.get("usage_count")
         out.append({
             "title": shown(src.get("title")) or shown(src.get("id")) or resource,
@@ -422,7 +461,7 @@ def build(bundle: Path):
         })
         # §6.4: body links, then path fields (with the v0.2 root fallback, §6.2)
         targets = [resolve(t, p, bundle) for t in link_targets(body)]
-        targets += [resolve(t, p, bundle, legacy) for t in path_fields(meta)]
+        targets += [resolve(t, p, bundle, legacy) for t in path_fields(meta, p, bundle, legacy)]
         for tgt in targets:
             if tgt and tgt in ids and tgt != cid and (cid, tgt) not in seen:
                 seen.add((cid, tgt))

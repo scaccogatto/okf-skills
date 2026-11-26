@@ -69,10 +69,6 @@ ROOT_KEYS = {"okf_version", "title", "description", "license"}
 # here, renamed by `--migrate`.
 DEPRECATED_ROOT_KEYS = {"upkeep": "x-okf-skills-upkeep",
                         "recursive": "x-okf-skills-recursive"}
-# `resource` and `sources[].resource` may be a scope descriptor or an opaque
-# identifier rather than a path (§4.1, §6.2), so a missing target is reported only
-# when the value reads as a bundle path: rooted, dot-relative, or a file name.
-BUNDLE_PATHISH = re.compile(r"^(?:/|\./|\.\./)|[^/.]\.[A-Za-z][A-Za-z0-9]{0,4}$")
 # §7 gives three actor shapes, and §5.1 reuses them for `sources[].author`. The
 # spec's own example (`author: team:ga4-docs`) shows the `<prefix>:<id>` family is
 # open, so this is deliberately not a whitelist — it catches the one failure that
@@ -101,6 +97,18 @@ FOOTNOTE = re.compile(r"\[\^([^\]\s]+)\]")
 # lines within a paragraph but never crosses a blank line.
 FENCE_RUN = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 CODE_SPAN = re.compile(r"(?<!`)(`+)(?!`)((?:(?!\n[ \t]*\n).)+?)(?<!`)\1(?!`)", re.DOTALL)
+
+
+# §9 constrains the date headings of log.md. A `## ` heading that looks like a
+# date in another form is an error: three numeric groups joined by `/`, `-` or `.`
+# (`22/05/2026`, `2026-5-2`, `2026-13-45`, `22.05.2026`), or an English month name,
+# full or three letters, next to a 1-2 digit day and a 4-digit year (`May 22, 2026`,
+# `22 May 2026`). Any other heading text is not a date heading and only warned about.
+_MONTH = (r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|"
+          r"aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)")
+DATE_LIKE_HEADING = re.compile(
+    rf"\d+[/.-]\d+[/.-]\d+|{_MONTH}\.?[ \t]+\d{{1,2}},?[ \t]+\d{{4}}|"
+    rf"\d{{1,2}}[ \t]+{_MONTH}\.?,?[ \t]+\d{{4}}", re.IGNORECASE)
 
 
 # --migrate only. `timestamp` is a top-level key (§4.1), so anchor at column 0 —
@@ -357,6 +365,40 @@ def path_status(value: str, base_dir: Path, bundle: Path) -> tuple[str, str]:
     return ("root_only" if from_root is not None and from_root.exists() else "missing"), bare
 
 
+def names_bundle_path(value: str, base_dir: Path, bundle: Path, legacy: bool) -> bool:
+    """Whether a `resource` / `sources[].resource` value is a bundle path.
+
+    Both may be a scope descriptor or an opaque identifier instead (§4.1, §6.2):
+    `proj.ds.users`, `all queries in BigQuery project acme.prod`, `example.com`. A
+    value is a path when it is rooted or dot-relative (`/`, `./`, `../`), or when it
+    has no whitespace and names an existing FILE, not a directory, from the file's
+    directory or, in a legacy bundle, from the root. Anything else is opaque: no
+    warning, no `--migrate` rewrite, no graph edge. The MCP server and the
+    visualizer apply the same predicate.
+    """
+    bare = value.strip().split("#", 1)[0]
+    if bare.startswith(("/", "./", "../")):
+        return True
+    if not bare or any(ch.isspace() for ch in bare):
+        return False
+    decoded = unquote(bare)
+    root = bundle.resolve()
+
+    def is_file(base: Path) -> bool:
+        try:
+            candidate = (base / decoded).resolve()
+        except OSError:
+            return False
+        return candidate.is_relative_to(root) and candidate.is_file()
+
+    return is_file(base_dir) or (legacy and is_file(bundle))
+
+
+def is_opaque_slot(slot: tuple) -> bool:
+    """The slots `names_bundle_path` applies to: `resource` and `sources[].resource`."""
+    return slot[0] in ("resource", "sources")
+
+
 def declared_version(bundle: Path):
     """The `okf_version` the bundle-root index.md declares, or None."""
     try:
@@ -415,7 +457,7 @@ def check_timestamp(value, where: str, rel: str, report: Report) -> None:
                          f"write a date-only `YYYY-MM-DD`")
     elif problem == "impossible":
         report.warn(rel, f"§5 `{where}` `{show(value)}` has the shape of a timestamp but "
-                         f"names no real date or time")
+                         f"names no real date, time or instant")
     elif problem:
         report.warn(rel, f"§5 `{where}` `{show(value)}` is not an RFC 3339 timestamp "
                          f"(`YYYY-MM-DD`, or a date-time with `Z` or `±HH:MM`)")
@@ -427,21 +469,28 @@ def timestamp_problem(value) -> str | None:
     A native YAML date is valid, a native datetime only with a timezone. A string
     must match the RFC 3339 shape and then parse: `fromisoformat` (Python 3.11+,
     after upper-casing the `t`/`z` RFC 3339 allows) rejects `2099-02-30` and hour 24.
+    Either must also be a real instant in UTC, as consumers compare them there.
     """
-    if isinstance(value, datetime.datetime):
-        return None if value.tzinfo is not None else "no_offset"
-    if isinstance(value, datetime.date):
-        return None
-    if not isinstance(value, str):
-        return "invalid"
+    utc = datetime.UTC
     try:
+        if isinstance(value, datetime.datetime):
+            if value.utcoffset() is None:
+                return "no_offset"
+            value.astimezone(utc)
+            return None
+        if isinstance(value, datetime.date):
+            return None
+        if not isinstance(value, str):
+            return "invalid"
         if ISO_DATE.fullmatch(value):
             datetime.date.fromisoformat(value)
             return None
         if TS_DATETIME.fullmatch(value):
-            datetime.datetime.fromisoformat(value.upper())
+            datetime.datetime.fromisoformat(value.upper()).astimezone(utc)
             return None
-    except ValueError:
+    # ValueError: Feb 30, hour 24. OverflowError: an impossible instant, such as
+    # `0001-01-01T00:00:00+05:00`, which falls before year 1 once read in UTC.
+    except (ValueError, OverflowError):
         return "impossible"
     return "no_offset" if TS_NO_OFFSET.fullmatch(value) else "invalid"
 
@@ -456,10 +505,12 @@ def check_path_field(where: str, value, path: Path, bundle: Path, rel: str,
     that exists only relative to the bundle root is the v0.2 reading (§6.2, §12.1):
     tolerated for a bundle that declares 0.2 or earlier, with a nudge to `/`.
     `may_be_opaque` marks `resource` fields, which can be a scope descriptor or an
-    identifier rather than a path: a missing target is reported only when the
-    value reads as a bundle path.
+    identifier rather than a path: they are checked only when `names_bundle_path`
+    reads them as one.
     """
     if not isinstance(value, str):
+        return
+    if may_be_opaque and not names_bundle_path(value, path.parent, bundle, legacy):
         return
     status, bare = path_status(value, path.parent, bundle)
     if status in ("external", "ok"):
@@ -475,8 +526,6 @@ def check_path_field(where: str, value, path: Path, bundle: Path, rel: str,
         report.warn(rel, f"§6.2 `{where}` `{shown}` names no file from this file's "
                          f"directory. Both path forms are valid (§13.2): if the "
                          f"bundle-root file is meant, did you mean `/{shown}`?")
-        return
-    if may_be_opaque and not BUNDLE_PATHISH.search(unquote(bare)):
         return
     report.warn(rel, f"§6.2 `{where}` points at `{shown}`, which does not exist")
 
@@ -543,16 +592,21 @@ def check_concept(path: Path, rel: str, bundle: Path, report: Report, *,
         check_computation(meta, rel, report)
     for slot, where, value in path_field_slots(meta):
         check_path_field(where, value, path, bundle, rel, report, legacy,
-                         may_be_opaque=slot[0] in ("resource", "sources"))
+                         may_be_opaque=is_opaque_slot(slot))
 
 
 def check_actor(value, where: str, rel: str, report: Report) -> None:
     """§7 — the actor convention shared by `generated.by`, `verified[].by` and
     `sources[].author`."""
-    actor = scalar_text(value).strip()
+    raw = scalar_text(value)
+    actor = raw.strip()
     if not actor:
         return
-    if ACTOR_HUMANISH.match(actor) and not actor.startswith(("human:", "process:")):
+    if actor != raw:
+        report.warn(rel, f"§7 `{where}` `{show(raw)}` has leading or trailing whitespace, "
+                         f"a near-miss: consumers match `human:` exactly, so ` human:a` "
+                         f"reads as non-human")
+    elif ACTOR_HUMANISH.match(actor) and not actor.startswith(("human:", "process:")):
         report.warn(rel, f"§7 `{where}` `{show(actor)}` is a near-miss of "
                          f"`human:`/`process:` — §5.3 keys trust tiers off that exact "
                          f"lowercase prefix, so this silently reads as an agent")
@@ -696,6 +750,24 @@ def check_sources(meta: dict, body: str, rel: str, report: Report) -> None:
         report.warn(rel, f"§5.1 footnote `[^{show(label)}]` matches no `sources[].id`")
 
 
+def reserved_block(raw: str) -> tuple[str, dict]:
+    """Classify the leading `---` block of an index.md below the root or a log.md.
+
+    Those files carry no frontmatter (§8, §9). Returns ("empty", {}) when the block
+    holds nothing YAML can see (blank, or `---` rules around a markdown heading,
+    which parses as comments), ("invalid", {}) when it is not a YAML mapping, which
+    breaks §11.1 rule 1 like any other frontmatter block, and ("mapping", meta)
+    for real frontmatter, which breaks §11.1 rule 2.
+    """
+    try:
+        meta = load_frontmatter(raw)
+    except yaml.YAMLError:
+        return "invalid", {}
+    if is_empty(meta):
+        return "empty", {}
+    return ("mapping", meta) if isinstance(meta, dict) else ("invalid", {})
+
+
 def check_index(path: Path, rel: str, is_root: bool, report: Report) -> None:
     report.indexes += 1
     text = _read_text(path, rel, report)
@@ -706,8 +778,19 @@ def check_index(path: Path, rel: str, is_root: bool, report: Report) -> None:
         return
     if not is_root:
         # §8 says it outright and §11.1 rule 2 makes §8 a conformance rule.
-        report.err(rel, "§8 an index.md below the bundle root has no frontmatter: remove "
-                        "the block (§11.1 rule 2)")
+        kind, meta = reserved_block(raw)
+        if kind == "empty":
+            return  # a file that merely opens with `---` rules has no frontmatter
+        if kind == "invalid":
+            report.err(rel, "§11.1 the leading `---` block is not a YAML mapping, and an "
+                            "index.md below the bundle root has no frontmatter (§8): remove it")
+        elif "okf_version" in meta:
+            report.err(rel, "§8 an index.md below the bundle root has no frontmatter, and "
+                            "this one declares `okf_version`: it looks like a nested bundle "
+                            "root, so validate that directory separately (§11.1 rule 2)")
+        else:
+            report.err(rel, "§8 an index.md below the bundle root has no frontmatter: "
+                            "remove the block (§11.1 rule 2)")
         return
     try:
         meta = load_frontmatter(raw)
@@ -763,14 +846,26 @@ def check_log(path: Path, rel: str, report: Report) -> None:
         return
     # Both are §9 MUSTs, so §11.1 rule 2 makes them conformance errors.
     raw, body = split_frontmatter(text)
-    if raw is not None:
+    kind = reserved_block(raw)[0] if raw is not None else "none"
+    if kind == "mapping":
         report.err(rel, "§9 log.md has no frontmatter: remove the block (§11.1 rule 2)")
+    elif kind == "invalid":
+        report.err(rel, "§11.1 the leading `---` block is not a YAML mapping, and log.md "
+                        "has no frontmatter (§9): remove it")
+    elif kind == "empty":
+        body = text  # leading `---` rules are markdown: every heading counts
     for line in strip_fences(body):
         if line.startswith("## "):
             heading = line[3:].strip()
-            if timestamp_problem(heading) is not None or not ISO_DATE.fullmatch(heading):
+            if ISO_DATE.fullmatch(heading) and timestamp_problem(heading) is None:
+                continue
+            if DATE_LIKE_HEADING.fullmatch(heading):
                 report.err(rel, f"§9 date heading `{show(heading)}` is not an ISO 8601 "
                                 f"`YYYY-MM-DD` date (§11.1 rule 2)")
+            else:
+                report.warn(rel, f"§9 heading `## {show(heading)}` is not a `YYYY-MM-DD` "
+                                 f"date heading: §9 groups log.md entries under ISO 8601 "
+                                 f"date headings, so use `###` or a date if this is one")
 
 
 def collect_link_targets(path: Path) -> list[str]:
@@ -983,7 +1078,17 @@ def _same_except(a, b, skip: set, memo: dict, path: tuple = ()) -> bool:
     return a == b
 
 
-def root_prefix_path_fields(raw: str, meta: dict, path: Path, bundle: Path) -> tuple[str, bool]:
+def pending_path_slots(meta: dict, path: Path, bundle: Path) -> list[tuple[tuple, str, str]]:
+    """The path field slots of a legacy-bundle concept that resolve only from the
+    root, so v0.3 needs them written `/<path>`. An opaque `resource` /
+    `sources[].resource` (`names_bundle_path`) is not a path and never pending."""
+    return [(slot, where, value) for slot, where, value in path_field_slots(meta)
+            if (not is_opaque_slot(slot) or names_bundle_path(value, path.parent, bundle, True))
+            and path_status(value, path.parent, bundle)[0] == "root_only"]
+
+
+def root_prefix_path_fields(raw: str, meta: dict, path: Path,
+                            bundle: Path) -> tuple[str, list[str]]:
     """Prefix `/` to block-style path fields that only resolve from the bundle root.
 
     v0.2 resolved a bare path field from the bundle root, v0.3 from the file's own
@@ -992,15 +1097,21 @@ def root_prefix_path_fields(raw: str, meta: dict, path: Path, bundle: Path) -> t
     comments preserved. Flow-style mappings are left alone: the validator keeps
     warning about them, which is the prompt to fix them by hand.
 
-    Returns (raw, refused). The rewrite is accepted only when the new frontmatter
-    parses to the old mapping with exactly the rewritten root-only values turned
-    from `v` into `/v`. Anything else (a block scalar line that looked like a
-    field, an odd indentation) keeps the original text and reports a refusal.
+    Returns (raw, refusal reasons). The rewrite is accepted only when the new
+    frontmatter parses to the old mapping with exactly the rewritten root-only
+    values turned from `v` into `/v`. Anything else (a block scalar line that
+    looked like a field, an odd indentation) keeps the original text and reports a
+    refusal. A value with leading or trailing whitespace is never rewritten: where
+    the `/` goes is a guess, so it is left, reported and stays pending.
     """
-    slots = [(p, v) for p, _, v in path_field_slots(meta)
-             if path_status(v, path.parent, bundle)[0] == "root_only"]
+    pending = pending_path_slots(meta, path, bundle)
+    padded = [(where, v) for _, where, v in pending if v != v.strip()]
+    reasons = [f"`{where}` `{show(v)}` has leading or trailing whitespace: not "
+               f"rewritten, strip it and add the leading `/` by hand" for where, v in padded]
+    slots = [(p, v) for p, _, v in pending if v == v.strip()]
     if not slots:
-        return raw, False
+        return raw, reasons
+    wanted = {v for _, v in slots}
     lines = raw.split("\n")
     rewritten = 0
     for i in path_field_lines(lines, is_computation(meta)):
@@ -1008,23 +1119,53 @@ def root_prefix_path_fields(raw: str, meta: dict, path: Path, bundle: Path) -> t
         if not m:
             continue
         value = m.group("qv") if m.group("q") else m.group("bv")
-        if path_status(value, path.parent, bundle)[0] != "root_only":
+        if value not in wanted:
             continue
         quote = m.group("q") or ""
         lines[i] = f"{m.group('head')}{quote}/{value}{quote}{m.group('tail')}"
         rewritten += 1
     if not rewritten:
-        return raw, False
+        return raw, reasons
     new_raw = "\n".join(lines)
+    refusal = ("path fields not rewritten: the rewrite would change more than the "
+               "`/` prefix once parsed, so add it by hand")
     try:
         after = load_frontmatter(new_raw)
     except yaml.YAMLError:
-        return raw, True
+        return raw, reasons + [refusal]
     changed = {p for p, v in slots if _at(after, p) == "/" + v}
     if isinstance(after, dict) and len(changed) == rewritten \
             and _same_except(meta, after, changed, {}):
-        return new_raw, False
-    return raw, True
+        return new_raw, reasons
+    return raw, reasons + [refusal]
+
+
+def hoist_timestamp(raw: str, meta: dict) -> tuple[str, str | None]:
+    """Turn a v0.1 top-level `timestamp` into `generated: {by, at}` (Appendix B).
+
+    Only when the parsed frontmatter has a top-level `timestamp` and no
+    `generated`. Textual, so the result is re-parsed and accepted only when it has
+    `generated.at` equal to the old `timestamp`, `generated.by` the migrate actor,
+    no `timestamp`, and every other key unchanged and in place. Returns
+    (raw, refusal reason or None).
+    """
+    if not isinstance(meta, dict) or "timestamp" not in meta or "generated" in meta:
+        return raw, None
+    hoisted = TIMESTAMP.sub(
+        lambda m: f"generated:\n  by: {MIGRATE_ACTOR}\n  at: {m.group(1)}", raw, count=1)
+    refusal = ("`timestamp` not hoisted: the rewrite would change more than that once "
+               "parsed, so write `generated: {by, at}` by hand")
+    try:
+        after = load_frontmatter(hoisted)
+    except yaml.YAMLError:
+        return raw, refusal
+    memo: dict = {}
+    gen = after.get("generated") if isinstance(after, dict) else None
+    ok = isinstance(gen, dict) and list(gen) == ["by", "at"] \
+        and gen["by"] == MIGRATE_ACTOR and _same(meta["timestamp"], gen["at"], memo) \
+        and list(after) == ["generated" if k == "timestamp" else k for k in meta] \
+        and all(_same(meta[k], after[k], memo) for k in meta if k != "timestamp")
+    return (hoisted, None) if ok else (raw, refusal)
 
 
 @dataclass
@@ -1038,6 +1179,8 @@ class Migration:
     pending: list[str] = field(default_factory=list)
     # `rel: reason`: files the rewrite left untouched on purpose
     refused: list[str] = field(default_factory=list)
+    # "`old` to `new`": plugin keys renamed in the root index.md
+    renamed_keys: list[str] = field(default_factory=list)
 
 
 def migrate_concept(text: str, path: Path, bundle: Path, legacy: bool,
@@ -1062,31 +1205,32 @@ def migrate_concept(text: str, path: Path, bundle: Path, legacy: bool,
         return None, None
     if concept_type(meta) is None:
         return None, None
-    new_raw, new_body, refused = raw, body, False
+    new_raw, new_body, reasons = raw, body, []
     if legacy:
-        new_raw, refused = root_prefix_path_fields(raw, meta, path, bundle)
-    if "generated" not in meta:
-        hoisted = TIMESTAMP.sub(
-            lambda m: f"generated:\n  by: {MIGRATE_ACTOR}\n  at: {m.group(1)}",
-            new_raw, count=1)
-        result.hoisted_timestamp |= hoisted != new_raw
-        new_raw = hoisted
+        new_raw, reasons = root_prefix_path_fields(raw, meta, path, bundle)
+    # Re-read after the path rewrite, which root_prefix_path_fields accepted only
+    # when it parses back, so the hoist is checked against what it actually edits.
+    hoisted, refusal = hoist_timestamp(new_raw, meta if new_raw == raw else load_frontmatter(new_raw))
+    result.hoisted_timestamp |= hoisted != new_raw
+    new_raw = hoisted
+    reasons += [refusal] if refusal else []
     if "sources" not in meta:
         new_raw, cited = citations_to_sources(new_raw, new_body)
         result.hoisted_citations |= cited != new_body
         new_body = cited
-    reason = ("path fields not rewritten: the rewrite would change more than the "
-              "`/` prefix once parsed, so add it by hand") if refused else None
+    reason = ". ".join(reasons) or None
     if (new_raw, new_body) == (raw, body):
         return None, reason
     return opener + new_raw + closer + new_body, reason
 
 
-def migrate_root_index(text: str, bump: bool) -> tuple[str | None, str | None]:
+def migrate_root_index(text: str, bump: bool,
+                       renamed: list[str] | None = None) -> tuple[str | None, str | None]:
     """Rename the deprecated plugin keys and, when `bump`, set `okf_version` to 0.3.
 
     Same contract as `root_prefix_path_fields`: accepted only when the new
-    frontmatter parses to the old mapping with exactly those changes.
+    frontmatter parses to the old mapping with exactly those changes. The accepted
+    renames are appended to `renamed` as `old -> new`.
     """
     parts = frontmatter_parts(text)
     if parts is None:
@@ -1122,6 +1266,8 @@ def migrate_root_index(text: str, bump: bool) -> tuple[str | None, str | None]:
     if not ok:
         return None, ("root index not rewritten: renaming the plugin keys or bumping "
                       "`okf_version` would change more than that once parsed")
+    if renamed is not None:
+        renamed.extend(f"`{old}` to `{new}`" for old, new in renames.items())
     return opener + new_raw + closer + body, None
 
 
@@ -1166,10 +1312,9 @@ def root_only_path_fields(bundle: Path) -> list[str]:
         if concept_type(meta) is None:
             continue
         rel = path.relative_to(bundle).as_posix()
-        for _, where, value in path_field_slots(meta):
-            status, bare = path_status(value, path.parent, bundle)
-            if status == "root_only":
-                pending.append(f"{rel}: `{where}` `{show(bare)}` → `/{show(bare)}`")
+        for _, where, value in pending_path_slots(meta, path, bundle):
+            bare = path_status(value, path.parent, bundle)[1]
+            pending.append(f"{rel}: `{where}` `{show(bare)}` → `/{show(bare)}`")
     return pending
 
 
@@ -1196,10 +1341,12 @@ def migrate(bundle: Path) -> Migration:
     if index.is_file():
         bump = legacy and not result.pending
         before = declared_version(bundle)
-        changed, note = _rewrite_file(index, lambda text: migrate_root_index(text, bump))
+        renamed: list[str] = []
+        changed, note = _rewrite_file(index, lambda text: migrate_root_index(text, bump, renamed))
         if changed:
             result.changed.append("index.md")
             result.bumped = bump and declared_version(bundle) != before
+            result.renamed_keys = renamed
         if note:
             result.refused.append(f"index.md: {note}")
     return result
@@ -1273,7 +1420,7 @@ def main() -> int:
             "warnings": r.warnings,
             "migrated": mig.changed,
             "migration": {"bumped": mig.bumped, "pending": mig.pending,
-                          "refused": mig.refused},
+                          "refused": mig.refused, "renamed_keys": mig.renamed_keys},
         }, indent=2))
         return 0 if not failed else 1
 
@@ -1291,6 +1438,10 @@ def main() -> int:
                   f" run --migrate again:")
             for item in mig.pending:
                 print(f"    {item}")
+        if mig.renamed_keys:
+            print(f"  note: renamed {', '.join(mig.renamed_keys)}."
+                  f" Collaborators on okf-skills 0.12 or older must update the plugin:"
+                  f" older Stop hooks read only the old key.")
         if mig.hoisted_citations:
             print("  note: per-claim attribution (the `[^id]` footnotes of §5.1) is not"
                   " recoverable from a v0.1 `# Citations` list. The sources moved up, but"

@@ -38,9 +38,15 @@ Interpret the result:
   - rule 1: a frontmatter block that is not valid YAML, is not a mapping,
     repeats a key, or holds a value no parser can build (an impossible date such
     as `2026-02-30`, nesting too deep) (§4).
-  - rule 2: an `index.md` below the bundle root with frontmatter (§8), a
-    `log.md` with frontmatter, or a `log.md` `## ` heading that is not an ISO
-    8601 `YYYY-MM-DD` date (§9).
+  - rule 2: an `index.md` below the bundle root or a `log.md` whose leading
+    block parses as a non-empty YAML mapping (§8, §9: they have no
+    frontmatter). A leading block that is not a mapping at all breaks
+    rule 1. Only `---` horizontal rules around markdown that YAML reads as
+    empty (a heading, nothing) are fine. A subdirectory
+    `index.md` declaring `okf_version` looks like a nested bundle root:
+    validate that directory separately. Also a `log.md` `## ` heading that
+    looks like a date but is not ISO 8601 `YYYY-MM-DD` (`22/05/2026`,
+    `May 22, 2026`, `2026-5-2`, `2026-13-45`, §9).
   - a file the checker cannot read as UTF-8.
 - **warn** → soft guidance. Never blocks without a gate. Fix when cheap. It
   covers:
@@ -59,15 +65,20 @@ Interpret the result:
     `status`, matched exactly so ` stable ` or `false` is unknown (consumers
     treat it as not current, §5.4), `superseded_by` on a
     concept that is not deprecated, a footnote naming no source (§5.1).
-  - an actor that misses the §7 shapes.
+  - an actor that misses the §7 shapes, or carries leading or trailing
+    whitespace.
+  - a `log.md` `## ` heading that is not a date at all (`## Unreleased`,
+    `## 2026-05-21 (hotfix)`): §9 constrains date headings only.
   - an Attested Computation missing `runtime`, or a `parameters` entry without
     `name` and `type` (§10.2).
   - a path field (§6.2) that resolves nowhere: `superseded_by`, and on an
     Attested Computation `computation`, `executor.resource`, `attester.resource`.
     Top-level `resource` and `sources[].resource` are checked too, but since
-    they may be a URI, a scope descriptor or an opaque identifier, a missing
-    target is reported only when the value reads as a bundle path (a leading
-    `/`, `./` or `../`, or a file extension such as `.md`, `.py`, `.sql`).
+    they may be a URI, a scope descriptor or an opaque identifier, they are
+    paths only when rooted or dot-relative (`/`, `./`, `../`), or when they
+    have no whitespace and name an existing file (not a directory) from the
+    file's directory or, in a legacy bundle, from the root. Anything else
+    (`proj.ds.users`, `example.com`) is opaque and never warned about.
   - a root `index.md` with an unquoted `okf_version`, a key outside §8.1 that
     does not use the `x-` extension prefix, or a declared `okf_version` other
     than `"0.3"`: older ones are checked with the §12.1 fallbacks, newer ones
@@ -117,10 +128,13 @@ What it does, on concepts only (frontmatter with a string `type`):
   `resource` and `superseded_by`, each `sources[].resource`, and on an Attested
   Computation `computation` and the direct `resource` child of `executor` /
   `attester`. A bundle that already declares 0.3 gets no path rewrite.
-- Hoists a v0.1 `timestamp` to `generated: { by: process:okf-migrate, at }`
-  and lifts a v0.1 `# Citations` list into `sources`.
+- Hoists a v0.1 top-level `timestamp` to `generated: { by: process:okf-migrate, at }`
+  when there is no `generated`, and lifts a v0.1 `# Citations` list into `sources`.
+  An opaque `resource` (see above) is never rewritten.
 - In the root `index.md`, renames `upkeep` / `recursive` to
-  `x-okf-skills-upkeep` / `x-okf-skills-recursive`, and bumps a declared
+  `x-okf-skills-upkeep` / `x-okf-skills-recursive` (collaborators on
+  okf-skills 0.12 or older must then update the plugin: older Stop hooks read
+  only the old key), and bumps a declared
   `okf_version` of 0.1 or 0.2 to `"0.3"` (a trailing comment is kept), but
   only once no root-only path field remains anywhere in the bundle. Otherwise
   the version stays, the remaining fields are listed, and `--strict` fails.
@@ -129,8 +143,9 @@ What it does, on concepts only (frontmatter with a string `type`):
 What it refuses to rewrite, with a warning naming the file: a concept whose
 rewritten frontmatter would parse to anything other than the original with
 just the `/` added (the guard against block scalar text or odd indentation
-that looks like a field), a root index with the same problem, and a file that
-mixes CRLF and LF line endings. It never renames a plugin key onto one that
+that looks like a field), a `timestamp` hoist with the same problem, a path
+value with leading or trailing whitespace (it stays pending), a root index with
+the same problem, and a file that mixes CRLF and LF line endings. It never renames a plugin key onto one that
 already exists.
 
 Limits worth repeating to the user: path fields written in flow style

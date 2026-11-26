@@ -16,6 +16,9 @@ Run:  uv run tests/test_conformance_parity.py
 """
 from __future__ import annotations
 
+import json
+import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -213,7 +216,8 @@ class TimestampParity(ParityBase):
     """R5, R12: one timestamp grammar for every tool."""
 
     INVALID = ("2099-01-01T00:00Z", "2099-01-01T00:00:00+0000", "2099-01-01T00:00:00+05",
-               "2099-01-01T24:00:00Z", "2099-02-30", " 2099-01-01", "2099-01-01T00:00:00")
+               "2099-01-01T24:00:00Z", "2099-02-30", " 2099-01-01", "2099-01-01T00:00:00",
+               "0001-01-01T00:00:00+05:00", "9999-12-31T23:59:59-05:00")
     VALID = ("2099-01-01", "2099-01-01T00:00:00Z", "2099-01-01t00:00:00z",
              "2099-01-01 00:00:00.5+05:00", "2000-01-01T00:00:00-01:00")
 
@@ -231,6 +235,13 @@ class TimestampParity(ParityBase):
                       if any("stale_after" in m and "§5" in m for m in self.messages(r, f"{name}.md"))}
             self.assertEqual(warned, set(self.INVALID))
 
+    def test_native_out_of_range_instant(self):
+        self.write("c.md", concept("stale_after: 0001-01-01T00:00:00+05:00\n"))
+        r = self.read()
+        self.assertEqual(r.mcp["c"]["stale"], "malformed")
+        with self.subTest(validator="impossible instant"):
+            self.assertTrue([m for m in self.messages(r, "c.md") if "no real date" in m])
+
     def test_verified_at_variants_drive_the_tier(self):
         gen = 'generated: {by: a, at: "2026-01-01T00:00:00Z"}\n'
         for i, v in enumerate(self.INVALID[:3]):
@@ -242,6 +253,14 @@ class TimestampParity(ParityBase):
         self.assertEqual({c: r.mcp[c]["tier"] for c in r.mcp},
                          {"bad0": "unverified", "bad1": "unverified", "bad2": "unverified",
                           "good": "human-reviewed", "nogen": "human-reviewed"})
+
+    def test_a_padded_human_actor_is_not_human_and_is_warned(self):
+        self.write("c.md", concept('verified: {by: " human:a", at: "2026-01-02"}\n'))
+        r = self.read()
+        self.assertEqual(r.mcp["c"]["tier"], "machine-confirmed")
+        with self.subTest(validator="near-miss warning"):
+            self.assertTrue([m for m in self.messages(r, "c.md")
+                             if "consumers match `human:` exactly" in m])
 
 
 class VersionAndResolutionParity(ParityBase):
@@ -275,6 +294,71 @@ class VersionAndResolutionParity(ParityBase):
         self.assertIn(("s", "t"), r.mcp_edges)
         with self.subTest(validator="missing resource warned"):
             self.assertTrue([m for m in self.messages(r, "gone.md") if "§6.2" in m])
+
+
+class OpaqueResourceParity(ParityBase):
+    """R9 with the `names_bundle_path` predicate: an opaque `resource` is no path."""
+
+    def test_opaque_values_are_neither_warned_nor_edges(self):
+        self.write("sales/a.md", concept("resource: proj.ds.users\nsources:\n"
+                                         "  - resource: all queries in BigQuery project acme.prod\n"
+                                         "  - resource: example.com\n  - resource: sales\n"))
+        self.write("t/b.md", concept("resource: ../sales\n"))
+        self.write("sales.md", concept())
+        r = self.read()
+        self.assertEqual({e for e in r.mcp_edges if e[0] == "sales/a"}, set())
+        with self.subTest(validator="no path warning"):
+            self.assertEqual([m for m in self.messages(r, "sales/a.md") if "§6.2" in m], [])
+
+    def test_a_dotdot_through_a_missing_directory(self):
+        self.write("index.md", '---\nokf_version: "0.2"\n---\n\n# b\n')
+        self.write("d/b.md", concept())
+        self.write("b.md", "no frontmatter\n")
+        self.write("d/a.md", concept("status: deprecated\nsuperseded_by: x/../b.md\n"))
+        r = self.read()
+        self.assertIn(("d/a", "d/b"), r.mcp_edges)
+        with self.subTest(validator="resolves locally, no warning"):
+            self.assertEqual([m for m in self.messages(r, "d/a.md") if "§6.2" in m], [])
+
+
+class SharedSourceParity(unittest.TestCase):
+    """The consumers' shared helper block is the same text in both scripts."""
+
+    BEGIN = "# --- shared OKF consumer rules:"
+    END = "# --- end shared OKF consumer rules ---"
+
+    def block(self, rel: str) -> str:
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        start, stop = text.find(self.BEGIN), text.find(self.END)
+        self.assertTrue(0 <= start < stop, f"markers missing in {rel}")
+        return text[start:stop]
+
+    def test_blocks_are_byte_identical(self):
+        self.assertEqual(self.block("servers/okf_mcp.py"),
+                         self.block("skills/visualize/scripts/okf_visualize.py"))
+
+
+class PageStaleParity(ParityBase):
+    """R12: the page's own `staleOf`, run under node, matches `view_stale`."""
+
+    def test_stale_of_in_the_page(self):
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("node is not on PATH")
+        out = self.bundle / "viz.html"
+        self.write("c.md", concept())
+        okf_visualize.render(self.bundle, out)
+        m = re.search(r"const staleOf=[^\n]*?;(?=\n|function)", out.read_text(encoding="utf-8"))
+        self.assertIsNotNone(m, "staleOf not found in the page")
+        cases = {"stale": "2000-01-01T00:00:00.000Z", "fresh": "2999-01-01T00:00:00.000Z",
+                 "malformed": "malformed", "": ""}
+        script = m.group(0) + f"\nconsole.log(JSON.stringify({json.dumps(list(cases.values()))}" \
+                              ".map(s=>staleOf({stale_at:s}))));"
+        got = subprocess.run([node, "-e", script], capture_output=True, text=True,
+                             timeout=10, check=True).stdout
+        self.assertEqual(json.loads(got), list(cases))
+        now = datetime.now(UTC)
+        self.assertEqual([view_stale(v, now) for v in cases.values()], list(cases))
 
 
 class LinkParity(ParityBase):

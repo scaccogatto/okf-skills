@@ -443,6 +443,33 @@ class SharedRulesTest(V03Base):
         (self.bundle / "deep" / "sibling.md").mkdir()  # a directory exists too
         self.assertEqual(self.out("deep/f"), set())
 
+    def test_an_instant_out_of_range_in_utc_is_malformed_not_a_crash(self):
+        for raw in ("'0001-01-01T00:00:00+05:00'", "'9999-12-31T23:59:59-05:00'",
+                    "0001-01-01T00:00:00+05:00"):
+            with self.subTest(stale_after=raw):
+                write(self.bundle, "c.md", concept(f"title: x\nstale_after: {raw}\n"))
+                self.assertEqual(self.cards()["c"]["stale"], "malformed")
+        write(self.bundle, "c.md", concept(
+            'title: x\nverified: {by: "human:a", at: "9999-12-31T23:59:59-05:00"}\n'))
+        self.assertEqual(self.cards()["c"]["tier"], "unverified")
+
+    def test_a_dotdot_through_a_missing_directory_is_normalized(self):
+        write(self.bundle, "d/b.md", concept("title: x\n"))
+        write(self.bundle, "b.md", "no frontmatter\n")
+        write(self.bundle, "d/a.md", concept("title: x\nstatus: deprecated\nsuperseded_by: x/../b.md\n"))
+        self.assertEqual(self.out("d/a"), {"d/b"})
+
+    def test_an_opaque_resource_is_never_an_edge(self):
+        write(self.bundle, "index.md", '---\nokf_version: "0.2"\n---\n')
+        write(self.bundle, "sales.md", concept("title: x\n"))
+        write(self.bundle, "sales/x.md", concept("title: x\n"))
+        write(self.bundle, "t/b.md", concept("title: x\nresource: sales\nsources:\n"
+                                             "  - resource: all of sales.md\n"
+                                             "  - resource: sales.md\n"))
+        self.assertEqual(self.out("t/b"), {"sales"})
+        write(self.bundle, "t/b.md", concept("title: x\nsources:\n  - resource: all of sales.md\n"))
+        self.assertEqual(self.out("t/b"), set())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

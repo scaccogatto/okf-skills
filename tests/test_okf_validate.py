@@ -526,6 +526,29 @@ class TestCheckIndex(TmpBundle):
         r = self.run_check(check_index, "index.md", True)
         self.assertIn("not valid YAML", r.errors[0])
 
+    def test_non_root_rules_around_a_heading_are_not_frontmatter(self):
+        for text in ("---\n# Section\n---\n* [a](../a.md)\n", "---\n---\n# S\n"):
+            self.write("sub/index.md", text)
+            r = self.run_check(check_index, "sub/index.md", False)
+            self.assertEqual(r.errors, [], text)
+
+    def test_non_root_non_mapping_block_breaks_rule_1(self):
+        # A leading `---` block YAML can see but that is not a mapping is still a
+        # frontmatter block, and §11.1 rule 1 requires every one to be a mapping.
+        for name, check, args in (("sub/index.md", check_index, (False,)),
+                                  ("log.md", check_log, ())):
+            for text in ("---\n- a\n---\n", "---\nkey: [\n---\n"):
+                self.write(name, text)
+                r = self.run_check(check, name, *args)
+                self.assertEqual(len(r.errors), 1, (name, text, r.errors))
+                self.assertIn("§11.1", r.errors[0])
+
+    def test_a_nested_bundle_root_is_named(self):
+        self.write("sub/index.md", "---\nokf_version: '0.3'\ntitle: nested\n---\n")
+        r = self.run_check(check_index, "sub/index.md", False)
+        self.assertIn("nested bundle root", r.errors[0])
+        self.assertIn("validate that directory separately", r.errors[0])
+
     def test_no_frontmatter_is_clean(self):
         self.write("sub/index.md", "# Plain index\n")
         r = self.run_check(check_index, "sub/index.md", False)
@@ -538,11 +561,32 @@ class TestCheckLog(TmpBundle):
         r = self.run_check(check_log, "log.md")
         self.assertEqual((r.errors, r.warnings, r.logs), ([], [], 1))
 
-    def test_non_iso_heading_is_an_error(self):
-        for heading in ("January 2026", "2026-13-45", "2026-1-5"):
+    def test_a_date_in_another_form_is_an_error(self):
+        for heading in ("22/05/2026", "May 22, 2026", "22 May 2026", "September 3 2026",
+                        "2026-5-2", "2026-13-45", "22.05.2026", "2026-1-5"):
             self.write("log.md", f"## {heading}\n")
             r = self.run_check(check_log, "log.md")
+            self.assertEqual(len(r.errors), 1, heading)
             self.assertIn("not an ISO 8601", r.errors[0], heading)
+
+    def test_a_heading_that_is_not_a_date_is_a_warning(self):
+        # §9 constrains date headings, not every `## ` heading.
+        for heading in ("Unreleased", "2026-05-21 (hotfix)", "January 2026", "v1.2"):
+            self.write("log.md", f"## {heading}\n")
+            r = self.run_check(check_log, "log.md")
+            self.assertEqual(r.errors, [], heading)
+            self.assertIn("§9 heading", r.warnings[0], heading)
+
+    def test_an_iso_heading_is_clean(self):
+        self.write("log.md", "# Log\n\n## 2026-05-22\n* x\n\n### 2026-13-45\n")
+        r = self.run_check(check_log, "log.md")
+        self.assertEqual((r.errors, r.warnings), ([], []))
+
+    def test_leading_horizontal_rules_are_not_frontmatter(self):
+        self.write("log.md", "---\n\n# Log\n\n---\n\n## 2026-05-22\n## 22/05/2026\n")
+        r = self.run_check(check_log, "log.md")
+        self.assertEqual(len(r.errors), 1, r.errors)
+        self.assertIn("22/05/2026", r.errors[0])
 
     def test_frontmatter_is_an_error(self):
         self.write("log.md", "---\ntype: Log\n---\n## 2026-01-01\n")
@@ -840,6 +884,18 @@ class TestSharedRules(TmpBundle):
         for ok in ('"2026-01-01t10:00:00z"', '"2026-01-01 10:00:00Z"', '"2028-02-29"'):
             self.assertEqual(self.concept(f"stale_after: {ok}\n").warnings, [], ok)
 
+    def test_r5_an_instant_out_of_range_in_utc_is_impossible(self):
+        for bad in ('"0001-01-01T00:00:00+05:00"', '"9999-12-31T23:59:59-05:00"',
+                    "0001-01-01T00:00:00+05:00"):
+            self.assertIn("names no real date, time or instant",
+                          self.warned(self.concept(f"stale_after: {bad}\n")), bad)
+        self.assertEqual(okf_validate.timestamp_problem("9999-12-31T23:59:59-05:00"), "impossible")
+
+    def test_r11_a_padded_actor_is_a_near_miss(self):
+        for meta in ('verified: { by: " human:a", at: "2026-01-02" }\n',
+                     'sources:\n  - resource: https://x\n    author: "human:a "\n'):
+            self.assertIn("consumers match `human:` exactly", self.warned(self.concept(meta)), meta)
+
     def test_r6_only_the_exact_vocabulary_is_a_known_status(self):
         for bad in ('" stable "', "false", "0", "Stable"):
             self.assertIn("unknown `status`", self.warned(self.concept(f"status: {bad}\n")), bad)
@@ -871,11 +927,13 @@ class TestSharedRules(TmpBundle):
         self.write("sub/local.sql", "select 1\n")
         for meta in ("resource: /references/att.py\n", "resource: local.sql\n",
                      "resource: https://x/y\n", "resource: projects/acme/tables/orders\n",
-                     "resource: acme-prod.sales.orders\n",
+                     "resource: acme-prod.sales.orders\n", "resource: gone.md\n",
+                     "resource: proj.ds.users\n", "resource: example.com\n",
                      "sources:\n  - resource: ../references/att.py\n",
-                     "sources:\n  - resource: all orders since 2024\n"):
+                     "sources:\n  - resource: all orders since 2024\n",
+                     "sources:\n  - resource: all queries in BigQuery project acme.prod\n"):
             self.assertEqual(self.concept(meta, rel="sub/c.md").warnings, [], meta)
-        for meta, label in (("resource: gone.md\n", "`resource`"),
+        for meta, label in (("resource: ./gone.md\n", "`resource`"),
                             ("resource: /gone\n", "`resource`"),
                             ("sources:\n  - resource: https://x\n  - resource: ./gone.sql\n",
                              "`sources[1].resource`"),
@@ -1039,6 +1097,56 @@ class TestMigrateHardening(TmpBundle):
         self.write("index.md", text)
         self.assertEqual(migrate(self.bundle).changed, [])
         self.assertEqual(self.read("index.md"), text)
+
+    def test_an_opaque_resource_naming_a_directory_is_left(self):
+        legacy_bundle(self)
+        self.write("sales/x.md", "---\ntype: A\n---\nb\n")
+        text = ("---\ntype: A\nresource: sales\nsources:\n  - resource: sales\n"
+                "  - resource: all orders in sales\n---\nb\n")
+        self.write("tables/orders.md", text)
+        m = migrate(self.bundle)
+        self.assertEqual((m.pending, m.refused), ([], []))
+        self.assertEqual(self.read("tables/orders.md"), text)
+        self.assertTrue(m.bumped)
+
+    def test_a_padded_path_value_is_left_and_pending(self):
+        legacy_bundle(self)
+        text = '---\ntype: A\nstatus: deprecated\nsuperseded_by: " references/att.py"\n---\nb\n'
+        self.write("sub/c.md", text)
+        m = migrate(self.bundle)
+        self.assertEqual(self.read("sub/c.md"), text)
+        self.assertIn("leading or trailing whitespace", m.refused[0])
+        self.assertEqual(len(m.pending), 1, m.pending)
+        self.assertFalse(m.bumped)
+
+    def test_timestamp_hoist_needs_a_top_level_key_and_no_generated(self):
+        for text in ('---\ntype: A\ndescription: "foo\ntimestamp: 2020-01-01\nbar"\n---\nb\n',
+                     "---\ntype: A\ngenerated:\ntimestamp: 2020-01-01\n---\nb\n"):
+            self.write("c.md", text)
+            m = migrate(self.bundle)
+            self.assertEqual((m.changed, m.hoisted_timestamp), ([], False), text)
+            self.assertEqual(self.read("c.md"), text)
+        self.write("c.md", "---\ntype: A\ntimestamp: 2025-01-01 # when\ntitle: t\n---\nb\n")
+        m = migrate(self.bundle)
+        self.assertTrue(m.hoisted_timestamp)
+        self.assertEqual(self.read("c.md"), "---\ntype: A\ngenerated:\n  by: process:okf-migrate\n"
+                                            "  at: 2025-01-01 # when\ntitle: t\n---\nb\n")
+
+    def test_a_timestamp_hoist_that_parses_differently_is_refused(self):
+        text = "---\ntype: A\ntimestamp: &t 2025-01-01\nx: *t\n---\nb\n"
+        self.write("c.md", text)
+        with mock.patch.object(okf_validate, "TIMESTAMP",
+                               okf_validate.re.compile(r"^timestamp:[ \t]*(&t)[ \t]*(.*)$",
+                                                       okf_validate.re.MULTILINE)):
+            m = migrate(self.bundle)
+        self.assertEqual(self.read("c.md"), text)
+        self.assertIn("`timestamp` not hoisted", m.refused[0])
+
+    def test_a_plugin_key_rename_tells_collaborators_to_update(self):
+        self.write("index.md", "---\nokf_version: '0.3'\nupkeep: enforced\n---\n")
+        out = subprocess.run([sys.executable, str(SCRIPT), str(self.bundle), "--migrate"],
+                             capture_output=True, text=True, check=False).stdout
+        self.assertIn("okf-skills 0.12 or older must update the plugin", out)
 
     def test_the_summary_claims_only_a_bump_that_happened(self):
         legacy_bundle(self)

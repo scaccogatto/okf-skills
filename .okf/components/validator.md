@@ -21,11 +21,21 @@ checks that the three agree.
 Errors:
 
 * every frontmatter block parses as a YAML mapping, including the root
-  `index.md`, subdirectory `index.md` files (which must have none, §8) and
-  `log.md` (which must have none, §9).
+  `index.md`.
+* a subdirectory `index.md` (§8) or a `log.md` (§9) whose leading block parses
+  as a non-empty YAML mapping: they have no frontmatter. A leading block that
+  is not a mapping at all breaks §11.1 rule 1 instead. `---` horizontal rules
+  around markdown that YAML reads as empty (a heading) are not flagged. A subdirectory `index.md`
+  declaring `okf_version` is named as a nested bundle root, to be validated
+  separately.
 * a duplicate key at any level, a value PyYAML cannot build (an impossible date
   such as `2026-02-30`) and runaway nesting are errors.
-* every `## ` heading of a `log.md` is a real ISO 8601 `YYYY-MM-DD` date.
+* a `## ` heading of a `log.md` that looks like a date in a non-ISO or
+  impossible form (`22/05/2026`, `May 22, 2026`, `2026-5-2`, `2026-13-45`): three
+  numeric groups joined by `/`, `-` or `.`, or an English month name next to a
+  1-2 digit day and a 4-digit year. Any other non-date heading (`## Unreleased`,
+  `## 2026-05-21 (hotfix)`) is a warning: §9 constrains date headings, not every
+  heading.
 * a file that is not UTF-8.
 
 A `.md` file without frontmatter, or whose `type` is not a non-empty string, is
@@ -40,8 +50,9 @@ All soft, all warnings: `generated.by` present when `generated` is, and every
 list). `status` is one of draft/stable/deprecated, and `superseded_by` resolves.
 Timestamps (`generated.at`, `verified[].at`, `stale_after`,
 `sources[].last_modified`, `usage_window`) must be real dates or RFC 3339
-date-times with an offset and seconds. A date-time without an offset, or an
-impossible date, is invalid.
+date-times with an offset and seconds. A date-time without an offset, an
+impossible date, or an instant outside years 1-9999 once read in UTC
+(`0001-01-01T00:00:00+05:00`) is invalid.
 Every `sources` entry has a `resource`, and a `usage_count` is framed by a
 `usage_window`. Every `[^label]` footnote names a `sources[].id` (code spans and
 fenced blocks are skipped, as CommonMark does, so a regex class like `[^a-z]` in
@@ -56,9 +67,11 @@ spec, and a concept with only `type` is conformant.
 Path fields follow §6: a value without a leading `/` resolves from its file's
 directory. They include `superseded_by`, the Attested Computation fields, and
 top-level `resource` and `sources[].resource`. Since those two may be a URI, a
-scope descriptor or an opaque identifier, a missing target is warned only when
-the value looks like a bundle path (a leading `/`, `./` or `../`, or a file
-extension). A bundle declaring `okf_version` 0.2 or none also gets the §12.1 root
+scope descriptor or an opaque identifier, they are paths only when rooted or
+dot-relative (`/`, `./`, `../`), or when they have no whitespace and name an
+existing file (not a directory) from the file's directory or, in a legacy
+bundle, from the root. Anything else (`proj.ds.users`, `example.com`) is opaque:
+no warning, no `--migrate` rewrite, no graph edge. A bundle declaring `okf_version` 0.2 or none also gets the §12.1 root
 fallback, so a legacy bundle is not flooded with warnings. External targets
 (a URI scheme) and targets outside the bundle root are not bundle paths.
 
@@ -81,22 +94,27 @@ Deliberately not a whitelist — the spec's own §5.1 example uses
 `author: team:ga4-docs`, so the `<prefix>:<id>` family is open. What is caught is
 the one failure that is silent: a near-miss of `human:`. `Human:dana` satisfies
 the generic shape and looks well-formed, while §5.3 keys trust tiers off that
-exact lowercase prefix and reads it as an agent. `humanoid_agent/v1` is not a
-near-miss and passes.
+exact lowercase prefix and reads it as an agent. An actor with leading or
+trailing whitespace (` human:a`) is a near-miss too, since consumers match
+`human:` exactly. `humanoid_agent/v1` is not a near-miss and passes.
 
 # Migration (`--migrate`)
 
 The only mode that writes. Rewrites v0.1 and v0.2 constructs in place to v0.3,
 on concepts only:
 
-* a `timestamp` becomes `generated: { by: process:okf-migrate, at }`, and a
-  `# Citations` list moves up into `sources`.
+* a top-level `timestamp` becomes `generated: { by: process:okf-migrate, at }`
+  when there is no `generated`, accepted only if the re-parsed result differs
+  by exactly that, and a `# Citations` list moves up into `sources`.
 * in a bundle declaring 0.2 or none, block-style path fields that were
   root-only under §12.1 get a `/` prefix: `superseded_by`, top-level `resource`,
   `sources[].resource` and the Attested Computation fields. Nothing that already
-  resolved from its own directory is touched.
+  resolved from its own directory is touched, nor an opaque `resource`, nor a
+  value with leading or trailing whitespace (left, warned, and still pending).
 * in the root index, `upkeep` and `recursive` are renamed to
-  `x-okf-skills-upkeep` and `x-okf-skills-recursive` (never onto an existing key).
+  `x-okf-skills-upkeep` and `x-okf-skills-recursive` (never onto an existing key),
+  with a note that collaborators on okf-skills 0.12 or older must update the
+  plugin, since older Stop hooks read only the old key.
 * `okf_version` is bumped to 0.3 only when no root-only path field remains in the
   bundle, otherwise the version stays and the leftovers are listed.
 
