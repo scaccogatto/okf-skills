@@ -138,6 +138,7 @@ recovered.
 | `warn`  | Soft guidance: spec-level (malformed family, broken link, legacy or deprecated field, skipped non-concept) and, with `--lint`, `okf-skills lint` (plugin house style such as missing recommended fields). |
 
 Exit code is non-zero on any error, or when warnings exceed the gate: `--strict`
-allows none, `--max-warnings N` allows N, the default allows any. The gate
+allows none, `--max-warnings N` allows N, the default allows any. When only the gate fails, the last line says so
+(`✓ conformant, but --strict allows no warnings (2 found)`). The gate
 counts emitted warnings, so lint counts only under `--lint`. `--json` emits
 machine-readable output for CI, including whether `lint` was on.

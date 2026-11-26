@@ -10,7 +10,7 @@
     {
       "name": "okf-skills",
       "source": "./",
-      "description": "Author, maintain, backfill, validate, visualize and serve (MCP) Open Knowledge Format (OKF) bundles.",
+      "description": "Independent community toolkit to author, maintain, validate and visualize Open Knowledge Format (OKF) bundles. Not the official OKF plugin.",
       "category": "documentation",
       "keywords": ["okf", "knowledge", "markdown", "agents"],
       "license": "MIT"

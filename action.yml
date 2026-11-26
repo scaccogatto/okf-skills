@@ -2,8 +2,8 @@
 # users, and orgs; the description must be under 125 characters.
 name: OKF Bundle Validator
 description: >-
-  Check that an Open Knowledge Format (OKF) bundle is conformant with the v0.3
-  spec. Deterministic, no account, no network.
+  Check an OKF bundle against the v0.3 conformance rules. Independent community
+  tool. No account, no secrets.
 author: ekar.is
 branding:
   icon: check-circle
@@ -21,9 +21,13 @@ inputs:
   max-warnings:
     description: >-
       Fail if warnings exceed this count. Leave empty to allow any number, which
-      is the default — errors still fail the run.
+      is the default. Errors still fail the run.
     required: false
     default: ""
+  lint:
+    description: Add the okf-skills house-style warnings (passes --lint). Optional, not spec.
+    required: false
+    default: "false"
 
 outputs:
   report:
@@ -41,6 +45,7 @@ runs:
         OKF_BUNDLE: ${{ inputs.bundle }}
         OKF_STRICT: ${{ inputs.strict }}
         OKF_MAX_WARNINGS: ${{ inputs['max-warnings'] }}
+        OKF_LINT: ${{ inputs.lint }}
       # Inputs travel through env rather than being interpolated into the script
       # body: a bundle path is caller-controlled, and `${{ }}` inside `run:` is
       # textual substitution, so a crafted value would run as shell.
@@ -53,13 +58,15 @@ runs:
         args=("$OKF_BUNDLE")
         if [ "$OKF_STRICT" = "true" ]; then args+=(--strict); fi
         if [ -n "$OKF_MAX_WARNINGS" ]; then args+=(--max-warnings "$OKF_MAX_WARNINGS"); fi
+        lint=()
+        if [ "$OKF_LINT" = "true" ]; then lint=(--lint); args+=(--lint); fi
 
         status=0
         uv run "$script" "${args[@]}" || status=$?
 
         {
           echo "report<<OKF_EOF"
-          uv run "$script" "$OKF_BUNDLE" --json || true
+          uv run "$script" "$OKF_BUNDLE" "${lint[@]}" --json || true
           echo "OKF_EOF"
         } >> "$GITHUB_OUTPUT"
 

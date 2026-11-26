@@ -1465,6 +1465,10 @@ def main() -> int:
         print(f"  \033[33m! warn \033[0m  {w}")
     if conformant and not r.warnings:
         print("  \033[32m✓ conformant — no issues\033[0m")
+    elif conformant and failed:
+        gate = "--strict allows no warnings" if args.strict \
+            else f"--max-warnings {max_warn} allows {max_warn}"
+        print(f"  \033[32m✓ conformant\033[0m, but \033[31m{gate}\033[0m ({len(r.warnings)} found)")
     elif conformant:
         print(f"  \033[32m✓ conformant\033[0m ({len(r.warnings)} warning(s))")
     else:

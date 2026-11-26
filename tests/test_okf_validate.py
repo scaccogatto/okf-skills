@@ -189,6 +189,20 @@ class TestCheckConcept(TmpBundle):
         self.assertTrue(report["conformant"])
         self.assertEqual(len(report["warnings"]), 4)
 
+    def test_a_warning_only_gate_failure_says_which_gate_failed(self):
+        self.write("c.md", "---\ntype: Policy\n---\nbody\n")
+        base = [sys.executable, str(SCRIPT), str(self.bundle), "--lint"]
+        strict = subprocess.run(base + ["--strict"], capture_output=True, text=True, check=False)
+        self.assertEqual(strict.returncode, 1, strict.stdout)
+        self.assertIn("but \033[31m--strict allows no warnings\033[0m (4 found)", strict.stdout)
+        capped = subprocess.run(base + ["--max-warnings", "1"],
+                                capture_output=True, text=True, check=False)
+        self.assertEqual(capped.returncode, 1, capped.stdout)
+        self.assertIn("--max-warnings 1 allows 1\033[0m (4 found)", capped.stdout)
+        loose = subprocess.run(base, capture_output=True, text=True, check=False)
+        self.assertEqual(loose.returncode, 0, loose.stdout)
+        self.assertIn("(4 warning(s))", loose.stdout)
+
     def test_non_utf8_file_is_a_per_file_error_not_a_crash(self):
         (self.bundle / "c.md").write_bytes(b"\xff\xfe invalid")
         r = self.run_check(check_concept, "c.md", self.bundle)

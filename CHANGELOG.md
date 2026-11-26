@@ -71,8 +71,18 @@ OKF spec version it supports.
 - **The visualizer decides staleness when the page is viewed**, so a published
   `viz.html` turns a concept stale on time instead of freezing the verdict of
   the day it was rendered.
+- **The validator names the gate when only warnings fail the run.** Under
+  `--strict` or `--max-warnings N` the last line reads, for example,
+  `✓ conformant, but --strict allows no warnings (2 found)` instead of a plain
+  `✓ conformant` next to exit 1.
+- **The plugin and Action descriptions now say independent.** The plugin
+  manifest calls okf-skills an independent community toolkit, not the official
+  OKF plugin, and its homepage is the documentation site. The Action gains a
+  `lint` input that passes `--lint`.
 
 ### Added
+- A documentation site at https://ekar-is.github.io/okf-skills/ (the
+  interactive demo moved to `/demo.html`).
 - `examples/data-catalog/`, a second example bundle outside software: a small
   retail analytics catalog with tables, a dataset, a metric backed by an
   Attested Computation, a retention policy, a glossary term and a runbook.
