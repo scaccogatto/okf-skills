@@ -104,6 +104,10 @@ component](/components/stop-hook.md)); contributors not running the plugin
 still hit the gate here. All three steps share the same PR-only guard and the
 same `skip-version-check` label bypass.
 
+The `test-macos` job runs the Stop hook and validator tests on `macos-latest`
+with the stock `/bin/bash` 3.2 (no newer bash installed), since Linux's bash
+accepts syntax that 3.2 rejects.
+
 # Relationships
 
 Gates the [release workflow](/components/release-workflow.md) (which only
