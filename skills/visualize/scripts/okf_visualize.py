@@ -7,7 +7,7 @@
 interactive HTML graph (`viz.html`). No backend, no install on the viewing side,
 no data leaves the page — concepts become nodes (coloured by `type`, sized by
 body length), markdown links and bundle-internal `sources` become edges, and
-clicking a node opens a wiki-style panel with its rendered markdown, OKF v0.2
+clicking a node opens a wiki-style panel with its rendered markdown, OKF v0.3
 provenance/trust/lifecycle metadata, outgoing links, and "Cited by" backlinks.
 
 Features: force/concentric/breadth-first/circle/grid layouts, per-type filter,
@@ -25,6 +25,8 @@ import argparse
 import json
 import re
 import sys
+import urllib.parse
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import yaml
@@ -84,37 +86,182 @@ def link_targets(text: str):
     return out
 
 
-def resolve(target: str, path: Path, bundle: Path):
-    """Resolve a link/`sources[].resource` to a concept id, or None if it is not
-    one (an external URL, an asset, a scope descriptor, an escape from the tree)."""
-    t = str(target).split("#", 1)[0]
-    if not t.endswith(".md"):
+SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.\-]*:")
+DATE_ONLY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+# §5.4: the vocabulary. `draft` is not yet reviewed but still current knowledge,
+# `deprecated` and any value outside this set are not.
+CURRENT_STATUS = {"draft", "stable"}
+
+
+def as_list(v) -> list:
+    """§11.2 rules 1-2: null, "" and [] are absent, one item is a list of one."""
+    if v is None or v == "" or v == []:
+        return []
+    return v if isinstance(v, list) else [v]
+
+
+def parse_instant(v) -> datetime | None:
+    """§5 Timestamps as an aware UTC instant, None when invalid. A date-only value
+    is the start of that day in UTC, a date-time without an offset is invalid.
+    PyYAML hands over date/datetime objects or strings, so all of them are accepted."""
+    if isinstance(v, datetime):
+        return v.astimezone(UTC) if v.tzinfo else None
+    if isinstance(v, date):
+        return datetime(v.year, v.month, v.day, tzinfo=UTC)
+    if not isinstance(v, str):
         return None
+    s = v.strip()
+    if DATE_ONLY.match(s):
+        s += "T00:00:00+00:00"
+    try:
+        t = datetime.fromisoformat(s)  # 3.11 takes `Z` and the space separator
+    except ValueError:
+        return None
+    return t.astimezone(UTC) if t.tzinfo else None
+
+
+def trust(meta: dict) -> tuple[str, list[dict]]:
+    """§5.3 trust tier plus every well-formed verification event, each flagged
+    `current`. Only current events count, so an agent rewrite after a human review
+    drops the tier back down. A v0.1 `timestamp` stands in for `generated.at`
+    (Appendix B)."""
+    gen = meta.get("generated")
+    raw = gen.get("at") if isinstance(gen, dict) else meta.get("timestamp")
+    floor = parse_instant(raw) if raw not in (None, "") else None
+    events = []
+    for e in as_list(meta.get("verified")):
+        # §5.2: an event without both `by` and `at` is ignored.
+        if not isinstance(e, dict) or not e.get("by") or e.get("at") in (None, ""):
+            continue
+        t = parse_instant(e["at"])
+        if t is None:
+            current = False  # unparseable cannot be shown to postdate the change
+        elif raw in (None, ""):
+            current = True
+        else:  # a malformed generated.at leaves nothing provably current
+            current = floor is not None and t >= floor
+        events.append({"by": str(e["by"]), "at": str(e["at"]), "current": current})
+    live = [e["by"] for e in events if e["current"]]
+    if not live:
+        return "unverified", events
+    # `team:` and every other prefix is non-human: only `human:` earns the top tier
+    return ("human-reviewed" if any(b.startswith("human:") for b in live)
+            else "machine-confirmed"), events
+
+
+def staleness(meta: dict, now: datetime | None = None) -> str:
+    """§5.5: "" (no `stale_after`), "fresh", "stale", or "malformed". A value that
+    cannot be parsed is never fresh (§11.2)."""
+    raw = meta.get("stale_after")
+    if raw is None or raw == "" or raw == []:
+        return ""
+    t = parse_instant(raw)
+    if t is None:
+        return "malformed"
+    return "stale" if (now or datetime.now(UTC)) >= t else "fresh"
+
+
+def lifecycle(meta: dict) -> tuple[str, bool]:
+    """§5.4: (status, is_current). Absent means stable, an unknown value keeps
+    its raw text and is not current."""
+    status = str(meta.get("status") or "").strip() or "stable"
+    return status, status in CURRENT_STATUS
+
+
+def has_type(meta: dict) -> bool:
+    """§3.2 rule 1: a concept has a non-empty `type`."""
+    t = meta.get("type")
+    return t is not None and bool(str(t).strip())
+
+
+def declares_legacy(bundle: Path) -> bool:
+    """§12.1: the root index declares okf_version 0.2 or earlier, or none."""
+    try:
+        raw = (bundle / "index.md").read_text(encoding="utf-8").lstrip("﻿")
+    except (UnicodeDecodeError, OSError):
+        return True
+    ver = split_frontmatter(raw)[0].get("okf_version")
+    if ver is None or ver == "":
+        return True
+    try:
+        return tuple(int(x) for x in str(ver).split(".")[:2]) <= (0, 2)
+    except ValueError:
+        return False  # a version we cannot read gets the current rules
+
+
+def path_fields(meta: dict) -> list[str]:
+    """§6.2 path fields that can point at a concept (§6.4 graph edges)."""
+    vals = [meta.get("superseded_by"), meta.get("computation")]
+    for key in ("executor", "attester"):
+        sub = meta.get(key)
+        vals.append(sub.get("resource") if isinstance(sub, dict) else None)
+    vals += [e.get("resource") for e in as_list(meta.get("sources"))
+             if isinstance(e, dict)]
+    return [str(v).strip() for v in vals if v is not None and str(v).strip()]
+
+
+def resolve(target: str, path: Path, bundle: Path, ids: set[str] | None = None,
+            legacy: bool = False) -> str | None:
+    """§6 resolution of a link or path-field value to a bundle-relative id, or None
+    when it is external, an asset or outside the root. Membership in the concept
+    set is the caller's check, except for the `legacy` fallback (§6.2, §12.1),
+    which only path fields use: a bare value that is not a concept from the file's
+    directory is retried from the bundle root."""
+    t = urllib.parse.unquote(str(target).split("#", 1)[0])
+    if not t.endswith(".md") or SCHEME.match(t):
+        return None
+    root = bundle.resolve()
+
+    def at(base: Path) -> str | None:
+        cand = (base / t.lstrip("/")).resolve()
+        return cand.relative_to(root).as_posix()[:-3] if cand.is_relative_to(root) else None
+
     if t.startswith("/"):
-        return t.lstrip("/")[:-3]
-    cand = (path.parent / t).resolve()
-    return cand.relative_to(bundle.resolve()).as_posix()[:-3] \
-        if cand.is_relative_to(bundle.resolve()) else None
+        return at(root)
+    found = at(path.parent)
+    if legacy and ids is not None and found not in ids:
+        alt = at(root)
+        return alt if alt in ids else found
+    return found
 
 
-def read_sources(meta: dict, path: Path, bundle: Path):
+def discover(bundle: Path, on_unreadable=None):
+    """§3.2: yield (id, path, meta, body) for every concept. Skips reserved files,
+    anything with a dot-prefixed component below the root (the root itself may be
+    `.okf`), files without a typed frontmatter, and symlinks leaving the root."""
+    root = bundle.resolve()
+    for p in sorted(bundle.rglob("*.md")):
+        if (p.name in RESERVED or not p.is_file()
+                or any(part.startswith(".") for part in p.relative_to(bundle).parts)
+                or not p.resolve().is_relative_to(root)):
+            continue
+        try:
+            raw = p.read_text(encoding="utf-8").lstrip("﻿")
+        except (UnicodeDecodeError, OSError) as exc:
+            if on_unreadable:
+                on_unreadable(p, exc)
+            continue
+        meta, body = split_frontmatter(raw)
+        if has_type(meta):
+            yield p.relative_to(bundle).with_suffix("").as_posix(), p, meta, body
+
+
+def read_sources(meta: dict, path: Path, bundle: Path, ids: set[str], legacy: bool):
     """§5.1 `sources`, flattened for display. `cid` is set when the source is
-    itself a concept in this bundle — that derivation is a real graph edge."""
-    raw = meta.get("sources")
+    itself a concept in this bundle, and that derivation is a real graph edge."""
     out = []
-    if not isinstance(raw, list):
-        return out
-    for src in raw:
+    for src in as_list(meta.get("sources")):  # §11.2: a bare mapping is one item
         if not isinstance(src, dict):
             continue
         resource = str(src.get("resource", "")).strip()
-        # §5.1 — an entry's own `usage_window` overrides the one written once as a
+        # §5.1: an entry's own `usage_window` overrides the one written once as a
         # sibling of `sources`. A count without its window has no units.
         window = src.get("usage_window", meta.get("usage_window"))
+        cid = resolve(resource, path, bundle, ids, legacy) if resource else None
         out.append({
             "title": str(src.get("title") or src.get("id") or resource),
             "resource": resource,
-            "cid": resolve(resource, path, bundle) if resource else None,
+            "cid": cid if cid in ids else None,
             "author": str(src.get("author", "")),
             "usage_count": src.get("usage_count"),
             "usage_window": (f"{window.get('from', '?')}→{window.get('to', '?')}"
@@ -124,57 +271,58 @@ def read_sources(meta: dict, path: Path, bundle: Path):
     return out
 
 
-def read_trust(meta: dict):
-    """§5.2 `generated` / `verified`, falling back to a v0.1 `timestamp` (§13.1)."""
+def read_generated(meta: dict):
+    """§5.2 `generated`, falling back to a v0.1 `timestamp` (Appendix B)."""
     gen = meta.get("generated")
     if isinstance(gen, dict):
-        generated = {"by": str(gen.get("by", "")), "at": str(gen.get("at", ""))}
-    elif meta.get("timestamp"):
-        generated = {"by": "", "at": str(meta["timestamp"])}
-    else:
-        generated = None
-    ver = meta.get("verified")
-    # a bare mapping is one verification event (§5.2)
-    entries = [ver] if isinstance(ver, dict) else (ver if isinstance(ver, list) else [])
-    verified = [{"by": str(e.get("by", "")), "at": str(e.get("at", ""))}
-                for e in entries if isinstance(e, dict)]
-    return generated, verified
+        return {"by": str(gen.get("by", "")), "at": str(gen.get("at", ""))}
+    return {"by": "", "at": str(meta["timestamp"])} if meta.get("timestamp") else None
 
 
 def build(bundle: Path):
     nodes, edges, seen = [], [], set()
-    files = sorted(p for p in bundle.rglob("*.md") if p.is_file() and p.name not in RESERVED)
-    ids = {p.relative_to(bundle).with_suffix("").as_posix() for p in files}
-    for p in files:
-        cid = p.relative_to(bundle).with_suffix("").as_posix()
-        try:
-            raw = p.read_text(encoding="utf-8").lstrip("﻿")
-        except (UnicodeDecodeError, OSError) as exc:
-            print(f"warning: skipping {p.relative_to(bundle)}: cannot read file: {exc}", file=sys.stderr)
-            ids.discard(cid)
-            continue
-        meta, body = split_frontmatter(raw)
-        body = body.strip()
-        generated, verified = read_trust(meta)
-        sources = read_sources(meta, p, bundle)
+    warn = lambda p, exc: print(
+        f"warning: skipping {p.relative_to(bundle)}: cannot read file: {exc}", file=sys.stderr)
+    items = list(discover(bundle, warn))
+    ids = {i[0] for i in items}
+    legacy = declares_legacy(bundle)
+    now = datetime.now(UTC)  # one instant for the whole render
+    for cid, p, meta, raw_body in items:
+        body = raw_body.strip()
+        tier, events = trust(meta)
+        status, current = lifecycle(meta)
+        sup = str(meta.get("superseded_by") or "").strip()
+        sup_cid = resolve(sup, p, bundle, ids, legacy) if sup else None
+        sources = read_sources(meta, p, bundle, ids, legacy)
         nodes.append({
             "id": cid,
-            "type": str(meta.get("type", "Untyped")),
+            "type": str(meta["type"]).strip(),
             "title": str(meta.get("title", p.stem)),
             "description": str(meta.get("description", "")),
-            "tags": meta.get("tags", []) if isinstance(meta.get("tags"), list) else [],
+            "tags": [str(t) for t in as_list(meta.get("tags"))],
             "group": cid.split("/")[0] if "/" in cid else "(root)",
             "sz": max(24, min(70, 24 + len(body) // 200)),
-            "status": str(meta.get("status", "")),
+            # §5.4: only a status that is written is shown, `state` carries the
+            # judgement: "" (draft/stable/absent), "deprecated" or "unknown"
+            "status": str(meta.get("status") or "").strip(),
+            "state": ("" if current else "deprecated" if status == "deprecated" else "unknown"),
+            "superseded_by": sup,
+            "superseded_cid": sup_cid if sup_cid in ids else None,
             "stale_after": str(meta.get("stale_after") or ""),
-            "generated": generated,
-            "verified": verified,
+            # §5.5, decided here so the page needs no timestamp logic:
+            # "" | "fresh" | "stale" | "malformed"
+            "stale": staleness(meta, now),
+            # §5.3: the tier and the events, each flagged `current`
+            "tier": tier,
+            "generated": read_generated(meta),
+            "verified": events,
             "sources": sources,
             "body": body[:8000],
         })
-        targets = link_targets(body) + [s["resource"] for s in sources if s["cid"]]
-        for t in targets:
-            tgt = resolve(t, p, bundle)
+        # §6.4: body links, then path fields (with the v0.2 root fallback, §6.2)
+        targets = [resolve(t, p, bundle) for t in link_targets(body)]
+        targets += [resolve(t, p, bundle, ids, legacy) for t in path_fields(meta)]
+        for tgt in targets:
             if tgt and tgt in ids and tgt != cid and (cid, tgt) not in seen:
                 seen.add((cid, tgt))
                 edges.append({"source": cid, "target": tgt})
@@ -230,6 +378,7 @@ __OGIMAGE__
  .t-human{color:#4ade80;border-color:#276b45;background:#12211a}
  .b-stale{color:#fca5a5;border-color:#7f2b2b;background:#241416}
  .b-deprecated{color:#fbbf24;border-color:#7a5312;background:#241d10}
+ .b-unknown{color:#9aa3b2;border-color:#3a4150;background:#1d2230}
  .rel{margin:10px 0} .rel h4{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
  .rel a{display:block;color:var(--accent);cursor:pointer;font-size:13px;padding:1px 0;text-decoration:none}
  .rel a:hover{text-decoration:underline}
@@ -240,7 +389,7 @@ __OGIMAGE__
  .src{pointer-events:auto;color:var(--accent);margin-left:10px;text-decoration:none} .src:hover{text-decoration:underline}
 </style></head><body>
 <div id="app"><div id="stage"><div id="cy"></div>
-<div id="top"><header><h1>__NAME__</h1><div class="sub">__N__ concepts · __E__ links · OKF v0.2__LINK__</div></header>
+<div id="top"><header><h1>__NAME__</h1><div class="sub">__N__ concepts · __E__ links · OKF v0.3__LINK__</div></header>
 <div id="bar">
  <input id="search" placeholder="search concepts…">
  <select id="type"><option value="">all types</option></select>
@@ -291,26 +440,23 @@ addEventListener('resize',()=>{if(sideW!=null)setSideW(sideW);else cy.resize();r
 const esc=s=>(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function relList(title,arr){if(!arr.length)return'';
  return `<div class="rel"><h4>${title}</h4>${arr.map(id=>`<a data-go="${esc(id)}">${esc((byId[id]||{}).title||id)}</a>`).join('')}</div>`;}
-// §5.3 — the trust tier is derived, never stored: no `verified` is unverified,
-// `verified` by non-`human:` actors only is machine-confirmed, and any `human:`
-// actor makes it human-reviewed. The exact lowercase prefix is the whole key.
-// §5.5 — a concept is stale when now >= stale_after. PyYAML renders an unquoted
-// datetime with a space separator, which Date.parse rejects in some engines.
+// §5.3 / §5.5 — tier and staleness are derived in Python at build time (current
+// events only, instants compared there), so the page holds no timestamp logic.
 // Advisory signals, not access control.
-function trustTier(n){const v=n.verified||[];
- if(!v.length)return['t-unverified','unverified'];
- return v.some(e=>(e.by||'').startsWith('human:'))?['t-human','human-reviewed']
-                                                  :['t-machine','machine-confirmed'];}
-function badges(n){const [cls,label]=trustTier(n),out=[`<span class="badge ${cls}">${label}</span>`];
- if(n.stale_after&&Date.parse(n.stale_after.replace(' ','T'))<=Date.now())out.push(`<span class="badge b-stale">stale since ${esc(n.stale_after)}</span>`);
- if(n.status==='deprecated')out.push('<span class="badge b-deprecated">deprecated</span>');
+const TIER_CLS={'unverified':'t-unverified','machine-confirmed':'t-machine','human-reviewed':'t-human'};
+function badges(n){const out=[`<span class="badge ${TIER_CLS[n.tier]||'t-unverified'}">${esc(n.tier)}</span>`];
+ if(n.stale==='stale')out.push(`<span class="badge b-stale">stale since ${esc(n.stale_after)}</span>`);
+ if(n.stale==='malformed')out.push(`<span class="badge b-stale">stale_after malformed: ${esc(n.stale_after)}</span>`);
+ if(n.state==='deprecated')out.push('<span class="badge b-deprecated">deprecated</span>');
+ if(n.state==='unknown')out.push(`<span class="badge b-unknown">status: ${esc(n.status)}</span>`);
  return `<div class="badges">${out.join('')}</div>`;}
-// OKF v0.2 trust (§5.2) + lifecycle (§5.4/§5.5). A v0.1 `timestamp` arrives here
-// as generated.at with an empty `by`, so legacy bundles still show a date.
+// OKF v0.3 trust (§5.2) + lifecycle (§5.4/§5.5). A v0.1 `timestamp` arrives here
+// as generated.at with an empty `by`, so legacy bundles still show a date. An event
+// older than generated.at stays listed as history, never counted in the tier (§5.3).
 function metaBlock(n){const g=n.generated||{},rows=[];
  if(n.status)rows.push(`<div>status <b>${esc(n.status)}</b></div>`);
  if(g.at||g.by)rows.push(`<div>generated${g.at?` <b>${esc(g.at)}</b>`:''}${g.by?` by ${esc(g.by)}`:''}</div>`);
- (n.verified||[]).forEach(v=>rows.push(`<div>verified${v.at?` <b>${esc(v.at)}</b>`:''}${v.by?` by ${esc(v.by)}`:''}</div>`));
+ (n.verified||[]).forEach(v=>rows.push(`<div>verified${v.at?` <b>${esc(v.at)}</b>`:''}${v.by?` by ${esc(v.by)}`:''}${v.current?'':' <span class="sig">(verified before the last change)</span>'}</div>`));
  if(n.stale_after)rows.push(`<div>stale after <b>${esc(n.stale_after)}</b></div>`);
  return rows.length?`<div class="meta">${rows.join('')}</div>`:'';}
 // Provenance (§5.1). A source may be another concept (graph link), an external
@@ -323,21 +469,28 @@ function srcList(n){const s=n.sources||[];if(!s.length)return'';
   if(x.cid&&byId[x.cid])return `<a data-go="${esc(x.cid)}">${label}</a>`;
   if(/^https?:\/\//i.test(x.resource))return `<a href="${esc(x.resource)}" target="_blank" rel="noopener">${label}</a>`;
   return `<span class="empty">${label}</span>`;}).join('')}</div>`;}
-// Resolve an in-body markdown link href to a concept id, mirroring build()'s
-// resolution: strip #anchor, require .md, absolute strips leading /, relative
-// resolves against the current concept's dir. Returns null if it's not a concept.
-function resolveHref(cid,href){let t=(href||'').split('#')[0];if(!t.endsWith('.md'))return null;
- let tgt;if(t[0]==='/'){tgt=t.replace(/^\/+/,'').slice(0,-3);}
- else{const base=cid.split('/').slice(0,-1);
-  for(const seg of t.slice(0,-3).split('/')){if(seg===''||seg==='.')continue;
-   if(seg==='..'){if(!base.length)return null;base.pop();}else base.push(seg);}
-  tgt=base.join('/');}
+// Resolve an in-body markdown link href to a concept id, mirroring resolve() (§6):
+// strip #fragment, percent-decode, a URI scheme is external, a leading / starts at
+// the bundle root, anything else at the current concept's dir. Null when it is not
+// a concept (or leaves the root).
+function resolveHref(cid,href){let t=(href||'').split('#')[0];
+ try{t=decodeURIComponent(t);}catch(e){return null;}
+ if(/^[a-z][a-z0-9+.-]*:/i.test(t)||!t.endsWith('.md'))return null;
+ const base=t[0]==='/'?[]:cid.split('/').slice(0,-1);
+ for(const seg of t.slice(0,-3).split('/')){if(seg===''||seg==='.')continue;
+  if(seg==='..'){if(!base.length)return null;base.pop();}else base.push(seg);}
+ const tgt=base.join('/');
  return byId[tgt]?tgt:null;}
+// §5.4 — a clickable link when the replacement resolves to a concept, else the raw
+// value so a dangling pointer is still visible.
+function supersededBy(n){if(!n.superseded_by)return'';
+ return n.superseded_cid?relList('Superseded by',[n.superseded_cid])
+  :`<div class="rel"><h4>Superseded by</h4><span class="empty">${esc(n.superseded_by)}</span></div>`;}
 function show(id){const n=byId[id];if(!n)return;const c=color[n.type];
  side.innerHTML=`<span class="type" style="background:${c}">${esc(n.type)}</span>
  <h2>${esc(n.title)}</h2><div class="desc">${esc(n.description)||'<span class=empty>no description</span>'}</div>
  <div class="tags">${(n.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
- ${badges(n)}${metaBlock(n)}${srcList(n)}${relList('Links to',outL[id])}${relList('Cited by',inL[id])}
+ ${badges(n)}${metaBlock(n)}${supersededBy(n)}${srcList(n)}${relList('Links to',outL[id])}${relList('Cited by',inL[id])}
  <div class="body">${n.body?DOMPurify.sanitize(marked.parse(n.body)):'<span class=empty>empty body</span>'}</div>`;
  side.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));
  side.querySelectorAll('.body a[href]').forEach(a=>{const tgt=resolveHref(id,a.getAttribute('href'));

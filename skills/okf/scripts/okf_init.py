@@ -3,9 +3,10 @@
 # requires-python = ">=3.11"
 # dependencies = ["pyyaml>=6,<7"]
 # ///
-"""Scaffold a conformant starter Open Knowledge Format (OKF) v0.2 bundle.
+"""Scaffold a conformant starter Open Knowledge Format (OKF) v0.3 bundle.
 
-Creates a root `index.md` (frontmatter carries only `okf_version`), a `log.md`
+Creates a root `index.md` (frontmatter carries `okf_version` and `title`, the
+bundle metadata of v0.3 §8.1), a `log.md`
 with a creation entry under today's ISO date heading, and one starter concept
 (`getting-started.md`) with the full set of recommended frontmatter fields.
 The scaffold is meant to be exemplary: `okf_validate.py --strict` should pass
@@ -22,7 +23,7 @@ from pathlib import Path
 
 import yaml
 
-OKF_VERSION = "0.2"
+OKF_VERSION = "0.3"
 STARTER_CONCEPT = "getting-started.md"
 # Actor convention (§7): an automated process, not an agent with a version.
 ACTOR = "process:okf_init"
@@ -38,7 +39,7 @@ def frontmatter(meta: dict) -> str:
 
 
 def build_index(title: str) -> str:
-    meta = frontmatter({"okf_version": OKF_VERSION})
+    meta = frontmatter({"okf_version": OKF_VERSION, "title": title})
     return (
         f"{meta}\n"
         f"# {title}\n\n"
