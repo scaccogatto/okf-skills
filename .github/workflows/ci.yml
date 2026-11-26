@@ -149,10 +149,11 @@ jobs:
 
       - name: Self-test — --max-warnings gates between the default and --strict
         run: |
-          # A bundle with exactly one warning: the default passes, --strict fails,
-          # and --max-warnings picks the line between them.
+          # A bundle with exactly one warning (a broken link, spec guidance, so it
+          # does not depend on --lint): the default passes, --strict fails, and
+          # --max-warnings picks the line between them.
           tmp="$(mktemp -d)"
-          printf -- '---\ntype: Reference\ntitle: t\ndescription: d\ntags: [x]\n---\nbody\n' > "$tmp/c.md"
+          printf -- '---\ntype: Reference\n---\nSee [the runbook](missing.md).\n' > "$tmp/c.md"
           uv run skills/validate/scripts/okf_validate.py "$tmp" --max-warnings 1 || {
             echo "--max-warnings 1 must tolerate one warning" >&2
             exit 1
