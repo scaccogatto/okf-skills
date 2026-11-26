@@ -3,22 +3,25 @@
 # requires-python = ">=3.11"
 # dependencies = ["pyyaml>=6,<7"]
 # ///
-"""Deterministic conformance checker for Open Knowledge Format (OKF) v0.2.
+"""Deterministic conformance checker for Open Knowledge Format (OKF) v0.3.
 
-Implements the §11 conformance rules verbatim:
-  1. Every non-reserved `.md` file contains a parseable YAML frontmatter block.
-  2. Every frontmatter block contains a non-empty `type` field.
-  3. Reserved filenames (`index.md`, `log.md`) follow §8 / §9 when present.
+Implements the §11.1 conformance rules:
+  1. Each frontmatter block in a `.md` file under the bundle root parses as a YAML
+     mapping (§4). Duplicate keys at any level are rejected (§4).
+  2. Reserved filenames (`index.md`, `log.md`) follow §8 / §9 when present.
 
-Rules 1 and 2 are hard errors (a bundle that fails them is non-conformant).
-Everything else the spec marks as soft guidance: reported as warnings, never
-fatal unless `--strict` is given. In particular broken cross-links are NOT
-errors — the spec requires consumers to tolerate them (§6.1).
+Those are the hard errors. A `.md` file with no frontmatter, or none with a
+non-empty `type`, is not a concept (§3.2): it is skipped with a warning and never
+makes the bundle non-conformant, so `README.md` and `AGENTS.md` may live in a
+bundle. Everything else the spec marks as soft guidance: reported as warnings,
+never fatal unless `--strict` is given. In particular broken cross-links are NOT
+errors: the spec requires consumers to tolerate them (§6.1).
 
-v0.1 bundles still validate: the two superseded constructs (`timestamp`, a body
-`# Citations` list) are read and reported as warnings pointing at their v0.2
-replacements (`generated.at`, `sources`), never as errors (§13.1). `--migrate`
-performs that rewrite in place, textually, so `--strict` has a door and not just
+Bundles that declare `okf_version` 0.2 or earlier (or none) are read with the §12.1
+fallbacks: a bare path field that only resolves from the bundle root is accepted
+with a warning, and the v0.1 constructs (`timestamp`, a body `# Citations` list)
+are warned about with their replacements (Appendix B), never errors. `--migrate`
+rewrites both to v0.3 in place, textually, so `--strict` has a door and not just
 a wall.
 
 Run:  uv run scripts/okf_validate.py <bundle-dir>
@@ -27,29 +30,39 @@ Run:  uv run scripts/okf_validate.py <bundle-dir>
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
+import os
 import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import unquote
 
 import yaml
 
-OKF_VERSION = "0.2"
+OKF_VERSION = "0.3"
 RESERVED = {"index.md", "log.md"}
 # `resource` is intentionally excluded: the spec (§4.1) states it is absent for
 # concepts describing abstract ideas, so flagging it produces false noise.
 RECOMMENDED = ("title", "description", "tags")
 STATUS_VALUES = {"draft", "stable", "deprecated"}
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-# RFC 3339, as the spec writes `generated.at` / `verified[].at` throughout, and
-# (since 0.9.6) `stale_after`, `sources[].last_modified` and `usage_window`. A
-# date-only value is tolerated: it is common in the wild and loses only precision.
-# PyYAML resolves an unquoted timestamp to a datetime whose str() separates with a
-# space, so both spellings have to pass.
-RFC3339 = re.compile(
-    r"^\d{4}-\d{2}-\d{2}"
-    r"(?:[Tt ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:[Zz]|[+-]\d{2}:?\d{2})?)?$")
+# §5: a timestamp is a date-only `full-date` (the start of that day in UTC) or an
+# RFC 3339 `date-time`, which REQUIRES an offset (`Z` or `±HH:MM`). Nothing else is
+# valid, including a date-time without an offset. PyYAML resolves an unquoted
+# timestamp to a datetime whose str() separates with a space, so both spellings pass.
+_DATE = r"\d{4}-\d{2}-\d{2}"
+TS_VALID = re.compile(
+    rf"^{_DATE}(?:[Tt ]\d{{2}}:\d{{2}}:\d{{2}}(?:\.\d+)?(?:[Zz]|[+-]\d{{2}}:\d{{2}}))?$")
+TS_NO_OFFSET = re.compile(rf"^{_DATE}[Tt ]\d{{2}}:\d{{2}}(?::\d{{2}}(?:\.\d+)?)?$")
+# A URI scheme (RFC 3986) makes a value absolute rather than a bundle path (§6).
+URI_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+# §8.1 keys of the bundle-root index.md, plus this plugin's own: the Stop hook reads
+# its opt-in flag (`upkeep`) and nested-repo switch (`recursive`) from here, so an
+# enforced-mode bundle would otherwise fail its own `--strict` run. `x-` keys are
+# extensions (§4.1).
+ROOT_KEYS = {"okf_version", "title", "description", "license", "upkeep", "recursive"}
 # §7 gives three actor shapes, and §5.1 reuses them for `sources[].author`. The
 # spec's own example (`author: team:ga4-docs`) shows the `<prefix>:<id>` family is
 # open, so this is deliberately not a whitelist — it catches the one failure that
@@ -86,7 +99,14 @@ HEADING = re.compile(r"^#{1,6}[ \t]", re.MULTILINE)
 # attribute, `[Src](url "Title")`, must not be dropped: the section is deleted
 # wholesale once anything parses, so a miss here is silent data loss.
 MD_LINK = re.compile(r"(?<!\!)\[([^\]]+)\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
-OKF_VERSION_LINE = re.compile(r"^(okf_version:[ \t]*)[\"']?0\.1[\"']?[ \t]*$", re.MULTILINE)
+OKF_VERSION_LINE = re.compile(r"^(okf_version:[ \t]*)[\"']?0\.[12][\"']?[ \t]*$", re.MULTILINE)
+# A block-style path field value: `key: value`, optionally quoted, optionally
+# followed by a comment. Group 1 = up to the value, 2 = quote char, 3 = value.
+PATH_VALUE = re.compile(
+    r"""^(?P<head>[ \t]*[A-Za-z_]+:[ \t]*)(?:(?P<q>["'])(?P<qv>.*?)(?P=q)|"""
+    r"""(?P<bv>[^\s"'#{\[|>&*!](?:\S|[ \t]+(?!#))*))(?P<tail>[ \t]*(?:#.*)?)$""")
+TOP_KEY = re.compile(r"^([A-Za-z_][\w-]*):[ \t]*(.*)$")
+PATH_BLOCKS = ("executor", "attester")
 # True, and it keeps the concept correctly `unverified` under §5.3: who wrote the
 # content before `generated` existed is not recoverable, and inventing a `human:`
 # actor would fake a review that never happened.
@@ -122,6 +142,130 @@ def split_frontmatter(text: str) -> tuple[str | None, str]:
     return None, text  # unterminated block → treated as absent
 
 
+class DuplicateKeyError(yaml.constructor.ConstructorError):
+    """A mapping repeats a key. YAML 1.2 requires unique keys (§4)."""
+
+
+class UniqueKeyLoader(yaml.SafeLoader):
+    """SafeLoader that rejects duplicate mapping keys at every nesting level.
+
+    PyYAML silently keeps the last value, so two readers (one strict, one not)
+    would see different frontmatter. Unknown tags still fail as in `safe_load`.
+    """
+
+    def construct_mapping(self, node, deep=False):
+        if isinstance(node, yaml.MappingNode):
+            seen = set()
+            for key_node, _ in node.value:
+                if key_node.tag == "tag:yaml.org,2002:merge":
+                    continue  # `<<` is expanded by the parent class, not a real key
+                key = self.construct_object(key_node, deep=True)
+                try:
+                    duplicate = key in seen
+                    seen.add(key)
+                except TypeError:
+                    break  # unhashable key: the parent class reports it
+                if duplicate:
+                    raise DuplicateKeyError(None, None, f"duplicate key `{key}`",
+                                            key_node.start_mark)
+        return super().construct_mapping(node, deep=deep)
+
+
+def load_frontmatter(raw: str):
+    """Parse a frontmatter block with duplicate-key detection (§4)."""
+    return yaml.load(raw, Loader=UniqueKeyLoader)  # noqa: S506 - a SafeLoader subclass
+
+
+def is_empty(value) -> bool:
+    """§11.2 rule 1: null, an empty string and an empty list read as an absent key."""
+    return value is None or value == [] or (isinstance(value, str) and not value.strip())
+
+
+def iter_bundle_md(bundle: Path) -> list[Path]:
+    """The `.md` files that belong to the bundle (§3.2).
+
+    Rule 4: anything whose path RELATIVE to the root has a component starting with
+    `.` is not part of the bundle (the root itself may be `.okf`). Rule 5: a symlink
+    that resolves outside the root is not followed. Pruning dot-directories during
+    the walk also avoids descending into `.git` and friends.
+    """
+    root = bundle.resolve()
+    found: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(bundle):
+        dirnames[:] = [d for d in dirnames if not d.startswith(".")]
+        for name in filenames:
+            if name.startswith(".") or not name.endswith(".md"):
+                continue
+            p = Path(dirpath) / name
+            try:
+                inside = p.resolve().is_relative_to(root)
+            except OSError:
+                inside = False
+            if inside and p.is_file():
+                found.append(p)
+    return sorted(found)
+
+
+def path_status(value: str, base_dir: Path, bundle: Path) -> tuple[str, str]:
+    """§6 resolution of a link target or path field value.
+
+    Returns (status, bare) where `bare` is the value without its `#fragment`, and
+    status is one of:
+      external   a URI scheme, empty, or resolves outside the bundle root: not ours
+      ok         resolves to an existing file or directory
+      root_only  missing from the base directory but present from the bundle root
+                 (the §6.2 / §12.1 fallback)
+      missing    resolves inside the bundle and does not exist
+    """
+    bare = value.strip().split("#", 1)[0]
+    if not bare or URI_SCHEME.match(bare):
+        return "external", bare
+    decoded = unquote(bare)
+    root = bundle.resolve()
+
+    def locate(candidate: Path) -> Path | None:
+        try:
+            resolved = candidate.resolve()
+        except OSError:
+            return None
+        return resolved if resolved.is_relative_to(root) else None
+
+    if decoded.startswith("/"):
+        target = locate(bundle / decoded.lstrip("/"))
+        if target is None:
+            return "external", bare
+        return ("ok" if target.exists() else "missing"), bare
+    target = locate(base_dir / decoded)
+    if target is None:
+        return "external", bare
+    if target.exists():
+        return "ok", bare
+    from_root = locate(bundle / decoded)
+    return ("root_only" if from_root is not None and from_root.exists() else "missing"), bare
+
+
+def declared_version(bundle: Path):
+    """The `okf_version` the bundle-root index.md declares, or None."""
+    try:
+        text = (bundle / "index.md").read_text(encoding="utf-8").lstrip("﻿")
+        raw, _ = split_frontmatter(text)
+        meta = load_frontmatter(raw) if raw is not None else None
+    except (OSError, UnicodeDecodeError, yaml.YAMLError):
+        return None
+    return meta.get("okf_version") if isinstance(meta, dict) else None
+
+
+def is_legacy_version(declared) -> bool:
+    """True when the bundle declares 0.2 or earlier, or declares no version (§12.1)."""
+    if declared is None:
+        return True
+    try:
+        major, minor = (int(p) for p in str(declared).split(".")[:2])
+    except ValueError:
+        return False
+    return (major, minor) <= (0, 2)
+
+
 def _read_text(path: Path, rel: str, report: Report) -> str | None:
     """Read a concept/index/log file, reporting (not raising) on a bad file.
 
@@ -135,67 +279,118 @@ def _read_text(path: Path, rel: str, report: Report) -> str | None:
         return None
 
 
-def check_computation(meta: dict, path: Path, bundle: Path, rel: str, report: Report) -> None:
-    """§10.2 — the Attested Computation contract, including its path-valued fields.
+def check_timestamp(value, where: str, rel: str, report: Report) -> None:
+    """§5 — a timestamp is `YYYY-MM-DD` or a date-time WITH an offset (`Z`/`±HH:MM`).
 
-    `computation`, `executor.resource` and `attester.resource` name files (§6.2).
-    They are exactly the pointer that rots: the concept keeps validating while the
-    script it names moves or disappears. A target outside the bundle is legitimate
-    and unverifiable from here, so only bundle-relative paths are resolved.
+    PyYAML turns an unquoted one into a native object: a date is a valid date-only
+    value, a datetime is valid only when it carries a timezone.
     """
+    if is_empty(value):
+        return
+    if isinstance(value, datetime.datetime):
+        problem = None if value.tzinfo is not None else "no_offset"
+    elif isinstance(value, datetime.date):
+        problem = None
+    else:
+        text = str(value).strip()
+        problem = (None if TS_VALID.match(text)
+                   else "no_offset" if TS_NO_OFFSET.match(text) else "invalid")
+    if problem == "no_offset":
+        report.warn(rel, f"§5 `{where}` `{value}` lacks the required offset (`Z` or "
+                         f"`±HH:MM`): a date-time without one is invalid, so add it or "
+                         f"write a date-only `YYYY-MM-DD`")
+    elif problem:
+        report.warn(rel, f"§5 `{where}` `{value}` is not an RFC 3339 timestamp "
+                         f"(`YYYY-MM-DD`, or a date-time with `Z` or `±HH:MM`)")
+
+
+def check_path_field(where: str, value, path: Path, bundle: Path, rel: str,
+                     report: Report, legacy: bool) -> None:
+    """§6.2 — a path field must resolve (§6) to something in the bundle.
+
+    Fields naming files are exactly the pointers that rot: the concept keeps
+    validating while the file it names moves or disappears. URIs and targets
+    outside the bundle root are external and unverifiable from here. A bare value
+    that exists only relative to the bundle root is the v0.2 reading (§6.2, §12.1):
+    tolerated for a bundle that declares 0.2 or earlier, with a nudge to `/`.
+    """
+    if not isinstance(value, str):
+        return
+    status, bare = path_status(value, path.parent, bundle)
+    if status in ("external", "ok"):
+        return
+    if status == "root_only" and legacy:
+        report.warn(rel, f"§6.2 `{where}` `{bare}` resolves only from the bundle root "
+                         f"(v0.2 reading): write `/{bare}`")
+        return
+    hint = f" (did you mean `/{bare}`?)" if status == "root_only" else ""
+    report.warn(rel, f"§6.2 `{where}` points at `{bare}`, which does not exist{hint}")
+
+
+def check_computation(meta: dict, path: Path, bundle: Path, rel: str, report: Report,
+                      legacy: bool) -> None:
+    """§10.2 — the Attested Computation contract."""
     if not str(meta.get("runtime", "")).strip():
         report.warn(rel, "§10.2 an Attested Computation concept requires `runtime`")
-    fields = [("computation", meta.get("computation"))]
-    for key in ("executor", "attester"):
+    params = meta.get("parameters")
+    if not is_empty(params):
+        entries = [params] if isinstance(params, dict) else params  # §11.2 rule 2
+        if not isinstance(entries, list):
+            report.warn(rel, "§10.2 `parameters` must be a list of `{name, type, required}`")
+        else:
+            for i, entry in enumerate(entries):
+                missing = [k for k in ("name", "type")
+                           if not (isinstance(entry, dict) and not is_empty(entry.get(k)))]
+                if missing:
+                    report.warn(rel, f"§10.2 `parameters[{i}]` needs `name` and `type` "
+                                     f"(missing {', '.join(f'`{k}`' for k in missing)})")
+    check_path_field("computation", meta.get("computation"), path, bundle, rel, report, legacy)
+    for key in PATH_BLOCKS:
         block = meta.get(key)
         if isinstance(block, dict):
-            fields.append((f"{key}.resource", block.get("resource")))
-    for where, target in fields:
-        if target is None:
-            continue
-        t = str(target).strip()
-        if not t or re.match(r"^[a-z][a-z0-9+.-]*://", t) or t.startswith("mailto:"):
-            continue
-        candidate = (bundle / t.lstrip("/")) if t.startswith("/") else (path.parent / t)
-        try:
-            inside = candidate.resolve().is_relative_to(bundle.resolve())
-        except OSError:
-            inside = False
-        if inside and not candidate.exists():
-            report.warn(rel, f"§6.2 `{where}` points at `{t}`, which does not exist")
+            check_path_field(f"{key}.resource", block.get("resource"), path, bundle,
+                             rel, report, legacy)
 
 
-def check_concept(path: Path, rel: str, bundle: Path, report: Report) -> None:
-    report.concepts += 1
+def check_concept(path: Path, rel: str, bundle: Path, report: Report, *,
+                  legacy: bool = True) -> None:
+    """Check one non-reserved `.md`. `legacy` is whether the bundle declares okf_version
+    0.2 or earlier (or none), which enables the §12.1 path fallback."""
     text = _read_text(path, rel, report)
     if text is None:
         return
     raw, body = split_frontmatter(text)
     if raw is None:
-        report.err(rel, "§11.1 no parseable YAML frontmatter block "
-                        "(every non-reserved `.md` in a bundle is a concept: add "
-                        "frontmatter with a `type` field, or move the file outside "
-                        "the bundle)")
+        report.warn(rel, "§3.2 no frontmatter: skipped as a non-concept "
+                         "(add frontmatter with a `type` to make it one)")
         return
     try:
-        meta = yaml.safe_load(raw)
+        meta = load_frontmatter(raw)
+    except DuplicateKeyError as exc:
+        report.err(rel, f"§4 frontmatter has a {exc.problem} (YAML 1.2 requires unique keys)")
+        return
     except yaml.YAMLError as exc:
         report.err(rel, f"§11.1 frontmatter is not valid YAML: {exc}".replace("\n", " "))
         return
+    if meta is None:
+        meta = {}  # an empty block parses to null: it is a mapping with no `type`
     if not isinstance(meta, dict):
         report.err(rel, "§11.1 frontmatter must be a YAML mapping")
         return
     type_val = meta.get("type")
     if not (isinstance(type_val, str) and type_val.strip()):
-        report.err(rel, "§11.2 missing or empty required `type` field")
+        report.warn(rel, "§3.2 frontmatter has no non-empty `type`: skipped as a "
+                         "non-concept")
+        return
+    report.concepts += 1
     for key in RECOMMENDED:
         if key not in meta:
             report.warn(rel, f"recommended field `{key}` is absent (§4.1)")
     check_trust(meta, rel, report)
-    check_lifecycle(meta, rel, report)
+    check_lifecycle(meta, path, bundle, rel, report, legacy)
     check_sources(meta, body, rel, report)
-    if isinstance(type_val, str) and type_val.strip() == "Attested Computation":
-        check_computation(meta, path, bundle, rel, report)
+    if type_val.strip() == "Attested Computation":
+        check_computation(meta, path, bundle, rel, report, legacy)
 
 
 def check_actor(value, where: str, rel: str, report: Report) -> None:
@@ -213,19 +408,13 @@ def check_actor(value, where: str, rel: str, report: Report) -> None:
                          f"(`human:<id>`, `process:<id>`, or `<producer>/<version>`)")
 
 
-def check_instant(value, where: str, rel: str, report: Report) -> None:
-    """§5.2 — `at` values are RFC 3339; a date-only value is tolerated."""
-    if value is not None and not RFC3339.match(str(value).strip()):
-        report.warn(rel, f"§5.2 `{where}` `{value}` is not an RFC 3339 timestamp")
-
-
 def check_trust(meta: dict, rel: str, report: Report) -> None:
     """§5.2 — `generated` / `verified`, with the v0.1 `timestamp` fallback."""
     gen = meta.get("generated")
-    if gen is None:
+    if is_empty(gen):
         if "timestamp" in meta:
-            report.warn(rel, "legacy v0.1 `timestamp`: v0.2 records the last content "
-                             "change as `generated: {by, at}` (§13.1)")
+            report.warn(rel, "legacy v0.1 `timestamp`: v0.2 and later record the last "
+                             "content change as `generated: {by, at}` (Appendix B)")
         else:
             report.warn(rel, "recommended field `generated` is absent (§5.2)")
     elif not isinstance(gen, dict):
@@ -234,10 +423,10 @@ def check_trust(meta: dict, rel: str, report: Report) -> None:
         report.warn(rel, "§5.2 `generated.by` is required within `generated`")
     else:
         check_actor(gen["by"], "generated.by", rel, report)
-        check_instant(gen.get("at"), "generated.at", rel, report)
+        check_timestamp(gen.get("at"), "generated.at", rel, report)
 
     ver = meta.get("verified")
-    if ver is None:
+    if is_empty(ver):
         return
     # A bare mapping is one verification event — consumers MUST treat it as a
     # one-element list (§5.2), so normalize before checking the entries.
@@ -250,36 +439,43 @@ def check_trust(meta: dict, rel: str, report: Report) -> None:
             report.warn(rel, "§5.2 every `verified` entry needs a `by` actor")
             continue
         check_actor(entry["by"], f"verified[{i}].by", rel, report)
-        check_instant(entry.get("at"), f"verified[{i}].at", rel, report)
+        if is_empty(entry.get("at")):
+            report.warn(rel, f"§5.2 `verified[{i}]` has no `at`: both `by` and `at` are "
+                             f"REQUIRED, so consumers ignore this event")
+        else:
+            check_timestamp(entry["at"], f"verified[{i}].at", rel, report)
 
 
-def check_lifecycle(meta: dict, rel: str, report: Report) -> None:
-    """§5.4 / §5.5 — `status` and `stale_after`. A concept is stale when
-    `now >= stale_after`."""
+def check_lifecycle(meta: dict, path: Path, bundle: Path, rel: str, report: Report,
+                    legacy: bool) -> None:
+    """§5.4 / §5.5 — `status`, `superseded_by` and `stale_after`. A concept is stale
+    when `now >= stale_after`."""
     status = meta.get("status")
-    if status is not None and status not in STATUS_VALUES:
+    if not is_empty(status) and status not in STATUS_VALUES:
         report.warn(rel, f"§5.4 unknown `status` `{status}` (expected "
-                         f"{'|'.join(sorted(STATUS_VALUES))})")
-    stale = meta.get("stale_after")
-    if stale is not None and not RFC3339.match(str(stale)):
-        report.warn(rel, f"§5.5 `stale_after` `{stale}` is not an ISO 8601 datetime "
-                         f"(a bare date is tolerated)")
+                         f"{'|'.join(sorted(STATUS_VALUES))}): consumers treat it as "
+                         f"not current")
+    superseded = meta.get("superseded_by")
+    if not is_empty(superseded):
+        if status != "deprecated":
+            report.warn(rel, "§5.4 `superseded_by` has meaning only with `status: deprecated`")
+        check_path_field("superseded_by", superseded, path, bundle, rel, report, legacy)
+    check_timestamp(meta.get("stale_after"), "stale_after", rel, report)
 
 
 def check_window(window, where: str, rel: str, report: Report) -> None:
-    """§5.1 — a `usage_window` is a `{from, to}` pair of ISO 8601 datetimes."""
-    if window is None:
+    """§5.1 — a `usage_window` is a `{from, to}` pair of timestamps (§5)."""
+    if is_empty(window):
         return
     if not isinstance(window, dict):
         report.warn(rel, f"§5.1 `{where}` `usage_window` must be a `{{from, to}}` mapping")
         return
     for bound in ("from", "to"):
         value = window.get(bound)
-        if value is None:
+        if is_empty(value):
             report.warn(rel, f"§5.1 `{where}` `usage_window` is missing `{bound}`")
-        elif not RFC3339.match(str(value)):
-            report.warn(rel, f"§5.1 `{where}` `usage_window.{bound}` `{value}` "
-                             f"is not an ISO 8601 datetime (a bare date is tolerated)")
+        else:
+            check_timestamp(value, f"{where}.usage_window.{bound}", rel, report)
 
 
 def strip_code(body: str) -> str:
@@ -303,11 +499,13 @@ def strip_code(body: str) -> str:
 def check_sources(meta: dict, body: str, rel: str, report: Report) -> None:
     """§5.1 — the `sources` provenance family and its footnote join keys."""
     if CITATIONS.search(body):
-        report.warn(rel, "legacy v0.1 `# Citations` body list: v0.2 records provenance "
-                         "in the `sources` frontmatter (§13.1)")
+        report.warn(rel, "legacy v0.1 `# Citations` body list: v0.2 and later record "
+                         "provenance in the `sources` frontmatter (Appendix B)")
     srcs = meta.get("sources")
-    if srcs is None:
+    if is_empty(srcs):
         return
+    if isinstance(srcs, dict):  # §11.2 rule 2: one item is a list of one
+        srcs = [srcs]
     if not isinstance(srcs, list):
         report.warn(rel, "§5.1 `sources` must be a list of entries")
         return
@@ -320,21 +518,17 @@ def check_sources(meta: dict, body: str, rel: str, report: Report) -> None:
             report.warn(rel, f"§5.1 `sources[{i}]` is missing the required `resource`")
         if "id" in src:
             ids.add(str(src["id"]))
-        if src.get("author") is not None:
-            check_actor(src["author"], f"sources[{i}].author", rel, report)
+        check_actor(src.get("author", ""), f"sources[{i}].author", rel, report)
         # §5.1 — `usage_count` is framed by a `usage_window`, written once as a
         # sibling of `sources` or overridden on the entry. Without one the count
         # is a number with no units, and the spec asks consumers to read it as
         # liveness and trend rather than a score.
         window = src.get("usage_window", meta.get("usage_window"))
-        if src.get("usage_count") is not None and window is None:
+        if src.get("usage_count") is not None and is_empty(window):
             report.warn(rel, f"§5.1 `sources[{i}].usage_count` has no `usage_window` "
                              f"framing it (a sibling of `sources`, or on the entry)")
         check_window(window, f"sources[{i}]", rel, report)
-        last_mod = src.get("last_modified")
-        if last_mod is not None and not RFC3339.match(str(last_mod)):
-            report.warn(rel, f"§5.1 `sources[{i}].last_modified` `{last_mod}` is not an "
-                             f"ISO 8601 datetime (a bare date is tolerated)")
+        check_timestamp(src.get("last_modified"), f"sources[{i}].last_modified", rel, report)
     # Attribution joins on the label, not on position (§5.1) — a footnote whose
     # label names no source silently attributes a claim to nothing.
     # Code is skipped: a regex class in a code span is not a footnote (#56).
@@ -348,26 +542,35 @@ def check_index(path: Path, rel: str, is_root: bool, report: Report) -> None:
     if text is None:
         return
     raw, _ = split_frontmatter(text)
-    if raw is not None:
-        if not is_root:
-            report.warn(rel, "§8 index.md should contain no frontmatter")
-        else:
-            try:
-                meta = yaml.safe_load(raw) or {}
-            except yaml.YAMLError:
-                report.warn(rel, "§12 root index.md frontmatter is not valid YAML")
-                meta = {}
-            # `upkeep` and `recursive` ride along: the plugin's Stop hook reads
-            # its opt-in flag and nested-repo switch from here, so an enforced-mode
-            # bundle would otherwise fail its own `--strict` run. §11 forbids
-            # rejecting a bundle for unknown keys.
-            extra = set(meta) - {"okf_version", "upkeep", "recursive"}
-            if extra:
-                report.warn(rel, f"§12 root index.md frontmatter may only carry `okf_version`, `upkeep`, `recursive` (found {sorted(extra)})")
-            declared = meta.get("okf_version")
-            if declared is not None and str(declared) != OKF_VERSION:
-                report.warn(rel, f"§12 bundle declares `okf_version: \"{declared}\"`; "
-                                 f"checked against v{OKF_VERSION}")
+    if raw is None:
+        return
+    if not is_root:
+        report.warn(rel, "§8 index.md should contain no frontmatter")
+        return
+    try:
+        meta = load_frontmatter(raw)
+    except yaml.YAMLError:
+        report.warn(rel, "§8.1 root index.md frontmatter is not valid YAML")
+        return
+    if meta is None:
+        return
+    if not isinstance(meta, dict):
+        report.warn(rel, "§8.1 root index.md frontmatter must be a YAML mapping")
+        return
+    extra = sorted(k for k in meta if not (str(k) in ROOT_KEYS or str(k).startswith("x-")))
+    if extra:
+        report.warn(rel, f"§8.1 root index.md frontmatter has unknown key(s) {extra}: "
+                         f"name extensions `x-<producer>-<name>` (§4.1)")
+    declared = meta.get("okf_version")
+    if is_empty(declared):
+        return
+    if not isinstance(declared, str):
+        report.warn(rel, f"§8.1 `okf_version` must be a quoted string: write "
+                         f"`okf_version: \"{declared}\"`")
+    if str(declared) != OKF_VERSION:
+        report.warn(rel, f"§12.1 bundle declares `okf_version: \"{declared}\"`: checked "
+                         f"against v{OKF_VERSION} with the §12.1 fallbacks applied for "
+                         f"0.2 or earlier")
 
 
 def check_log(path: Path, rel: str, report: Report) -> None:
@@ -406,29 +609,35 @@ def collect_link_targets(path: Path) -> list[str]:
 
 
 def check_links(bundle: Path, md_files: list[Path], report: Report) -> None:
-    """Broken bundle-internal links are warnings only (§6.1)."""
-    existing = {p.relative_to(bundle).as_posix() for p in md_files}
+    """Broken bundle-internal links are warnings only (§6.1).
+
+    A target resolving outside the bundle root is external (§6), never broken. One
+    that exists is fine even when it is a skipped dot-path or a non-concept `.md`.
+    """
+    root = bundle.resolve()
+    existing = {p.resolve() for p in md_files}
     for path in md_files:
         rel = path.relative_to(bundle).as_posix()
         for target in collect_link_targets(path):
-            t = target.split("#", 1)[0]
-            if not t or t.endswith("/"):
+            status, bare = path_status(target, path.parent, bundle)
+            decoded = unquote(bare)
+            if status == "external" or not decoded.endswith(".md"):
                 continue
-            if re.match(r"^[a-z][a-z0-9+.-]*://", t) or t.startswith("mailto:"):
+            # Case-sensitive membership, not `exists()`: paths are case-sensitive
+            # (§6) and a case-insensitive filesystem would hide a wrong-case link.
+            base = bundle if decoded.startswith("/") else path.parent
+            resolved = (base / decoded.lstrip("/")).resolve()
+            if resolved in existing:
                 continue
-            if not t.endswith(".md"):
+            # A skipped dot-path is not in `existing` but is still a real file.
+            if resolved.is_file() and any(
+                    part.startswith(".") for part in resolved.relative_to(root).parts):
                 continue
-            if t.startswith("/"):
-                resolved = t.lstrip("/")
-            else:
-                resolved = (path.parent / t).resolve().relative_to(bundle.resolve()).as_posix() \
-                    if (path.parent / t).resolve().is_relative_to(bundle.resolve()) else t
-            if resolved not in existing:
-                report.warn(rel, f"cross-link target not found: `{target}` (tolerated under §6.1)")
+            report.warn(rel, f"cross-link target not found: `{target}` (tolerated under §6.1)")
 
 
 def citations_to_sources(raw: str, body: str) -> tuple[str, str]:
-    """Hoist a v0.1 `# Citations` list into the `sources` family (§5.1, §13.1)."""
+    """Hoist a v0.1 `# Citations` list into the `sources` family (§5.1, Appendix B)."""
     heading = CITATIONS.search(body)
     if heading is None:
         return raw, body
@@ -446,13 +655,53 @@ def citations_to_sources(raw: str, body: str) -> tuple[str, str]:
     return raw + block, kept + ("\n\n" + tail if tail else "\n")
 
 
-def migrate_text(text: str, is_root_index: bool) -> str | None:
-    """Rewrite one file's v0.1 constructs to v0.2. None when nothing changes.
+def root_prefix_path_fields(raw: str, path: Path, bundle: Path, with_computation: bool) -> str:
+    """Prefix `/` to block-style path fields that only resolve from the bundle root.
+
+    v0.2 resolved a bare path field from the bundle root, v0.3 from the file's own
+    directory (§6, §6.2), so such a value must become `/<path>` to keep pointing at
+    the same file. Only `key: value` lines are rewritten, quoting and trailing
+    comments preserved. Flow-style mappings are left alone: the validator keeps
+    warning about them, which is the prompt to fix them by hand.
+    """
+    top_keys = ("superseded_by", "computation") if with_computation else ("superseded_by",)
+    blocks = PATH_BLOCKS if with_computation else ()
+    block: str | None = None
+    child_indent: str | None = None
+    out: list[str] = []
+    for line in raw.split("\n"):
+        top = TOP_KEY.match(line)
+        candidate = False
+        if top:
+            key, rest = top.groups()
+            block = key if key in blocks and (not rest.strip() or rest.lstrip().startswith("#")) else None
+            child_indent = None
+            candidate = key in top_keys
+        elif block and (m := re.match(r"^([ \t]+)resource:", line)):
+            child_indent = m.group(1) if child_indent is None else child_indent
+            candidate = m.group(1) == child_indent
+        elif line and not line[0].isspace() and not line.startswith("#"):
+            block = None
+        m = PATH_VALUE.match(line) if candidate else None
+        if m:
+            value = m.group("qv") if m.group("q") else m.group("bv")
+            if path_status(value, path.parent, bundle)[0] == "root_only":
+                quote = m.group("q") or ""
+                line = f"{m.group('head')}{quote}/{value}{quote}{m.group('tail')}"
+        out.append(line)
+    return "\n".join(out)
+
+
+def migrate_text(text: str, is_root_index: bool, path: Path | None = None,
+                 bundle: Path | None = None) -> str | None:
+    """Rewrite one file's v0.1 / v0.2 constructs to v0.3. None when nothing changes.
 
     Textual on purpose: dumping the frontmatter back through PyYAML would flatten
     comments, key order and quoting across every file in the bundle. Each branch
-    is guarded on the v0.2 key already being present, so a half-migrated bundle
+    is guarded on the newer key already being present, so a half-migrated bundle
     converges instead of growing a duplicate key that PyYAML then refuses to load.
+    `path` and `bundle` (both or neither) enable the path-field rewrite, which needs
+    the filesystem to tell a root-relative value from a missing one.
     """
     raw, body = split_frontmatter(text)
     if raw is None:
@@ -461,12 +710,15 @@ def migrate_text(text: str, is_root_index: bool) -> str | None:
         new_raw = OKF_VERSION_LINE.sub(rf'\g<1>"{OKF_VERSION}"', raw, count=1)
         return None if new_raw == raw else f"---\n{new_raw}---\n{body}"
     try:
-        meta = yaml.safe_load(raw)
+        meta = load_frontmatter(raw)
     except yaml.YAMLError:
         return None
     if not isinstance(meta, dict):
         return None
     new_raw, new_body = raw, body
+    if path is not None and bundle is not None:
+        new_raw = root_prefix_path_fields(
+            new_raw, path, bundle, meta.get("type") == "Attested Computation")
     if "generated" not in meta:
         new_raw = TIMESTAMP.sub(
             lambda m: f"generated:\n  by: {MIGRATE_ACTOR}\n  at: {m.group(1)}",
@@ -481,7 +733,7 @@ def migrate_text(text: str, is_root_index: bool) -> str | None:
 def migrate(bundle: Path) -> list[str]:
     """Migrate a bundle in place. Returns the relative paths actually rewritten."""
     changed = []
-    for path in sorted(p for p in bundle.rglob("*.md") if p.is_file()):
+    for path in iter_bundle_md(bundle):
         rel = path.relative_to(bundle).as_posix()
         if path.name == "log.md":
             continue
@@ -497,7 +749,7 @@ def migrate(bundle: Path) -> list[str]:
         is_root_index = path.name == "index.md" and path.parent == bundle
         if path.name == "index.md" and not is_root_index:
             continue
-        new = migrate_text(text.lstrip("﻿"), is_root_index)
+        new = migrate_text(text.lstrip("﻿"), is_root_index, path, bundle)
         if new is not None and new != text:
             path.write_text(new, encoding="utf-8")
             changed.append(rel)
@@ -506,7 +758,8 @@ def migrate(bundle: Path) -> list[str]:
 
 def validate(bundle: Path) -> Report:
     report = Report()
-    md_files = sorted(p for p in bundle.rglob("*.md") if p.is_file())
+    md_files = iter_bundle_md(bundle)
+    legacy = is_legacy_version(declared_version(bundle))
     for path in md_files:
         rel = path.relative_to(bundle).as_posix()
         name = path.name
@@ -515,7 +768,7 @@ def validate(bundle: Path) -> Report:
         elif name == "log.md":
             check_log(path, rel, report)
         else:
-            check_concept(path, rel, bundle, report)
+            check_concept(path, rel, bundle, report, legacy=legacy)
     check_links(bundle, md_files, report)
     return report
 
@@ -545,7 +798,7 @@ def main() -> int:
     ap.add_argument("--max-warnings", type=int, default=None, metavar="N",
                     help="fail if warnings exceed N (--strict is the N=0 case)")
     ap.add_argument("--migrate", action="store_true",
-                    help="rewrite v0.1 constructs to v0.2 in place, then validate")
+                    help="rewrite v0.1 / v0.2 constructs to v0.3 in place, then validate")
     ap.add_argument("--json", action="store_true", help="emit a JSON report")
     args = ap.parse_args()
 

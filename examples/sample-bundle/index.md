@@ -1,5 +1,5 @@
 ---
-okf_version: "0.2"
+okf_version: "0.3"
 ---
 
 # Storefront — Sample OKF Bundle
