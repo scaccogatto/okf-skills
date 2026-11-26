@@ -87,7 +87,9 @@ while IFS= read -r g; do
   [ "$common" = "$outer_common" ] && continue
   [ -n "$(git -C "$d" rev-parse --show-superproject-working-tree 2>/dev/null)" ] && continue
   gitdir=$(cd "$d" 2>/dev/null && realdir "$(git rev-parse --git-dir 2>/dev/null)") || continue
-  if [ "$gitdir" != "$common" ]; then case "$common/" in "$root"/*) continue;; esac; fi
+  # the pattern keeps its leading "(": macOS bash 3.2 reads a bare "pattern)"
+  # inside $( ) as the end of the command substitution (syntax error)
+  if [ "$gitdir" != "$common" ]; then case "$common/" in ("$root"/*) continue;; esac; fi
   [ -d "$d/.okf" ] && continue
   [ -n "$(tracked_changes "$d")" ] && printf '%s\n' "${d#./}"
 done)

@@ -357,5 +357,20 @@ class TestStopHook(unittest.TestCase):
             self.assertNotIn("nested", self.hook_output())
 
 
+class TestHookSyntax(unittest.TestCase):
+    """CI runs Linux only: /bin/bash on macOS is 3.2, whose parser is stricter."""
+
+    def check_syntax(self, bash: str) -> None:
+        r = subprocess.run([bash, "-n", str(HOOK)], capture_output=True, text=True, check=False)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_parses_under_path_bash(self) -> None:
+        self.check_syntax("bash")
+
+    @unittest.skipUnless(Path("/bin/bash").exists(), "no /bin/bash")
+    def test_parses_under_system_bash(self) -> None:
+        self.check_syntax("/bin/bash")
+
+
 if __name__ == "__main__":
     unittest.main()

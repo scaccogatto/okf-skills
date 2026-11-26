@@ -5,7 +5,7 @@ description: Dormant Stop hook — a no-op unless a bundle opts in to enforced u
 resource: https://github.com/scaccogatto/okf-skills/blob/main/hooks/okf-stop-check.sh
 tags: [bash, hook, enforcement]
 status: stable
-generated: { by: "agent:claude-opus-5-5", at: "2026-10-19T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 ---
 
 # Overview
@@ -137,3 +137,7 @@ set of required status checks does not change.
 * The loop guard greps the raw JSON for `"stop_hook_active": true` rather
   than parsing it — deliberate, so a missing `jq` can never disable the guard
   and re-block forever.
+* The script must parse under macOS `/bin/bash` 3.2: inside `$( )`, a `case`
+  pattern needs its leading paren (`("$root"/*)`), or 3.2 takes the `)` as the
+  end of the substitution. `tests/test_okf_stop_hook.py` runs `bash -n` and
+  `/bin/bash -n` on the hook to catch this, since CI is Linux only.
