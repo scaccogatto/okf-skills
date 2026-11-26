@@ -4,6 +4,17 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.12.1] - 2026-11-26
+
+### Fixed
+- **The Stop hook no longer fails to parse on macOS.** `hooks/okf-stop-check.sh`
+  used a `case` pattern without a leading paren inside `$( )`, which the stock
+  macOS `/bin/bash` 3.2 reads as the end of the substitution: the script died
+  with a syntax error (exit 2) and blocked every Stop for bundles with
+  `recursive` enabled. The pattern now starts with `(`, and a test runs
+  `bash -n` and `/bin/bash -n` on the hook.
+  CI gains a `test-macos` job that runs the hook and validator tests on macOS.
+
 ## [0.12.0] - 2026-10-19
 
 ### Added
