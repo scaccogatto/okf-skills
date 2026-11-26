@@ -5,7 +5,7 @@ description: Standalone bundle to viz.html renderer (Cytoscape, marked, DOMPurif
 resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/visualize/scripts/okf_visualize.py
 tags: [python, visualization, cytoscape]
 status: stable
-generated: { by: "agent:claude-opus-5-5", at: "2026-10-15T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 ---
 
 # Overview
@@ -14,11 +14,17 @@ The engine behind the [visualize skill](/skills/visualize.md). Parses a bundle
 into nodes (concepts, coloured by `type`, sized by body length) and edges
 (markdown links, plus any `sources[].resource` that names another concept in the
 bundle), then emits one self-contained HTML file — no backend, nothing leaves the
-page. The detail panel renders the v0.2 trust, lifecycle, and provenance
-frontmatter: `status`, `generated`, `verified`, `stale_after`, and a Sources list
-carrying each source's credibility signals — a `usage_count` shown together with
-the `usage_window` that frames it. A v0.1 `timestamp` is read as `generated.at`
-so legacy bundles still show a date.
+page. The detail panel renders the v0.3 trust, lifecycle, and provenance
+frontmatter: `status` (an unknown value gets its own badge), `generated`,
+`verified`, `stale_after`, a `superseded_by` link, and a Sources list carrying
+each source's credibility signals (a `usage_count` shown together with the
+`usage_window` that frames it). A v0.1 `timestamp` is read as `generated.at` so
+legacy bundles still show a date.
+
+Nodes follow §3.2 discovery: only a `.md` with frontmatter and a `type` is a
+concept, so there are no more Untyped nodes. Edges come from markdown links, from
+bundle-internal `sources[].resource`, and from path-valued frontmatter fields
+(§6.4), all resolved with the §6 rule.
 
 Concept bodies are untrusted content, so markdown output is passed through
 DOMPurify before it reaches `innerHTML`.
@@ -43,14 +49,16 @@ re-runs the selected layout; it does not re-run during the drag.
 
 # Derived signals
 
-Two things the panel infers rather than displays, because v0.2 defines them as
-derivations and storing them would be storing an opinion:
+The panel infers rather than displays, because v0.3 defines these as derivations
+and storing them would be storing an opinion:
 
-* the **trust tier** (§5.3) — no `verified` is *unverified*, `verified` by
+* the **trust tier** (§5.3): no current `verified` is *unverified*, `verified` by
   non-`human:` actors only is *machine-confirmed*, any `human:` actor makes it
-  *human-reviewed*;
-* **staleness** (§5.5) — a concept is stale when `now >= stale_after`, compared
-  as instants so a bare date and a full datetime both work.
+  *human-reviewed*. Only events at or after `generated.at` count, so a rewrite
+  resets the tier and older confirmations stay as history;
+* **staleness** (§5.5): *fresh*, *stale* or *malformed*, computed in Python at
+  build time (an unparseable `stale_after` is never fresh), compared as instants
+  so a bare date and a full datetime both work.
 
 Both are advisory badges, not access control: nothing is hidden or refused on
 their account.

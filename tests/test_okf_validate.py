@@ -294,8 +294,8 @@ class TestV02Families(TmpBundle):
                          f"generated: {{ by: human:t }}\nverified: {{ by: human:t, at: {bad} }}\n",
                          f"generated: {{ by: human:t }}\nstale_after: {bad}\n",
                          f"generated: {{ by: human:t }}\nsources: [{{ resource: x, last_modified: {bad} }}]\n",
-                         f"generated: {{ by: human:t }}\nusage_window: {{ from: {bad}, to: 2026-06-30 }}\n"
-                         "sources: [{ resource: x, usage_count: 1 }]\n"):
+                         (f"generated: {{ by: human:t }}\nusage_window: {{ from: {bad}, to: 2026-06-30 }}\n"
+                          "sources: [{ resource: x, usage_count: 1 }]\n")):
                 self.assertIn("lacks the required offset", self.only(self.concept(meta)), (bad, meta))
 
     def test_empty_optional_families_are_the_same_as_absent(self):
@@ -479,6 +479,13 @@ class TestCheckIndex(TmpBundle):
             self.assertEqual(r.errors, [])
             self.assertIn("okf_version", r.warnings[0])
             self.assertIn("§12.1", r.warnings[0])
+
+    def test_broken_root_frontmatter_is_an_error(self):
+        # §11.1 rule 1 covers every frontmatter block, not only concepts'.
+        for raw in ("okf_version: [\n", "- a list\n", "okf_version: '0.3'\nokf_version: '0.3'\n"):
+            self.write("index.md", f"---\n{raw}---\n")
+            r = self.run_check(check_index, "index.md", True)
+            self.assertEqual(len(r.errors), 1, (raw, r.errors))
 
     def test_non_root_frontmatter_warns(self):
         self.write("sub/index.md", "---\nokf_version: '0.3'\n---\n")

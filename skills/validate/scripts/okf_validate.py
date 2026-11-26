@@ -173,7 +173,7 @@ class UniqueKeyLoader(yaml.SafeLoader):
 
 def load_frontmatter(raw: str):
     """Parse a frontmatter block with duplicate-key detection (§4)."""
-    return yaml.load(raw, Loader=UniqueKeyLoader)  # noqa: S506 - a SafeLoader subclass
+    return yaml.load(raw, Loader=UniqueKeyLoader)  # a SafeLoader subclass: no arbitrary objects
 
 
 def is_empty(value) -> bool:
@@ -549,13 +549,18 @@ def check_index(path: Path, rel: str, is_root: bool, report: Report) -> None:
         return
     try:
         meta = load_frontmatter(raw)
-    except yaml.YAMLError:
-        report.warn(rel, "§8.1 root index.md frontmatter is not valid YAML")
+    # §11.1 rule 1 covers every frontmatter block, the root index's included, so a
+    # broken one is non-conformant here just as in a concept.
+    except DuplicateKeyError as exc:
+        report.err(rel, f"§4 frontmatter has a {exc.problem} (YAML 1.2 requires unique keys)")
+        return
+    except yaml.YAMLError as exc:
+        report.err(rel, f"§11.1 root index.md frontmatter is not valid YAML: {exc}".replace("\n", " "))
         return
     if meta is None:
         return
     if not isinstance(meta, dict):
-        report.warn(rel, "§8.1 root index.md frontmatter must be a YAML mapping")
+        report.err(rel, "§11.1 root index.md frontmatter must be a YAML mapping")
         return
     extra = sorted(k for k in meta if not (str(k) in ROOT_KEYS or str(k).startswith("x-")))
     if extra:

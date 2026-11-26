@@ -5,11 +5,11 @@ description: Reconstruct an OKF bundle from git history and session transcripts 
 resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/backfill/SKILL.md
 tags: [skill, bundle-reconstruction, history, event-sourcing, deep-replay, routing]
 status: stable
-generated: { by: claude/opus-5, at: "2026-09-21T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 sources:
   - id: spec-§5.2
     resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/okf/reference/SPEC.md#52-trust-generated-and-verified
-    title: OKF v0.2 spec §5.2 Trust metadata
+    title: OKF v0.3 spec §5.2 Trust metadata
   - id: map-tier-protocol
     resource: https://github.com/scaccogatto/okf-skills/blob/main/benchmark/map-tier/PROTOCOL.md
     title: Map-phase routing A/B protocol

@@ -4,7 +4,7 @@ title: Target OKF v0.2, migrate v0.1 rather than tolerate it
 description: Author v0.2 everywhere; name the legacy constructs in warnings and ship the rewrite that clears them.
 tags: [adr, spec, compatibility, migration]
 status: stable
-generated: { by: human:scaccogatto, at: "2026-07-27T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 ---
 
 # Context
@@ -54,3 +54,11 @@ them**.
 * Per-claim attribution (the `[^id]` footnotes of §5.1) is not recoverable from
   a v0.1 `# Citations` list: the sources move up to frontmatter, but which claim
   cited which source was never encoded. `--migrate` says so instead of guessing.
+
+# 2026-11-26: v0.3
+
+The same policy extends to [OKF v0.3](/reference/okf-spec.md). The tooling reads
+the v0.1 and v0.2 forms (including the §12.1 root fallback for path fields in
+bundles declaring 0.2 or none), warns naming the replacement, and `--migrate`
+rewrites them to v0.3. Everything that writes emits v0.3 only. The §13.1
+references above to the v0.1 constructs now live in Appendix B of the spec.

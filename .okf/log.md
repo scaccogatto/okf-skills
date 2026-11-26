@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-11-26
+* **Regeneration**: the bundle and the tooling moved to OKF v0.3, with the spec re-vendored from its new home (`open-knowledge-format/open-knowledge-format`, `527e81a`). The validator, visualizer, MCP server and `okf_init.py` follow v0.3 (§3.2 discovery, §6 path resolution with the §12.1 fallback, trust tiers from current events only), and `--migrate` now rewrites v0.1 and v0.2 bundles to v0.3. The concepts describing them were regenerated, so their earlier `verified` entries are history until re-confirmed.
+
 ## 2026-09-21
 * **Repo hygiene**: README rewritten around one thread (what OKF is, install per channel, use, what's inside, format, measured results as bullets with links, contributing, credits); the layout tree and duplicate install block are gone, counts and CI rules match the code, and the backfill's dependency on the plugin-only `agents/` is stated. Drift fixed alongside: `make test` runs the gate tests, CI's shipped and `.okf` regexes cover `agents/`, the inert `benchmark/trust/runs/` ignore rule is dropped, the root index links the backfill skill and a new concept for `okf_backfill_events.py`, and the backfill concept documents the two agents.
 * **Release 0.9.6**: the vendored spec was resynced with upstream, which moved to

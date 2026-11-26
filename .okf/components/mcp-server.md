@@ -5,7 +5,7 @@ description: Read-only MCP server over a bundle, exposing search_concepts, read_
 resource: https://github.com/scaccogatto/okf-skills/blob/main/servers/okf_mcp.py
 tags: [python, mcp, consumer]
 status: stable
-generated: { by: "agent:claude-opus-5-5", at: "2026-10-13T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 ---
 
 # Overview
@@ -24,14 +24,20 @@ that have no bundle.
 
 | Tool | Returns |
 |---|---|
-| `search_concepts(query, limit=20)` | Cards (`id`, `type`, `title`, `description`, `status`, `stale_after`) for concepts matching `query`, case-insensitively. Metadata hits (id, title, description, tags) rank above body-only hits. |
+| `search_concepts(query, limit=20)` | Cards (`id`, `type`, `title`, `description`, `status`, `stale_after`, plus `tier`, `stale`, `current` and `superseded_by`) for concepts matching `query`, case-insensitively. Metadata hits (id, title, description, tags) rank above body-only hits. |
 | `read_concept(concept_id)` | The file verbatim, frontmatter included. `concept_id` is the bundle-relative path without `.md`; the reserved `index` and `log` are reachable too. |
-| `get_neighbors(concept_id)` | `outgoing` and `incoming` cards, from markdown links plus bundle-internal `sources[].resource`, resolved with the same rule as the [visualizer](/components/visualizer.md). External URLs are not neighbours. |
+| `get_neighbors(concept_id)` | `outgoing` and `incoming` cards, from markdown links, bundle-internal `sources[].resource` and path-valued frontmatter fields (the §6.4 edges), resolved with the §6 rule shared with the [visualizer](/components/visualizer.md). External URLs are not neighbours. |
 
 Nothing writes, and no tool takes a path outside the bundle: `concept_id` is
 resolved and rejected unless it lands under the bundle root.
 
 # Notes
+
+* Discovery follows §3.2: only a `.md` with frontmatter and a `type` is a
+  concept. Cards carry the derived trust `tier` (current events only, §5.3), a
+  `stale` flag (§5.5), the effective `status` (an unknown value is not current,
+  §5.4), a `current` flag and `superseded_by`, so an agent can discount stale or
+  retired knowledge itself.
 
 * Parsing is the `split_frontmatter` / `link_targets` / `resolve` trio shared in
   shape with the [visualizer](/components/visualizer.md), duplicated rather than

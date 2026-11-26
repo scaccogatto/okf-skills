@@ -4,6 +4,44 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.13.0] - 2026-11-26
+
+### Changed
+- **OKF v0.3.** The spec moved to
+  [open-knowledge-format/open-knowledge-format](https://github.com/open-knowledge-format/open-knowledge-format)
+  (the GoogleCloudPlatform copy is deprecated) and released v0.3. It is
+  re-vendored verbatim at `527e81a`, and the skills, templates, README and
+  Action now target it. New bundles declare `okf_version: "0.3"`, and
+  `okf_init.py` also writes the bundle `title`.
+- **The validator checks v0.3 conformance.** A `.md` with no frontmatter or no
+  `type` (a `README.md`, an `AGENTS.md`) is now a skipped non-concept and a
+  warning, no longer an error (§3.2). Duplicate frontmatter keys and a broken
+  root `index.md` frontmatter are errors (§4, §11.1). Paths starting with `.`
+  are not part of the bundle.
+- **Path fields resolve from their file's directory** (§6). A bare value that
+  resolves only from the bundle root still passes for bundles declaring 0.2 or
+  no version (the §12.1 fallback), with a warning asking for the `/` form.
+  Links and paths that leave the bundle are external, never broken.
+- **Trust tiers count only current verifications** (§5.3): an event whose `at`
+  predates `generated.at` stays as history. The visualizer and the MCP server
+  compute the tier this way, show older events as "verified before the last
+  change", and treat an unparseable `stale_after` as malformed, never fresh.
+- **Timestamps:** a date-only value is fully valid (start of that day UTC). A
+  date-time without an offset is now reported as invalid.
+
+### Added
+- `superseded_by` (§5.4): validated as a path field, warned about without
+  `status: deprecated`, drawn as a graph edge and a "Superseded by" link.
+- Root `index.md` accepts the §8.1 bundle metadata (`title`, `description`,
+  `license`) and any `x-` extension key. Other unknown keys warn with the
+  `x-<producer>-<name>` convention, and an unquoted `okf_version` warns.
+- `verified` events without `at`, and `parameters` entries without `name` and
+  `type`, are reported.
+- MCP concept cards carry `tier`, `stale`, `current` and `superseded_by`.
+  Graph edges (`get_neighbors`, visualizer) include every §6.4 path field.
+- `--migrate` upgrades v0.2 bundles: it bumps `okf_version` to `"0.3"` and
+  prefixes `/` on block-style path fields that resolve only from the root.
+
 ## [0.12.0] - 2026-10-19
 
 ### Added
