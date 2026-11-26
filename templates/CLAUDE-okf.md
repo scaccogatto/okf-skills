@@ -29,9 +29,9 @@ This project keeps shared knowledge as an OKF bundle in `.okf/`.
   the OS user): use `human:` only for a named person who wrote or confirmed the
   content and whom you were told about. Record yourself in `generated.by` as
   `<producer>/<version>`.
-- **Capturing new knowledge** → use the `/okf:okf` skill (modes: produce,
+- **Capturing new knowledge** → use the `/okf-skills:okf` skill (modes: produce,
   maintain, consume).
-- **Before committing** bundle changes → run `/okf:validate .okf --strict` and
+- **Before committing** bundle changes → run `/okf-skills:validate .okf --strict` and
   resolve every error. Add `--lint` if this project also wants the okf-skills
   house style (missing `title`, `description`, `tags`, `generated`), which is
   optional and not spec.

@@ -1,9 +1,24 @@
 # Contributing
 
-Issues and pull requests are welcome. CI enforces a few rules on every PR, and
-they are listed here so you meet them before a red check does.
+Issues and pull requests are welcome. As a contributor you only need the
+change, the tests and a clear description of what and why. Maintainers handle
+the release chores (version bump, CHANGELOG entry, `.okf/` upkeep) before
+merging an outside PR: they push those commits to your PR branch, or use the
+`skip-version-check` label.
+
+## Governance
+
+okf-skills is an independent community toolkit maintained by ekar.is. It is not
+the official OKF project. Direction is discussed in issues and recorded as
+decision concepts in [`.okf/decisions/`](.okf/decisions/). Questions about the
+OKF spec itself go to the upstream repository,
+[open-knowledge-format](https://github.com/open-knowledge-format/open-knowledge-format).
+Participation is covered by the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## The three PR gates (`version-bump` check)
+
+CI enforces these on every PR. Maintainers meet them for outside PRs, so they
+are listed for transparency and for maintainers' own PRs.
 
 1. **Version bump.** A PR that changes the shipped surface (`.claude-plugin/`,
    `skills/`, `agents/`, `hooks/`, `servers/`, `templates/`, `action.yml`,

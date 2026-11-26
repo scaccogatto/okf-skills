@@ -2,7 +2,7 @@
 type: Skill
 title: validate skill
 description: Deterministic §11.1 conformance check for an OKF bundle — not an eyeball pass.
-resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/validate/SKILL.md
+resource: https://github.com/ekar-is/okf-skills/blob/main/skills/validate/SKILL.md
 tags: [skill, validation, ci]
 status: stable
 generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }

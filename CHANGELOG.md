@@ -114,6 +114,35 @@ for #62, #63, #65 and #66, contributed in
 [#68](https://github.com/ekar-is/okf-skills/pull/68), and also for reporting
 the alias-bomb exposure (#68).
 
+## [0.12.2] - 2026-11-26
+
+### Changed
+- **The repository moved to the `ekar-is` organization**: it now lives at
+  https://github.com/ekar-is/okf-skills (Pages at
+  https://ekar-is.github.io/okf-skills/). Old URLs redirect. New install commands:
+  `npx skills add ekar-is/okf-skills`,
+  `/plugin marketplace add ekar-is/okf-skills` then `/plugin install okf-skills@ekar-is`,
+  and `uses: ekar-is/okf-skills@v1` for the GitHub Action.
+- **The marketplace is renamed from `scaccogatto` to `ekar-is`.** Existing
+  plugin users run `/plugin marketplace remove scaccogatto`, then add it again
+  with `/plugin marketplace add ekar-is/okf-skills`.
+- **The Claude Code plugin is renamed from `okf` to `okf-skills`.** Skills are
+  now invoked as `/okf-skills:okf`, `/okf-skills:validate`,
+  `/okf-skills:visualize` and `/okf-skills:backfill`, subagents as
+  `okf-skills:event-analyzer` and `okf-skills:bundle-weaver`, and the MCP tools
+  appear as `mcp__plugin_okf-skills_bundle__*`. Migration: run
+  `/plugin marketplace remove scaccogatto`, then
+  `/plugin marketplace add ekar-is/okf-skills`, then
+  `/plugin install okf-skills@ekar-is`. The skill names and the GitHub Action
+  (`ekar-is/okf-skills@v1`) are unchanged.
+- Author is now ekar.is (plugin manifest, marketplace owner, action). Copyright
+  is `ekar.is and the okf-skills contributors` (LICENSE, README credits).
+- Governance: CONTRIBUTING.md states that okf-skills is an independent community
+  toolkit maintained by ekar.is, and that maintainers handle the version bump,
+  CHANGELOG and `.okf/` upkeep for outside PRs. Added CODE_OF_CONDUCT.md
+  (Contributor Covenant 2.1 by reference), issue templates and a pull request
+  template.
+
 ## [0.12.0] - 2026-10-19
 
 ### Added

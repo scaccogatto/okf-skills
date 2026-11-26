@@ -63,7 +63,7 @@ broken links, never reject a bundle over them.
   `x-okf-skills-upkeep: enforced` to arm the Stop hook, plus
   `x-okf-skills-recursive: true` (or a depth `n`: levels below the root, `true`
   is 6) to make the hook watch nested git repos. The older unprefixed `upkeep` /
-  `recursive` still work but are deprecated, and `/okf:validate --migrate`
+  `recursive` still work but are deprecated, and `/okf-skills:validate --migrate`
   renames them) and `log.md` (ISO-dated history, newest first, no
   frontmatter). Never use these names for concepts.
 - **What goes in `log.md` (an okf-skills convention):** §9 only says a log
@@ -201,7 +201,7 @@ is given. Then extend it:
 ## Validation (do this before declaring done)
 
 Never eyeball conformance — run the deterministic checker. Invoke the companion
-**`validate`** skill (`/okf:validate <bundle-dir> --strict`), which ships the
+**`validate`** skill (`/okf-skills:validate <bundle-dir> --strict`), which ships the
 checker. If that skill is not installed, run it directly:
 
 ```bash

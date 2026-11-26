@@ -2,7 +2,7 @@
 type: Tool
 title: okf_validate.py
 description: Zero-config Python v0.3 conformance checker and v0.1/v0.2→v0.3 migrator (PEP 723 / uv, PyYAML).
-resource: https://github.com/scaccogatto/okf-skills/blob/main/skills/validate/scripts/okf_validate.py
+resource: https://github.com/ekar-is/okf-skills/blob/main/skills/validate/scripts/okf_validate.py
 tags: [python, validator, uv]
 status: stable
 generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }

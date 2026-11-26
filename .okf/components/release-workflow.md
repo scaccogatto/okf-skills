@@ -2,10 +2,10 @@
 type: Tool
 title: release.yml
 description: GitHub Actions workflow that tags and publishes a release when the plugin version bumps.
-resource: https://github.com/scaccogatto/okf-skills/blob/main/.github/workflows/release.yml
+resource: https://github.com/ekar-is/okf-skills/blob/main/.github/workflows/release.yml
 tags: [ci, release, github-actions]
 status: stable
-generated: { by: "agent:claude-opus-5-5", at: "2026-10-13T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 ---
 
 # Overview
@@ -29,7 +29,7 @@ only a version change wakes it. It then:
    the release instead of shipping without notes.
 
 A second step then force-moves the floating `v1` tag onto the same commit.
-`uses: scaccogatto/okf-skills@v1` is what the README shows and what the Actions
+`uses: ekar-is/okf-skills@v1` is what the README shows and what the Actions
 ecosystem reads as "the latest 1.x", but nothing moved it: it sat frozen on a
 docs commit from 0.6.0 and served adopters a validator four versions old, one
 that rejected the `upkeep` flag the README told them to add. The repo is

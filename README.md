@@ -8,11 +8,11 @@ Format bundles: markdown your team and your agents both read.**
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 [![OKF spec](https://img.shields.io/badge/OKF-v0.3-6E56CF.svg)](https://github.com/open-knowledge-format/open-knowledge-format)
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757.svg)](https://code.claude.com/docs/en/plugins)
-[![skills.sh](https://img.shields.io/badge/skills.sh-installable-22C55E.svg)](https://skills.sh/scaccogatto/okf-skills)
+[![skills.sh](https://img.shields.io/badge/skills.sh-installable-22C55E.svg)](https://skills.sh/ekar-is/okf-skills)
 
-[![okf: explore an OKF bundle as an interactive graph](docs/assets/demo.gif)](https://scaccogatto.github.io/okf-skills/)
+[![okf: explore an OKF bundle as an interactive graph](docs/assets/demo.gif)](https://ekar-is.github.io/okf-skills/)
 
-**[Open the live demo](https://scaccogatto.github.io/okf-skills/)**: a real bundle as an interactive graph. Click a node for the rendered concept, its derived trust tier and staleness, its sources and backlinks. Nothing leaves the page.
+**[Open the live demo](https://ekar-is.github.io/okf-skills/)**: a real bundle as an interactive graph. Click a node for the rendered concept, its derived trust tier and staleness, its sources and backlinks. Nothing leaves the page.
 
 </div>
 
@@ -42,16 +42,16 @@ complements them rather than replacing them. You do not need okf-skills to use
 OKF: a bundle is plain Markdown, and any editor writes it.
 
 This repo documents itself in OKF: its architecture and decisions live in
-[`.okf/`](.okf/), rendered as a [live self-graph](https://scaccogatto.github.io/okf-skills/self.html)
+[`.okf/`](.okf/), rendered as a [live self-graph](https://ekar-is.github.io/okf-skills/self.html)
 and validated on every push.
 
 ## Install
 
 | Channel | Command | Notes |
 |---|---|---|
-| Claude Code plugin | `/plugin marketplace add scaccogatto/okf-skills` then `/plugin install okf@scaccogatto` | Skills, subagents, Stop hook and MCP server. The full toolchain. |
-| Agent skills ([skills.sh](https://skills.sh/scaccogatto/okf-skills)) | `npx skills add scaccogatto/okf-skills` | Tested in Claude Code. Other hosts that support the Agent Skills format may load them, but that is untested. Installs the okf, validate, visualize and backfill skills; backfill needs the plugin's subagents, see below. |
-| GitHub Action | `uses: scaccogatto/okf-skills@v1` | Validates a bundle in CI, no agent needed. |
+| Claude Code plugin | `/plugin marketplace add ekar-is/okf-skills` then `/plugin install okf-skills@ekar-is` | Skills, subagents, Stop hook and MCP server. The full toolchain. |
+| Agent skills ([skills.sh](https://skills.sh/ekar-is/okf-skills)) | `npx skills add ekar-is/okf-skills` | Tested in Claude Code. Other hosts that support the Agent Skills format may load them, but that is untested. Installs the okf, validate, visualize and backfill skills; backfill needs the plugin's subagents, see below. |
+| GitHub Action | `uses: ekar-is/okf-skills@v1` | Validates a bundle in CI, no agent needed. |
 | MCP server | `uv run servers/okf_mcp.py .okf` | Any MCP host. Bundled with the plugin, nothing to configure there. |
 | Local development | `claude --plugin-dir /path/to/okf-skills` | No marketplace. |
 
@@ -79,7 +79,7 @@ The `.okf/` location is an okf-skills convention, not part of the spec.
 **Capture knowledge.** Ask Claude to "document the auth service in OKF", or:
 
 ```shell
-/okf:okf produce .okf
+/okf-skills:okf produce .okf
 ```
 
 **Backfill a repo that predates the bundle.** Event-sources git history and
@@ -87,7 +87,7 @@ Claude session transcripts into concepts, with a deterministic extractor and an
 auditable map/reduce over subagents:
 
 ```shell
-/okf:backfill .
+/okf-skills:backfill .
 ```
 
 **Validate** before committing. The checker is deterministic, §11 of the spec,
@@ -97,7 +97,7 @@ missing `title`, `description`, `tags` or `generated`), which is optional and
 not spec. `--migrate` upgrades v0.1 and v0.2 bundles to v0.3 in place:
 
 ```shell
-/okf:validate .okf --strict
+/okf-skills:validate .okf --strict
 uv run skills/validate/scripts/okf_validate.py .okf --strict      # zero-config
 uv run skills/validate/scripts/okf_validate.py .okf --strict --lint  # plus house style
 uv run skills/validate/scripts/okf_validate.py .okf --max-warnings 5
@@ -108,28 +108,28 @@ while the repo is pre-1.0; pin `@okf--v<version>` to freeze it. The step exposes
 the validator's JSON as the `report` output.
 
 ```yaml
-- uses: scaccogatto/okf-skills@v1
+- uses: ekar-is/okf-skills@v1
   with:
     bundle: .okf
     strict: "true"      # or: max-warnings: "5"
 ```
 
 **Visualize** the graph as a self-contained `viz.html`
-([live example](https://scaccogatto.github.io/okf-skills/)). Every concept gets
+([live example](https://ekar-is.github.io/okf-skills/)). Every concept gets
 a deep link (`viz.html#services/auth-api`), and each panel shows two derived
 badges: the §5.3 trust tier and staleness once `stale_after` has passed. OKF
 stores neither, so both are computed at render time. Above 1000 concepts the
 layout falls back to linear; `--layout cose` overrides, `--max-nodes N` refuses.
 
 ```shell
-/okf:visualize .okf
+/okf-skills:visualize .okf
 uv run skills/visualize/scripts/okf_visualize.py .okf -o viz.html \
   --title "My project" --link "https://github.com/me/project"
 ```
 
 **Read a bundle over MCP.** Three read-only tools; nothing writes and no id
 resolves outside the bundle root. Inside Claude Code the server starts with the
-plugin on `./.okf` and appears as `mcp__plugin_okf_bundle__*`. For Claude Code
+plugin on `./.okf` and appears as `mcp__plugin_okf-skills_bundle__*`. For Claude Code
 it duplicates Read and Grep, and [the decision record](.okf/decisions/mcp-server.md)
 says so; it ships for the hosts that have nothing else.
 
@@ -273,4 +273,4 @@ Report vulnerabilities privately, as [SECURITY.md](SECURITY.md) describes.
   (the earlier copies under `GoogleCloudPlatform/open-knowledge-format` and
   `knowledge-catalog/okf` are no longer updated).
   `skills/okf/reference/SPEC.md` is vendored verbatim with attribution.
-- This plugin's own code and content: **MIT** © Marco Boffo ([@scaccogatto](https://github.com/scaccogatto)).
+- This plugin's own code and content: **MIT** © ekar.is and the okf-skills contributors ([@ekar-is](https://github.com/ekar-is)).

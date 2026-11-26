@@ -8,7 +8,7 @@ to) receives fixes. The plugin is pre-1.0, so there are no maintenance branches.
 ## Reporting a vulnerability
 
 Report it privately through GitHub:
-[Report a vulnerability](https://github.com/scaccogatto/okf-skills/security/advisories/new).
+[Report a vulnerability](https://github.com/ekar-is/okf-skills/security/advisories/new).
 Please do not open a public issue or PR for it.
 
 Include the affected component (a skill script, the MCP server, the Stop hook,

@@ -4,7 +4,7 @@ name: OKF Bundle Validator
 description: >-
   Check that an Open Knowledge Format (OKF) bundle is conformant with the v0.3
   spec. Deterministic, no account, no network.
-author: Marco Boffo
+author: ekar.is
 branding:
   icon: check-circle
   color: purple
