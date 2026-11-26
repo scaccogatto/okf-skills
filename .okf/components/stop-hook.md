@@ -146,3 +146,7 @@ set of required status checks does not change.
 * The loop guard greps the raw JSON for `"stop_hook_active": true` rather
   than parsing it — deliberate, so a missing `jq` can never disable the guard
   and re-block forever.
+* The script must parse under macOS `/bin/bash` 3.2: inside `$( )`, a `case`
+  pattern needs its leading paren (`("$root"/*)`), or 3.2 takes the `)` as the
+  end of the substitution. `tests/test_okf_stop_hook.py` runs `bash -n` and
+  `/bin/bash -n` on the hook to catch this, since CI is Linux only.

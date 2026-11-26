@@ -345,6 +345,25 @@ jobs:
       - name: Validate example bundle (strict, native cp1252 console)
         run: uv run skills/validate/scripts/okf_validate.py examples/sample-bundle --strict
 
+  test-macos:
+    # Stock macOS ships /bin/bash 3.2, whose parser is stricter than Linux's:
+    # the Stop hook must parse and run there. No newer bash is installed.
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+
+      - name: Unit tests for the Stop hook (system bash 3.2)
+        run: uv run tests/test_okf_stop_hook.py
+
+      - name: Unit tests - okf_validate internals
+        run: uv run tests/test_okf_validate.py
+
   version-bump:
     # A PR that changes the shipped surface must bump the plugin version, so the
     # release workflow (release.yml) then cuts a release for it. Docs, .okf/,
