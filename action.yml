@@ -2,7 +2,7 @@
 # users, and orgs; the description must be under 125 characters.
 name: OKF Bundle Validator
 description: >-
-  Check that an Open Knowledge Format (OKF) bundle is conformant with the v0.2
+  Check that an Open Knowledge Format (OKF) bundle is conformant with the v0.3
   spec. Deterministic, no account, no network.
 author: Marco Boffo
 branding:

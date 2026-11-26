@@ -6,7 +6,7 @@
 knowledge bundles: markdown your team and your agents both read.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
-[![OKF spec](https://img.shields.io/badge/OKF-v0.2-6E56CF.svg)](https://github.com/GoogleCloudPlatform/open-knowledge-format)
+[![OKF spec](https://img.shields.io/badge/OKF-v0.3-6E56CF.svg)](https://github.com/open-knowledge-format/open-knowledge-format)
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757.svg)](https://code.claude.com/docs/en/plugins)
 [![skills.sh](https://img.shields.io/badge/skills.sh-installable-22C55E.svg)](https://skills.sh/scaccogatto/okf-skills)
 
@@ -18,11 +18,11 @@ knowledge bundles: markdown your team and your agents both read.**
 
 ---
 
-[**OKF**](https://github.com/GoogleCloudPlatform/open-knowledge-format) is an
+[**OKF**](https://github.com/open-knowledge-format/open-knowledge-format) is an
 open, vendor-neutral format from Google Cloud ([announced June 2026](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing))
 that stores the knowledge around your systems as a directory of markdown files
 with YAML frontmatter. No schema registry, no runtime, no SDK: `cat` reads it,
-`git clone` ships it. v0.2 adds trust, provenance and staleness signals to the
+`git clone` ships it. Since v0.2 it carries trust, provenance and staleness signals in the
 frontmatter, so an agent can tell a verified fact from a stale guess.
 
 **This repo is the Claude Code-native toolchain for it.** Claude learns to
@@ -70,7 +70,7 @@ auditable map/reduce over subagents:
 ```
 
 **Validate** before committing. The checker is deterministic, §11 of the spec,
-not an eyeball pass. `--migrate` rewrites v0.1 constructs in place:
+not an eyeball pass. `--migrate` upgrades v0.1 and v0.2 bundles to v0.3 in place:
 
 ```shell
 /okf:validate .okf --strict
@@ -141,18 +141,19 @@ the project root a repo's directory may sit (`repos/app` is 2); `true` means 6. 
 | `hooks/` | The dormant Stop hook, armed by `upkeep: enforced`. |
 | `action.yml` | Composite GitHub Action around the validator. |
 | `templates/CLAUDE-okf.md` | The soft-mode snippet. |
-| `skills/okf/reference/SPEC.md` | OKF v0.2, vendored verbatim: the source of truth. |
+| `skills/okf/reference/SPEC.md` | OKF v0.3, vendored verbatim: the source of truth. |
 | `examples/sample-bundle/` | The bundle behind the live demo. |
 | `benchmark/` | Three published experiments, protocols and runs. |
 
 ## How a bundle looks
 
-A concept's path is its id. The only hard rule is YAML frontmatter with a
-non-empty `type`; everything else is optional.
+A concept's path is its id. A concept is a `.md` file whose YAML frontmatter
+has a non-empty `type`. Everything else is optional, and a `README.md` without
+frontmatter is simply not a concept.
 
 ```
 .okf/
-├── index.md                  # progressive disclosure (root carries okf_version)
+├── index.md                  # progressive disclosure (root: okf_version, title, description)
 ├── log.md                    # ISO-dated lifecycle events, newest first
 ├── services/auth-api.md      # one concept = one file
 └── decisions/use-okf.md
@@ -164,13 +165,13 @@ type: Service
 title: Auth API
 description: Issues and verifies short-lived access tokens.
 status: stable
-stale_after: 2026-12-31T00:00:00Z
-generated: { by: doc_agent/1.0, at: 2026-06-14T10:00:00Z }
-verified: { by: human:dana, at: 2026-06-20T09:00:00Z }
+stale_after: "2026-12-31T00:00:00Z"
+generated: { by: doc_agent/1.0, at: "2026-06-14T10:00:00Z" }
+verified: { by: "human:dana", at: "2026-06-20T09:00:00Z" }
 sources:
   - id: auth-readme
     resource: https://github.com/acme/auth#readme
-    last_modified: 2026-06-12T00:00:00Z
+    last_modified: "2026-06-12T00:00:00Z"
 ---
 
 # Endpoints
@@ -179,17 +180,24 @@ Tokens live 15 minutes.[^auth-readme]
 [^auth-readme]: Auth service README
 ```
 
-**What v0.2 adds**, all optional, all in frontmatter. Normative detail in
+**The metadata families**, all optional, all in frontmatter. Normative detail in
 [`SPEC.md`](skills/okf/reference/SPEC.md).
 
 | Family | Fields | Answers |
 |---|---|---|
 | Provenance | `sources[]` with `author`, `usage_count`, `last_modified`, `usage_window` | Where did this come from, how credible is it? |
-| Trust | `generated: {by, at}`, `verified[]`, actor prefixes `human:` / `process:` / `agent/version` | Who wrote it, who confirmed it? |
-| Lifecycle | `status`, `stale_after` | Is it current, is it still true? |
+| Trust | `generated: {by, at}`, `verified[]`, actor prefixes `human:` / `team:` / `process:` / `agent/version` | Who wrote it, who confirmed it since the last change? |
+| Lifecycle | `status`, `superseded_by`, `stale_after` | Is it current, what replaced it, when to check again? |
 | Attestation | `type: Attested Computation` with `runtime`, `parameters`, `executor`, `attester` | Was this number produced the sanctioned way? |
 
-Upgrading from v0.1: the tools read both, flag the old forms as warnings, and
+**What v0.3 changed** (§13): a bare path field resolves from its file's
+directory, not the bundle root, and a trust tier counts only verifications at or
+after `generated.at`. Date-only timestamps are valid again, a date-time needs an
+offset, the root `index.md` gains `title` / `description` / `license`, and
+`x-` keys are reserved for extensions.
+
+Upgrading from v0.1 or v0.2: the tools read the old forms (with the §12.1
+root fallback for v0.2 path fields), flag them as warnings, and
 `okf_validate.py --migrate` rewrites them in place.
 
 ## What has been measured
@@ -232,8 +240,9 @@ Report vulnerabilities privately, as [SECURITY.md](SECURITY.md) describes.
 
 ## Credits & license
 
-- The **Open Knowledge Format** specification is by the Google Cloud Data Cloud
-  team, Apache-2.0, at [GoogleCloudPlatform/open-knowledge-format](https://github.com/GoogleCloudPlatform/open-knowledge-format)
-  (the earlier copy under `knowledge-catalog/okf` is a frozen snapshot).
+- The **Open Knowledge Format** specification originates from the Google Cloud
+  Data Cloud team, Apache-2.0, now at [open-knowledge-format/open-knowledge-format](https://github.com/open-knowledge-format/open-knowledge-format)
+  (the earlier copies under `GoogleCloudPlatform/open-knowledge-format` and
+  `knowledge-catalog/okf` are no longer updated).
   `skills/okf/reference/SPEC.md` is vendored verbatim with attribution.
 - This plugin's own code and content: **MIT** © Marco Boffo ([@scaccogatto](https://github.com/scaccogatto)).

@@ -29,6 +29,9 @@ This project keeps shared knowledge as an OKF bundle in `.okf/`.
   resolve every error.
 
 Conformance rule to respect: every concept file needs YAML frontmatter with a
-non-empty `type`. Everything else is optional. The bundle targets OKF v0.2 — if
-you meet a v0.1 concept (a `timestamp` field or a `# Citations` section), migrate
-it to `generated.at` / `sources` as part of the edit.
+non-empty `type` (a `.md` without one is skipped as a non-concept). Everything
+else is optional. The bundle targets OKF v0.3. If you meet a v0.1 concept (a
+`timestamp` field or a `# Citations` section), migrate it to `generated.at` /
+`sources` as part of the edit. Write in-bundle path fields with a leading `/`,
+and bump `generated.at` whenever you change content, so an older human review no
+longer counts as current.
