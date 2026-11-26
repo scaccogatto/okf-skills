@@ -5,7 +5,7 @@ description: GitHub Actions workflow that validates, exercises the action, and g
 resource: https://github.com/scaccogatto/okf-skills/blob/main/.github/workflows/ci.yml
 tags: [ci, github-actions, validation]
 status: stable
-generated: { by: "agent:claude-opus-5-5", at: "2026-10-13T00:00:00Z" }
+generated: { by: "claude/opus-5.5", at: "2026-11-26T00:00:00Z" }
 ---
 
 # Overview
@@ -96,6 +96,10 @@ hook enforces locally for anyone running it (see the [stop-hook
 component](/components/stop-hook.md)); contributors not running the plugin
 still hit the gate here. All three steps share the same PR-only guard and the
 same `skip-version-check` label bypass.
+
+The `test-macos` job runs the Stop hook and validator tests on `macos-latest`
+with the stock `/bin/bash` 3.2 (no newer bash installed), since Linux's bash
+accepts syntax that 3.2 rejects.
 
 # Relationships
 

@@ -13,6 +13,7 @@ OKF spec version it supports.
   with a syntax error (exit 2) and blocked every Stop for bundles with
   `recursive` enabled. The pattern now starts with `(`, and a test runs
   `bash -n` and `/bin/bash -n` on the hook.
+  CI gains a `test-macos` job that runs the hook and validator tests on macOS.
 
 ## [0.12.0] - 2026-10-19
 

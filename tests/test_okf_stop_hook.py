@@ -358,7 +358,7 @@ class TestStopHook(unittest.TestCase):
 
 
 class TestHookSyntax(unittest.TestCase):
-    """CI runs Linux only: /bin/bash on macOS is 3.2, whose parser is stricter."""
+    """/bin/bash on macOS is 3.2, whose parser is stricter than Linux's (CI covers it in test-macos)."""
 
     def check_syntax(self, bash: str) -> None:
         r = subprocess.run([bash, "-n", str(HOOK)], capture_output=True, text=True, check=False)
